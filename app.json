@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Roots & Morphology Demo",
+    "slug": "rtm",
+    "version": "1.2.0",
+    "orientation": "portrait",
+    "icon": "./assets/icons/R-AppIcon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/icons/R-white.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2E8B57"
+    },
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/R-AppIcon.png",
+        "backgroundColor": "#1B42CE"
+      },
+      "package": "com.splurridge.rtm"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/icons/R-AppIcon.png"
+    },
+    "plugins": ["expo-router", "expo-font"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ec9374f5-5d42-4186-a82f-baedf7eb7460"
+      }
+    }
+  }
+}
