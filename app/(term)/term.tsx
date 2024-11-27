@@ -67,7 +67,7 @@ const TermScreen = () => {
       }
 
       const response = await fetch(
-        `https://rtm-aiven-backend.onrender.com/api/volume/${system}/${id}`,
+        `https://localhost:3000/api/volume/${system}/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -106,7 +106,7 @@ const TermScreen = () => {
       }
 
       const response = await fetch(
-        `https://rtm-aiven-backend.onrender.com/api/bookmark/${system}/${id}`,
+        `https://localhost:3000/api/bookmark/${system}/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -136,8 +136,8 @@ const TermScreen = () => {
 
     try {
       const url = newBookmarkState
-        ? `https://rtm-aiven-backend.onrender.com/api/bookmark/${system}/add`
-        : `https://rtm-aiven-backend.onrender.com/api/bookmark/${system}/remove`;
+        ? `https://localhost:3000/api/bookmark/${system}/add`
+        : `https://localhost:3000/api/bookmark/${system}/remove`;
 
       const response = await fetch(url, {
         method: "POST",

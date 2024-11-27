@@ -24,7 +24,7 @@ const ChangePassword = () => {
       const userMail = await AsyncStorage.getItem("user_mail");
 
       const response = await axios.post(
-        "https://rtm-aiven-backend.onrender.com/api/auth/changePassword",
+        "https://localhost:3000/api/auth/changePassword",
         {
           user_mail: userMail,
           current_password: currentPassword,

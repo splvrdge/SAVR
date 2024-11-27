@@ -41,7 +41,7 @@ const Home = () => {
         const token = await getToken();
 
         const response = await fetch(
-          "https://rtm-aiven-backend.onrender.com/api/volume/volumes",
+          "https://localhost:3000/api/volume/volumes",
           {
             method: "GET",
             headers: {
@@ -115,7 +115,7 @@ const Home = () => {
     try {
       const token = await getToken();
       const response = await fetch(
-        "https://rtm-aiven-backend.onrender.com/api/volume/volumes",
+        "https://localhost:3000/api/volume/volumes",
         {
           method: "GET",
           headers: {
