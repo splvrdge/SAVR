@@ -54,7 +54,7 @@ const EditProfile = () => {
       }
 
       const response = await fetch(
-        "https://rtm-aiven-backend.onrender.com/api/user/profile",
+        "https://localhost:3000/api/user/profile",
         {
           method: "PUT",
           headers: {

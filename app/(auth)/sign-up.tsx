@@ -52,7 +52,7 @@ const SignUp = () => {
 
     try {
       const checkEmailResponse = await fetch(
-        `https://rtm-aiven-backend.onrender.com/api/auth/checkEmail`,
+        `https://localhost:3000/api/auth/checkEmail`,
         {
           method: "POST",
           headers: {
@@ -79,7 +79,7 @@ const SignUp = () => {
       }
 
       const signupResponse = await fetch(
-        "https://rtm-aiven-backend.onrender.com/api/auth/signup",
+        "https://localhost:3000/api/auth/signup",
         {
           method: "POST",
           headers: {
