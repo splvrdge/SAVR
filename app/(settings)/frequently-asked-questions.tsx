@@ -17,7 +17,7 @@ const FAQs = () => {
             className="w-6 h-6"
           />
         </TouchableOpacity>
-        <Text className="text-lg font-bold text-customBlue ml-3">
+        <Text className="text-lg font-bold text-customGreen ml-3">
           Frequently Asked Questions (FAQs)
         </Text>
       </View>

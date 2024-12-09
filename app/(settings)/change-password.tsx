@@ -24,7 +24,7 @@ const ChangePassword = () => {
       const userMail = await AsyncStorage.getItem("user_mail");
 
       const response = await axios.post(
-        "https://localhost:3000/api/auth/changePassword",
+        "https://savr-backend.onrender.com/api/auth/changePassword",
         {
           user_mail: userMail,
           current_password: currentPassword,
@@ -59,7 +59,7 @@ const ChangePassword = () => {
             className="w-6 h-6"
           />
         </TouchableOpacity>
-        <Text className="text-2xl font-bold text-customBlue ml-3">
+        <Text className="text-2xl font-bold text-customGreen ml-3">
           Change Password
         </Text>
       </View>
@@ -86,7 +86,7 @@ const ChangePassword = () => {
           secureTextEntry
         />
         <TouchableOpacity
-          className="mt-8 bg-customBlue py-3 rounded-lg"
+          className="mt-8 bg-customGreen py-3 rounded-lg"
           onPress={handleChangePassword}
         >
           <Text className="text-white text-center font-bold">

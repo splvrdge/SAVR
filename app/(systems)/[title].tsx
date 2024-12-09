@@ -126,56 +126,52 @@ const SystemScreen = () => {
 
     switch (decodedTitle) {
       case "Sample Terms":
-        url = "https://localhost:3000/api/volume/sample-terms";
+        url = "https://savr-backend.onrender.com/api/volume/sample-terms";
         break;
       case "Skeletal System":
-        url =
-          "https://localhost:3000/api/volume/skeletal-terms";
+        url = "https://savr-backend.onrender.com/api/volume/skeletal-terms";
         break;
       case "Cardiovascular System":
         url =
-          "https://localhost:3000/api/volume/cardiovascular-terms";
+          "https://savr-backend.onrender.com/api/volume/cardiovascular-terms";
         break;
       case "Integumentary System":
         url =
-          "https://localhost:3000/api/volume/integumentary-terms";
+          "https://savr-backend.onrender.com/api/volume/integumentary-terms";
         break;
       case "Nervous System":
-        url = "https://localhost:3000/api/volume/nervous-terms";
+        url = "https://savr-backend.onrender.com/api/volume/nervous-terms";
         break;
       case "Reproductive System":
-        url =
-          "https://localhost:3000/api/volume/reproductive-terms";
+        url = "https://savr-backend.onrender.com/api/volume/reproductive-terms";
         break;
       case "Respiratory System":
-        url =
-          "https://localhost:3000/api/volume/respiratory-terms";
+        url = "https://savr-backend.onrender.com/api/volume/respiratory-terms";
         break;
       case "Urinary System":
-        url = "https://localhost:3000/api/volume/urinary-terms";
+        url = "https://savr-backend.onrender.com/api/volume/urinary-terms";
         break;
       case "Digestive System":
-        url =
-          "https://localhost:3000/api/volume/digestive-terms";
+        url = "https://savr-backend.onrender.com/api/volume/digestive-terms";
         break;
       case "Immune System":
-        url = "https://localhost:3000/api/volume/immune-terms";
+        url = "https://savr-backend.onrender.com/api/volume/immune-terms";
         break;
       case "Joint and Directional Terms":
         url =
-          "https://localhost:3000/api/volume/joint-and-directional-terms";
+          "https://savr-backend.onrender.com/api/volume/joint-and-directional-terms";
         break;
       case "Latin Muscle Names in English":
         url =
-          "https://localhost:3000/api/volume/latin-muscle-names-in-english";
+          "https://savr-backend.onrender.com/api/volume/latin-muscle-names-in-english";
         break;
       case "Muscular System Physiology":
         url =
-          "https://localhost:3000/api/volume/muscular-system-physiology";
+          "https://savr-backend.onrender.com/api/volume/muscular-system-physiology";
         break;
       case "Plane and Directional Terms":
         url =
-          "https://localhost:3000/api/volume/plane-and-directional-terms";
+          "https://savr-backend.onrender.com/api/volume/plane-and-directional-terms";
         break;
       default:
         console.error("Unknown title:", decodedTitle);
@@ -217,7 +213,7 @@ const SystemScreen = () => {
       }
 
       const response = await axios.get(
-        `https://localhost:3000/api/bookmark/${decodedTitle
+        `https://savr-backend.onrender.com/api/bookmark/${decodedTitle
           .toLowerCase()
           .replace(/\s+/g, "-")}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -264,10 +260,10 @@ const SystemScreen = () => {
 
       const isBookmarked = bookmarkedTerms[termId];
       const url = isBookmarked
-        ? `https://localhost:3000/api/bookmark/${decodedTitle
+        ? `https://savr-backend.onrender.com/api/bookmark/${decodedTitle
             .toLowerCase()
             .replace(/\s+/g, "-")}/remove`
-        : `https://localhost:3000/api/bookmark/${decodedTitle
+        : `https://savr-backend.onrender.com/api/bookmark/${decodedTitle
             .toLowerCase()
             .replace(/\s+/g, "-")}/add`;
 

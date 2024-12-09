@@ -44,7 +44,7 @@ const Roots = ({ title, htmlContent }) => {
     <View>
       <View>
         <Text
-          className="pb-1 font-semibold text-customBlue"
+          className="pb-1 font-semibold text-customGreen"
           style={{ fontSize: responsiveFontSize(10) }}
         >
           {title}

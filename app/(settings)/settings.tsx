@@ -17,7 +17,7 @@ const Settings = () => {
             className="w-6 h-6"
           />
         </TouchableOpacity>
-        <Text className="text-2xl font-bold text-customBlue ml-3">
+        <Text className="text-2xl font-bold text-customGreen ml-3">
           Settings
         </Text>
       </View>

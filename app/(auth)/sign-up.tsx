@@ -52,7 +52,7 @@ const SignUp = () => {
 
     try {
       const checkEmailResponse = await fetch(
-        `https://localhost:3000/api/auth/checkEmail`,
+        `https://savr-backend.onrender.com/api/auth/checkEmail`,
         {
           method: "POST",
           headers: {
@@ -79,7 +79,7 @@ const SignUp = () => {
       }
 
       const signupResponse = await fetch(
-        "https://localhost:3000/api/auth/signup",
+        "https://savr-backend.onrender.com/api/auth/signup",
         {
           method: "POST",
           headers: {

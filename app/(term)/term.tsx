@@ -67,7 +67,7 @@ const TermScreen = () => {
       }
 
       const response = await fetch(
-        `https://localhost:3000/api/volume/${system}/${id}`,
+        `https://savr-backend.onrender.com/api/volume/${system}/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -106,7 +106,7 @@ const TermScreen = () => {
       }
 
       const response = await fetch(
-        `https://localhost:3000/api/bookmark/${system}/${id}`,
+        `https://savr-backend.onrender.com/api/bookmark/${system}/${id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -136,8 +136,8 @@ const TermScreen = () => {
 
     try {
       const url = newBookmarkState
-        ? `https://localhost:3000/api/bookmark/${system}/add`
-        : `https://localhost:3000/api/bookmark/${system}/remove`;
+        ? `https://savr-backend.onrender.com/api/bookmark/${system}/add`
+        : `https://savr-backend.onrender.com/api/bookmark/${system}/remove`;
 
       const response = await fetch(url, {
         method: "POST",
@@ -329,7 +329,7 @@ const TermScreen = () => {
     termDetails?.focus;
 
   return (
-    <SafeAreaView className="flex-1 bg-customBlue" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-customGreen" edges={["top"]}>
       <DynamicHeader value={scrollOffsetY} />
       <StatusBar style="light" />
       <ScrollView

@@ -46,7 +46,7 @@ const RelevantTerms = ({ title, htmlContent }) => {
     <View className="mt-8">
       <View>
         <Text
-          className="font-semibold text-customBlue"
+          className="font-semibold text-customGreen"
           style={{ fontSize: responsiveFontSize(10) }}
         >
           {title}
