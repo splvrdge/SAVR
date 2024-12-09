@@ -42,7 +42,7 @@ const Bookmarks = () => {
     try {
       const token = await getToken();
       const response = await fetch(
-        "https://localhost:3000/api/volume/volumes",
+        "https://savr-backend.onrender.com/api/volume/volumes",
         {
           method: "GET",
           headers: {
@@ -134,7 +134,7 @@ const Bookmarks = () => {
                   tintColor: "#1B42CE",
                 }}
               />
-              <Text className="text-2xl font-bold text-customBlue mt-0.5 ml-2">
+              <Text className="text-2xl font-bold text-customGreen mt-0.5 ml-2">
                 Bookmarks
               </Text>
             </View>

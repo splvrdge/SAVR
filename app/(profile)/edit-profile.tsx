@@ -54,7 +54,7 @@ const EditProfile = () => {
       }
 
       const response = await fetch(
-        "https://localhost:3000/api/user/profile",
+        "https://savr-backend.onrender.com/api/user/profile",
         {
           method: "PUT",
           headers: {

@@ -46,7 +46,7 @@ const TermMorphology = ({ title, htmlContent }) => {
     <View>
       <View>
         <Text
-          className="font-semibold text-customBlue pb-2"
+          className="font-semibold text-customGreen pb-2"
           style={{ fontSize: responsiveFontSize(10) }}
         >
           {title}

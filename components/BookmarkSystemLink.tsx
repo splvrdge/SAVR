@@ -43,7 +43,7 @@ const BookmarkSystemLink = ({ title, status, onPress }) => {
         colors={["#204BE4", "#3F67F6"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        className="bg-customBlue rounded-[16px] h-14 mb-2 justify-between flex-row items-center"
+        className="bg-customGreen rounded-[16px] h-14 mb-2 justify-between flex-row items-center"
       >
         {content}
       </LinearGradient>

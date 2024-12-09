@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import "../global.css";
 
 const screenWidth = Dimensions.get("window").width;
 const scaleFactor = screenWidth / 320;
@@ -62,7 +63,7 @@ export default function App() {
       title: "Track Your Expenses",
       description:
         "Gain insights into your spending habits and manage your finances with ease. Track every penny and stay in control.",
-      image: require("../assets/images/onboarding/1.png"),
+      image: require("../assets/icons/savr-green.png"),
     },
     {
       id: 2,

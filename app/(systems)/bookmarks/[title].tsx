@@ -98,7 +98,7 @@ const BookmarkedSystemScreen = () => {
       }
 
       const response = await axios.get(
-        `https://localhost:3000/api/bookmark/${decodedTitle
+        `https://savr-backend.onrender.com/api/bookmark/${decodedTitle
           .toLowerCase()
           .replace(/\s+/g, "-")}`,
         {
@@ -135,7 +135,7 @@ const BookmarkedSystemScreen = () => {
       }
 
       setBookmarkLoading(true);
-      const url = `https://localhost:3000/api/bookmark/${decodedTitle
+      const url = `https://savr-backend.onrender.com/api/bookmark/${decodedTitle
         .toLowerCase()
         .replace(/\s+/g, "-")}/remove`;
 

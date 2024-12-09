@@ -34,7 +34,7 @@ const BriefDefinition = ({ title, htmlContent }) => {
   return (
     <View>
       <Text
-        className="pb-2 font-semibold text-customBlue"
+        className="pb-2 font-semibold text-customGreen"
         style={{ fontSize: responsiveFontSize(10) }}
       >
         {title}

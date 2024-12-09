@@ -1,44 +1,41 @@
 {
   "expo": {
-    "name": "Roots & Morphology Demo",
-    "slug": "rtm",
-    "version": "1.2.0",
+    "name": "Savr - Finance Tracker",
+    "slug": "savr",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icons/savr-logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/icons/savr-white.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#2E8B57"
-    },
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/savr-logo.png",
         "backgroundColor": "#1B42CE"
-      },
-      "package": "com.splurridge.rtm"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/icons/savr-logo.png"
     },
-    "plugins": ["expo-router", "expo-font"],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icons/savr-white.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#2E8B57"
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "ec9374f5-5d42-4186-a82f-baedf7eb7460"
-      }
     }
   }
 }

@@ -4,7 +4,6 @@ import {
   Text,
   Button,
   TouchableOpacity,
-  StyleSheet,
   Image,
   ScrollView,
   ActivityIndicator,
@@ -76,7 +75,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View className="flex-1 justify-center items-center">
         <ActivityIndicator size="large" color="#1B42CE" />
       </View>
     );
@@ -91,19 +90,19 @@ const Profile = () => {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         >
-          <View className="px-8 pt-8 bg-customBlue pb-11 rounded-b-[40px]">
+          <View className="px-8 pt-8 bg-customGreen pb-11 rounded-b-[40px]">
             <View className="pt-[40px] flex-row justify-between">
               <TouchableOpacity onPress={() => router.back()}>
                 <Image
                   source={require("../../assets/icons/back.png")}
-                  style={{ width: 26, height: 26, tintColor: "white" }}
+                  className="w-[26px] h-[26px] tint-white"
                 />
               </TouchableOpacity>
               <WhiteHeader text="Profile" />
               <TouchableOpacity onPress={handleEditProfile}>
                 <Image
                   source={require("../../assets/icons/compose.png")}
-                  style={{ width: 28, height: 28, tintColor: "white" }}
+                  className="w-[28px] h-[28px] tint-white"
                 />
               </TouchableOpacity>
             </View>
@@ -120,7 +119,7 @@ const Profile = () => {
           </View>
           <View className="mt-10 w-full ml-10">
             <TouchableOpacity
-              className="flex-row py-2 items-center align-middle"
+              className="flex-row py-2 items-center"
               onPress={() => router.push("/bookmarks")}
             >
               <Image
@@ -132,7 +131,7 @@ const Profile = () => {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-row py-2 items-center align-middle"
+              className="flex-row py-2 items-center"
               onPress={() => router.push("/settings")}
             >
               <Image
@@ -143,7 +142,7 @@ const Profile = () => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleLogout}
-              className="flex-row py-2 items-center align-middle pt-10"
+              className="flex-row py-2 items-center pt-10"
             >
               <Image
                 source={require("../../assets/icons/logout.png")}
@@ -158,9 +157,9 @@ const Profile = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.text}>You are not logged in</Text>
-      <View style={styles.buttonContainer}>
+    <View className="flex-1 justify-center items-center">
+      <Text className="text-lg mb-2">You are not logged in</Text>
+      <View className="w-4/5 space-y-4">
         <Button
           title="Sign Up"
           onPress={() => router.push("/(auth)/sign-up")}
@@ -173,22 +172,5 @@ const Profile = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 18,
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    marginTop: 20,
-    width: "80%",
-    justifyContent: "space-around",
-  },
-});
 
 export default Profile;
