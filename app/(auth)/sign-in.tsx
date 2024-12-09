@@ -96,7 +96,7 @@ const SignIn = () => {
     <SafeAreaView className="bg-white h-full">
       <ScrollView>
         <View className="w-full h-full justify-center px-8 my-5 min-h-[70vh]">
-          <GradientText text="Login kuno si welyn" />
+          <GradientText text="Login" />
           <FormField
             title="Email"
             value={form.email}
