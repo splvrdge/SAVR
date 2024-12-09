@@ -62,7 +62,7 @@ export default function App() {
       title: "Track Your Expenses",
       description:
         "Gain insights into your spending habits and manage your finances with ease. Track every penny and stay in control.",
-      image: require("../assets/icons/savr-green.png"),
+      image: require("../assets/images/onboarding/1.png"),
     },
     {
       id: 2,
