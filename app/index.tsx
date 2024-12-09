@@ -59,23 +59,23 @@ export default function App() {
   const slides = [
     {
       id: 1,
-      title: "Roots and Morphology",
+      title: "Track Your Expenses",
       description:
-        "Explore the linguistic foundation of Anatomy and Physiology through an in-depth look at Roots and Morphology.",
-      image: require("../assets/icons/R-outline.png"),
+        "Gain insights into your spending habits and manage your finances with ease. Track every penny and stay in control.",
+      image: require("../assets/icons/savr-green.png"),
     },
     {
       id: 2,
-      title: "Linguistic Foundation",
+      title: "Set Financial Goals",
       description:
-        "Rediscover the linguistic foundation of Anatomy terms metaphorically, figuratively, simile, poetically, and literally.",
+        "Plan for the future by setting and achieving financial goals. Save smarter, spend wiser, and reach your targets.",
       image: require("../assets/images/onboarding/2.png"),
     },
     {
       id: 3,
-      title: "About The Author",
+      title: "Secure and Reliable",
       description:
-        "Lee Oliva was educated in the classics in a Catholic Seminary by the Vincentian Missionaries. A Doctor of Chiropractic, He graduated from Palmer College of Chiropractic - West., San Jose, California. Received his Bachelor's degree in Business Administration, California State University, Los Angeles. This app is owned and maintained by Lee Oliva and Maria Siervo.",
+        "Your financial data is safe with us. Our app ensures top-notch security while providing reliable tracking and reporting.",
       image: require("../assets/images/onboarding/3.png"),
     },
   ];
