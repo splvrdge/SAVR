@@ -231,7 +231,7 @@ const TermScreen = () => {
 
     const animatedHeaderColor = value.interpolate({
       inputRange: [0, Scroll_Distance],
-      outputRange: ["#1B42CE", "#1B42CE"],
+      outputRange: ["#2E8B57", "#2E8B57"],
       extrapolate: "clamp",
     });
 

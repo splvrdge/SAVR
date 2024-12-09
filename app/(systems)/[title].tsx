@@ -54,7 +54,7 @@ const DynamicHeader = ({ value, title, onSearchPress }) => {
         <TouchableOpacity onPress={() => router.back()}>
           <Image
             source={require("../../assets/icons/back.png")}
-            style={{ width: 26, height: 26, tintColor: "#1B42CE" }}
+            style={{ width: 26, height: 26, tintColor: "#2E8B57" }}
           />
         </TouchableOpacity>
         <Text style={styles.title}>{title}</Text>
@@ -65,7 +65,7 @@ const DynamicHeader = ({ value, title, onSearchPress }) => {
               style={{
                 width: 35,
                 height: 35,
-                tintColor: "#1B42CE",
+                tintColor: "#2E8B57",
               }}
             />
           </TouchableOpacity>
@@ -332,7 +332,7 @@ const SystemScreen = () => {
         <View style={{ flex: 1 }}>
           {loading ? (
             <View style={{ flex: 1 }}>
-              <ActivityIndicator size="large" color="#1B42CE" />
+              <ActivityIndicator size="large" color="#2E8B57" />
             </View>
           ) : filteredTerms.length > 0 ? (
             <View
@@ -401,14 +401,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 17,
-    color: "#1B42CE",
+    color: "#2E8B57",
     fontWeight: "bold",
     paddingLeft: 10,
   },
   searchContainer: {
     marginBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#1B42CE",
+    borderBottomColor: "#2E8B57",
   },
   searchInput: {
     height: 40,

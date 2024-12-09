@@ -76,7 +76,7 @@ const Profile = () => {
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#1B42CE" />
+        <ActivityIndicator size="large" color="#2E8B57" />
       </View>
     );
   }

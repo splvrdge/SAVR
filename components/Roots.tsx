@@ -27,7 +27,7 @@ const Roots = ({ title, htmlContent }) => {
           marginBottom: 0,
           paddingHorizontal: 0,
           borderLeftWidth: 3,
-          borderLeftColor: "#1B42CE",
+          borderLeftColor: "#2E8B57",
         },
         li: {
           paddingHorizontal: responsiveFontSize(16),

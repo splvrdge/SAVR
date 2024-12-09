@@ -1,22 +1,16 @@
-import { View, Text, Image } from "react-native";
-import { Tabs } from "expo-router";
 import React from "react";
-import { icons } from "../../constants/icons";
+import { View, Text } from "react-native";
+import { Tabs } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-const TabIcon = ({ icon, color, name, focused }) => {
+const TabIcon = ({ name, color, focused }) => {
   return (
-    <View className="flex items-center justify-center gap-2">
-      <Image
-        source={icon}
-        resizeMode="contain"
-        style={{ width: 24, height: 24, tintColor: color }}
-      />
+    <View className="flex items-center justify-center">
+      <MaterialCommunityIcons name={name} size={32} color={color} />
       <Text
-        className={`${focused ? "font-psemibold" : "font-pregular"} text-xs`}
-        style={{ color: color }}
-      >
-        {name}
-      </Text>
+        className={`${focused ? "font-semibold" : "font-normal"} text-2xl`}
+        style={{ color }}
+      ></Text>
     </View>
   );
 };
@@ -25,12 +19,13 @@ const TabsLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#1B42CE",
+        tabBarActiveTintColor: "#2E8B57",
         tabBarInactiveTintColor: "#8E8E8E",
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
         tabBarStyle: {
           backgroundColor: "#fff",
-          height: 105,
+          height: 110,
+          paddingTop: 20,
         },
       }}
     >
@@ -40,45 +35,40 @@ const TabsLayout = () => {
           title: "Home",
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              icon={icons.home}
-              color={color}
-              name="Home"
-              focused={focused}
-            />
+            <TabIcon name="home-outline" color={color} focused={focused} />
           ),
         }}
       />
       <Tabs.Screen
-        name="bookmarks"
+        name="income"
         options={{
-          title: "Bookmarks",
+          title: "Income",
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              icon={icons.bookmarks}
-              color={color}
-              name="Bookmarks"
-              focused={focused}
-            />
+            <TabIcon name="cash-multiple" color={color} focused={focused} />
           ),
         }}
       />
-      {/* <Tabs.Screen
-        name="profile"
+      <Tabs.Screen
+        name="expenses"
         options={{
-          title: "Profile",
+          title: "Expenses",
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              icon={icons.profile}
-              color={color}
-              name="Profile"
-              focused={focused}
-            />
+            <TabIcon name="wallet-outline" color={color} focused={focused} />
           ),
         }}
-      /> */}
+      />
+      <Tabs.Screen
+        name="goals"
+        options={{
+          title: "Goals",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="target" color={color} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 };
