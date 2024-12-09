@@ -50,7 +50,7 @@ const BookmarkedSystemScreen = () => {
           <TouchableOpacity onPress={() => router.back()}>
             <Image
               source={require("@/assets/icons/back.png")}
-              style={{ width: 26, height: 26, tintColor: "#1B42CE" }}
+              style={{ width: 26, height: 26, tintColor: "#2E8B57" }}
             />
           </TouchableOpacity>
           <Text style={styles.title}>{title}</Text>
@@ -187,7 +187,7 @@ const BookmarkedSystemScreen = () => {
         <View style={{ paddingHorizontal: 8, flex: 1 }}>
           {loading ? (
             <View style={{ flex: 1 }}>
-              <ActivityIndicator size="large" color="#1B42CE" />
+              <ActivityIndicator size="large" color="#2E8B57" />
             </View>
           ) : terms.length > 0 ? (
             <View
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    color: "#1B42CE",
+    color: "#2E8B57",
     fontWeight: "bold",
     paddingLeft: 10,
   },

@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icons/savr-logo.png",
-        "backgroundColor": "#1B42CE"
+        "backgroundColor": "#2E8B57"
       }
     },
     "web": {
