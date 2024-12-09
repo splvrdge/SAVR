@@ -4,11 +4,11 @@
     "slug": "rtm",
     "version": "1.2.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/R-AppIcon.png",
+    "icon": "./assets/icons/savr-logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/icons/R-white.png",
+      "image": "./assets/icons/savr-white.png",
       "resizeMode": "contain",
       "backgroundColor": "#2E8B57"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/R-AppIcon.png",
+        "foregroundImage": "./assets/icons/savr-logo.png",
         "backgroundColor": "#1B42CE"
       },
       "package": "com.splurridge.rtm"
@@ -26,7 +26,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/icons/R-AppIcon.png"
+      "favicon": "./assets/icons/savr-logo.png"
     },
     "plugins": ["expo-router", "expo-font"],
     "experiments": {
