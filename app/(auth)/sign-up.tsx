@@ -8,6 +8,7 @@ import { Link, useRouter } from "expo-router";
 import { CheckBox } from "react-native-elements";
 import GradientText from "@/constants/GradientText";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Joi from "joi";
 
 const SignUp = () => {
   const [form, setForm] = useState({
@@ -34,17 +35,41 @@ const SignUp = () => {
     checkAuth();
   }, []);
 
-  const submit = async () => {
-    if (!validateEmail(form.email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
-      return;
-    }
+  const signUpSchema = Joi.object({
+    name: Joi.string().min(3).max(30).required().messages({
+      "string.base": "Name must be a string.",
+      "string.min": "Name must be at least 3 characters.",
+      "string.max": "Name cannot exceed 30 characters.",
+      "any.required": "Name is required.",
+    }),
+    email: Joi.string().email().required().messages({
+      "string.email": "Please provide a valid email address.",
+      "any.required": "Email is required.",
+    }),
+    password: Joi.string()
+      .pattern(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/)
+      .required()
+      .messages({
+        "string.pattern.base":
+          "Password must be at least 8 characters long, include a number, an uppercase letter, and a lowercase letter.",
+        "any.required": "Password is required.",
+      }),
+  });
 
-    if (!isPasswordValid(form.password)) {
-      Alert.alert(
-        "Invalid Password",
-        "Your password must be at least 8 characters long, include a number, an uppercase letter, and a lowercase letter."
-      );
+  const validateSignUp = (form: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
+    const { error } = signUpSchema.validate(form);
+    return error ? error.details[0].message : null;
+  };
+
+  const submit = async () => {
+    const validationError = validateSignUp(form);
+
+    if (validationError) {
+      Alert.alert("Validation Error", validationError);
       return;
     }
 
@@ -108,7 +133,7 @@ const SignUp = () => {
         Alert.alert("Error", responseData.message || "Signup failed.");
       }
 
-      setForm({ name: "", email: "", password: "" }); // Clear form fields
+      setForm({ name: "", email: "", password: "" });
     } catch (error) {
       console.error("Error signing up:", error);
       Alert.alert(
@@ -120,19 +145,8 @@ const SignUp = () => {
     }
   };
 
-  const validateEmail = (email) => {
-    // Regular expression for basic email validation
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-  };
-
   const isFormComplete =
     form.name !== "" && form.email !== "" && form.password !== "" && isChecked;
-
-  const isPasswordValid = (password) => {
-    const regex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
-    return regex.test(password);
-  };
 
   if (isLoading) {
     return (

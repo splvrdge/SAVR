@@ -6,28 +6,35 @@ import CustomButton from "@/components/CustomButton";
 import { StatusBar } from "expo-status-bar";
 import { Link, useRouter } from "expo-router";
 import GradientText from "@/constants/GradientText";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
-const SignIn = () => {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+interface LoginForm {
+  email: string;
+  password: string;
+}
 
+interface LoginResponse {
+  success: boolean;
+  message: string;
+  token?: string;
+  user_name?: string;
+}
+
+const SignIn: React.FC = () => {
+  const [form, setForm] = useState<LoginForm>({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("token");
+      const token = await SecureStore.getItemAsync("accessToken");
       if (token) {
         router.replace("/(tabs)/home");
       } else {
         setIsLoading(false);
       }
     };
-
     checkAuth();
   }, []);
 
@@ -53,19 +60,13 @@ const SignIn = () => {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
-      const responseData = await response.json();
+      const responseData: LoginResponse = await response.json();
 
       if (responseData.success) {
-        await AsyncStorage.setItem("token", responseData.token);
-        await AsyncStorage.setItem("userEmail", form.email);
-        await AsyncStorage.setItem("userName", responseData.user_name);
-
-        const storedUserName = await AsyncStorage.getItem("userName");
-        if (storedUserName !== responseData.user_name) {
-          router.replace("/home");
-        } else {
-          router.replace("/(tabs)/home");
-        }
+        await SecureStore.setItemAsync("accessToken", responseData.token!);
+        await SecureStore.setItemAsync("userEmail", form.email);
+        await SecureStore.setItemAsync("userName", responseData.user_name!);
+        router.replace("/(tabs)/home");
       } else {
         Alert.alert("Error", responseData.message);
       }
@@ -100,14 +101,14 @@ const SignIn = () => {
           <FormField
             title="Email"
             value={form.email}
-            handleChangeText={(e: any) => setForm({ ...form, email: e })}
+            handleChangeText={(e: string) => setForm({ ...form, email: e })}
             otherStyles="mt-7"
             keyboardType="email-address"
           />
           <FormField
             title="Password"
             value={form.password}
-            handleChangeText={(e: any) => setForm({ ...form, password: e })}
+            handleChangeText={(e: string) => setForm({ ...form, password: e })}
             otherStyles="mt-7"
           />
           <Text className="mt-4 text-gray-600">Forgot Password?</Text>
