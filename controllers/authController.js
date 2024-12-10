@@ -1,22 +1,37 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
-const { secretKey, tokenExpiration } = require("../config/auth");
+const {
+  secretKey,
+  tokenExpiration,
+  refreshTokenSecret,
+  refreshTokenExpiration,
+} = require("../config/auth");
 
-function generateToken(user) {
+function generateAccessToken(user) {
   return jwt.sign(
-    { user_mail: user.user_mail, user_name: user.user_name },
+    {
+      user_id: user.user_id,
+      user_email: user.user_email,
+      user_name: user.user_name,
+    },
     secretKey,
     { expiresIn: tokenExpiration }
   );
 }
 
+function generateRefreshToken(user) {
+  return jwt.sign({ user_id: user.user_id }, refreshTokenSecret, {
+    expiresIn: refreshTokenExpiration,
+  });
+}
+
 exports.login = async (req, res) => {
-  const { user_mail, user_password } = req.body;
-  const query = `SELECT * FROM user WHERE user_mail = ?`;
+  const { user_email, user_password } = req.body;
+  const query = `SELECT * FROM users WHERE user_email = ?`;
 
   try {
-    const [results] = await db.execute(query, [user_mail]);
+    const [results] = await db.execute(query, [user_email]);
 
     if (results.length === 1) {
       const user = results[0];
@@ -27,11 +42,25 @@ exports.login = async (req, res) => {
       );
 
       if (isPasswordMatch) {
-        const token = generateToken(user);
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        const insertTokenQuery = `
+          INSERT INTO tokens (user_id, refresh_token, expires_at)
+          VALUES (?, ?, ?)
+        `;
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        await db.execute(insertTokenQuery, [
+          user.user_id,
+          refreshToken,
+          expiresAt,
+        ]);
+
         res.json({
           success: true,
           message: "Login successful",
-          token: token,
+          accessToken,
+          refreshToken,
           user_name: user.user_name,
         });
       } else {
@@ -51,23 +80,39 @@ exports.login = async (req, res) => {
 };
 
 exports.signup = async (req, res) => {
-  const { user_name, user_mail, user_password } = req.body;
+  const { user_name, user_email, user_password } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(user_password, 10);
-    const query = `INSERT INTO user (user_name, user_mail, user_password) VALUES (?, ?, ?)`;
+    const query = `INSERT INTO users (user_name, user_email, user_password) VALUES (?, ?, ?)`;
     const [results] = await db.execute(query, [
       user_name,
-      user_mail,
+      user_email,
       hashedPassword,
     ]);
 
-    const token = generateToken({ user_mail, user_name });
+    const user = {
+      user_id: results.insertId,
+      user_name,
+      user_email,
+    };
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    const insertTokenQuery = `
+      INSERT INTO tokens (user_id, refresh_token, expires_at)
+      VALUES (?, ?, ?)
+    `;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await db.execute(insertTokenQuery, [user.user_id, refreshToken, expiresAt]);
+
     res.json({
       success: true,
       message: "Signup successful",
-      token: token,
-      user_name: user_name,
+      accessToken,
+      refreshToken,
+      user_name,
     });
   } catch (err) {
     console.error("Error signing up:", err);
@@ -75,64 +120,60 @@ exports.signup = async (req, res) => {
   }
 };
 
-exports.checkEmail = async (req, res) => {
-  const { user_mail } = req.body;
-  const query = `SELECT user_mail FROM user WHERE user_mail = ?`;
+exports.refreshToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res
+      .status(403)
+      .json({ success: false, message: "Refresh token is required" });
+  }
 
   try {
-    const [results] = await db.execute(query, [user_mail]);
+    const decoded = jwt.verify(refreshToken, refreshTokenSecret);
+    const query = `SELECT * FROM tokens WHERE refresh_token = ?`;
 
-    if (results.length > 0) {
-      res.json({ available: false });
+    const [results] = await db.execute(query, [refreshToken]);
+
+    if (results.length === 0) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid refresh token" });
+    }
+
+    const userQuery = `SELECT * FROM users WHERE user_id = ?`;
+    const [userResults] = await db.execute(userQuery, [decoded.user_id]);
+
+    if (userResults.length === 1) {
+      const user = userResults[0];
+      const newAccessToken = generateAccessToken(user);
+
+      res.json({
+        success: true,
+        message: "Access token refreshed",
+        accessToken: newAccessToken,
+      });
     } else {
-      res.json({ available: true });
+      res.status(404).json({ success: false, message: "User not found" });
     }
   } catch (err) {
-    console.error("Error checking email:", err);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error refreshing token:", err);
+    res
+      .status(403)
+      .json({ success: false, message: "Invalid or expired refresh token" });
   }
 };
 
-exports.changePassword = async (req, res) => {
-  const { user_mail, current_password, new_password } = req.body;
-  const query = `SELECT * FROM user WHERE user_mail = ?`;
+exports.logout = async (req, res) => {
+  const { refreshToken } = req.body;
 
   try {
-    const [results] = await db.execute(query, [user_mail]);
+    const deleteTokenQuery = `DELETE FROM tokens WHERE refresh_token = ?`;
+    await db.execute(deleteTokenQuery, [refreshToken]);
 
-    if (results.length === 1) {
-      const user = results[0];
-      const hashedPassword = user.user_password;
-
-      const isPasswordMatch = await bcrypt.compare(
-        current_password,
-        hashedPassword
-      );
-
-      if (isPasswordMatch) {
-        const newHashedPassword = await bcrypt.hash(new_password, 10);
-
-        const updateQuery = `UPDATE user SET user_password = ? WHERE user_mail = ?`;
-        await db.execute(updateQuery, [newHashedPassword, user_mail]);
-
-        res.json({
-          success: true,
-          message: "Password changed successfully",
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: "Current password is incorrect",
-        });
-      }
-    } else {
-      res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    res.json({ success: true, message: "Logout successful" });
   } catch (err) {
-    console.error("Error changing password:", err);
+    console.error("Error logging out:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
