@@ -21,12 +21,12 @@ const ChangePassword = () => {
 
     try {
       const token = await AsyncStorage.getItem("token");
-      const userMail = await AsyncStorage.getItem("user_mail");
+      const userMail = await AsyncStorage.getItem("user_email");
 
       const response = await axios.post(
         "https://savr-backend.onrender.com/api/auth/changePassword",
         {
-          user_mail: userMail,
+          user_email: userMail,
           current_password: currentPassword,
           new_password: newPassword,
         },

@@ -92,10 +92,22 @@ export default function App() {
   }, []);
 
   const checkOnboardingStatus = async () => {
-    const hasOnboarded = await getItem("hasOnboarded");
-    if (hasOnboarded) {
-      router.push("/sign-up");
-    } else {
+    try {
+      const hasOnboarded = await getItem("hasOnboarded");
+      const token = await getItem("token");
+      
+      if (token) {
+        // If user is already logged in, go to home
+        router.replace("/(tabs)/home");
+      } else if (hasOnboarded) {
+        // If onboarded but not logged in, go to sign in
+        router.replace("/(auth)/sign-in");
+      } else {
+        // First time user, show onboarding
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error("Error checking status:", error);
       setIsLoading(false);
     }
   };
