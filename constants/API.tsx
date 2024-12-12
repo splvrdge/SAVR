@@ -35,10 +35,13 @@ export const API_ENDPOINTS = {
 
   // Goals endpoints
   GOALS: {
-    ADD: '/api/goals/add',
-    GET_ALL: '/api/goals/:user_id',
-    UPDATE: '/api/goals/update/:goal_id',
-    DELETE: '/api/goals/delete/:goal_id',
+    ADD: '/api/goal/add',
+    GET_ALL: '/api/goal/:user_id',
+    UPDATE: '/api/goal/update/:goal_id',
+    DELETE: '/api/goal/delete/:goal_id',
+    ADD_CONTRIBUTION: '/api/goal/contribution/add',
+    GET_CONTRIBUTIONS: '/api/goal/contributions/:goal_id',
+    DELETE_CONTRIBUTION: '/api/goal/contribution/:contribution_id',
   },
 
   // User endpoints
