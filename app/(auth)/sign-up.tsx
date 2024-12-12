@@ -1,227 +1,234 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, ActivityIndicator, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import FormField from "@/components/FormField";
-import CustomButton from "@/components/CustomButton";
-import { StatusBar } from "expo-status-bar";
-import { Link, useRouter } from "expo-router";
-import { CheckBox } from "react-native-elements";
-import GradientText from "@/constants/GradientText";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Joi from "joi";
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Image,
+} from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StatusBar } from 'expo-status-bar';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import axios from 'axios';
 
-const SignUp = () => {
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isChecked, setIsChecked] = useState(false);
+export default function SignUp() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (token) {
-        router.replace("/(tabs)/home");
-      } else {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const signUpSchema = Joi.object({
-    name: Joi.string().min(3).max(30).required().messages({
-      "string.base": "Name must be a string.",
-      "string.min": "Name must be at least 3 characters.",
-      "string.max": "Name cannot exceed 30 characters.",
-      "any.required": "Name is required.",
-    }),
-    email: Joi.string().email({ tlds: { allow: false } }).required().messages({
-      "string.email": "Please provide a valid email address.",
-      "any.required": "Email is required.",
-    }),
-    password: Joi.string()
-      .pattern(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/)
-      .required()
-      .messages({
-        "string.pattern.base":
-          "Password must be at least 8 characters long, include a number, an uppercase letter, and a lowercase letter.",
-        "any.required": "Password is required.",
-      }),
-  });
-
-  const validateSignUp = (form: {
-    name: string;
-    email: string;
-    password: string;
-  }) => {
-    const { error } = signUpSchema.validate(form);
-    return error ? error.details[0].message : null;
-  };
-
-  const submit = async () => {
-    const validationError = validateSignUp(form);
-
-    if (validationError) {
-      Alert.alert("Validation Error", validationError);
+  const handleSignUp = async () => {
+    if (!name || !email || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    setIsSubmitting(true);
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      const checkEmailResponse = await fetch(
-        `https://savr-backend.onrender.com/api/auth/checkEmail`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_mail: form.email,
-          }),
-        }
-      );
+      // First check if email exists
+      const checkEmailResponse = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.CHECK_EMAIL}`, {
+        user_email: email
+      });
 
-      const checkEmailData = await checkEmailResponse.json();
-
-      if (!checkEmailResponse.ok) {
-        throw new Error(`HTTP error! Status: ${checkEmailResponse.status}`);
-      }
-
-      if (!checkEmailData.available) {
-        Alert.alert(
-          "Email Exists",
-          "This email address is already in use. Please use a different email."
-        );
+      if (!checkEmailResponse.data.available) {
+        Alert.alert('Error', 'Email already exists');
         return;
       }
 
-      const signupResponse = await fetch(
-        "https://savr-backend.onrender.com/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            user_name: form.name,
-            user_mail: form.email,
-            user_password: form.password,
-          }),
-        }
-      );
+      // Proceed with sign up
+      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.SIGNUP}`, {
+        user_name: name,
+        user_email: email,
+        user_password: password
+      });
 
-      if (!signupResponse.ok) {
-        throw new Error(`HTTP error! Status: ${signupResponse.status}`);
+      if (response.data.success) {
+        await AsyncStorage.multiSet([
+          ['token', response.data.accessToken],
+          ['userId', response.data.user_id.toString()],
+          ['userName', response.data.user_name],
+          ['userEmail', email],
+        ]);
+
+        router.replace('/(tabs)/home');
       }
-
-      const responseData = await signupResponse.json();
-
-      if (responseData.success) {
-        await AsyncStorage.setItem("token", responseData.token);
-        await AsyncStorage.setItem("userEmail", form.email);
-        await AsyncStorage.setItem("userName", form.name);
-        router.replace("/(tabs)/home");
-      } else {
-        Alert.alert("Error", responseData.message || "Signup failed.");
-      }
-
-      setForm({ name: "", email: "", password: "" });
-    } catch (error) {
-      console.error("Error signing up:", error);
+    } catch (error: any) {
+      console.error('Registration error:', error);
       Alert.alert(
-        "Error",
-        "An unexpected error occurred. Please try again later."
+        'Error',
+        error.response?.data?.message || 'Failed to sign up. Please try again.'
       );
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const isFormComplete =
-    form.name !== "" && form.email !== "" && form.password !== "" && isChecked;
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
+  const handleGoogleSignUp = () => {
+    // Implement Google Sign Up
+    Alert.alert('Coming Soon', 'Google signup will be available soon!');
+  };
 
   return (
-    <SafeAreaView className="bg-white h-full">
-      <ScrollView>
-        <View className="w-full h-full justify-center px-8 my-5 min-h-[85vh]">
-          <GradientText text="Create Account" />
-          <FormField
-            title="Full Name"
-            value={form.name}
-            handleChangeText={(e) => setForm({ ...form, name: e })}
-            otherStyles="mt-7"
-          />
-          <FormField
-            title="Email"
-            value={form.email}
-            handleChangeText={(e) => setForm({ ...form, email: e })}
-            otherStyles="mt-7"
-            keyboardType="email-address"
-          />
-          <FormField
-            title="Password"
-            value={form.password}
-            handleChangeText={(e) => setForm({ ...form, password: e })}
-            otherStyles="mt-7"
-          />
-          <Text className="text-xs mt-2 text-gray-600">
-            Your password must be at least 8 characters long, include a number,
-            an uppercase letter, and a lowercase letter
-          </Text>
-
-          <View className="flex-row gap-1 mt-5">
-            <CheckBox
-              checked={isChecked}
-              onPress={() => setIsChecked(!isChecked)}
-              containerStyle={{
-                backgroundColor: "white",
-                borderWidth: 0,
-                padding: 0,
-              }}
-              textStyle={{
-                color: "gray",
-                fontWeight: "normal",
-                fontSize: 13,
-              }}
-            />
-            <Text className="mt-2 text-gray-600 pr-11">
-              By signing up, you accept the Terms of Service and Privacy Policy
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-white"
+    >
+      <StatusBar style="dark" />
+      <ScrollView 
+        className="flex-1" 
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="flex-1 px-8 pt-20">
+          {/* Header */}
+          <View className="mb-16">
+            <Text className="text-4xl font-bold text-gray-900 mb-4">
+              Create Account
+            </Text>
+            <Text className="text-gray-600 text-lg">
+              Start your financial journey with us
             </Text>
           </View>
-          <CustomButton
-            title="Sign up"
-            handlePress={submit}
-            containerStyles="mt-7"
-            isLoading={isSubmitting}
-            disabled={!isFormComplete}
-          />
-          <View className="justify-center flex-row gap-1 mt-10 pt-10">
-            <Text className="text-gray-600">Already have an account?</Text>
-            <Link href="sign-in" className="text-customGreen">
-              Sign in
+
+          {/* Form */}
+          <View className="space-y-8">
+            <View>
+              <Text className="text-gray-700 mb-3 text-base font-medium">Full Name</Text>
+              <TextInput
+                className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
+                placeholder="Enter your full name"
+                value={name}
+                onChangeText={setName}
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            <View>
+              <Text className="text-gray-700 mb-3 text-base font-medium">Email</Text>
+              <TextInput
+                className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
+                placeholder="Enter your email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            <View>
+              <Text className="text-gray-700 mb-3 text-base font-medium">Password</Text>
+              <View className="relative">
+                <TextInput
+                  className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
+                  placeholder="Create a password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  className="absolute right-5 top-4"
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <MaterialCommunityIcons
+                    name={showPassword ? 'eye-off' : 'eye'}
+                    size={24}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View>
+              <Text className="text-gray-700 mb-3 text-base font-medium">Confirm Password</Text>
+              <View className="relative">
+                <TextInput
+                  className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  className="absolute right-5 top-4"
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <MaterialCommunityIcons
+                    name={showConfirmPassword ? 'eye-off' : 'eye'}
+                    size={24}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              className={`bg-customGreen py-4 rounded-2xl ${
+                isLoading ? 'opacity-70' : ''
+              }`}
+              onPress={handleSignUp}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center text-lg font-semibold">
+                  Create Account
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <View className="flex-row items-center my-8">
+              <View className="flex-1 h-[1px] bg-gray-200" />
+              <Text className="mx-4 text-gray-400 font-medium">or</Text>
+              <View className="flex-1 h-[1px] bg-gray-200" />
+            </View>
+
+            <TouchableOpacity
+              className="bg-white border border-gray-200 py-4 rounded-2xl flex-row justify-center items-center shadow-sm"
+              onPress={handleGoogleSignUp}
+            >
+              <Image 
+                source={require('../../assets/icons/google.png')} 
+                style={{ width: 24, height: 24, marginRight: 12 }}
+                resizeMode="contain"
+              />
+              <Text className="text-gray-700 text-base font-medium">
+                Sign up with Google
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Footer */}
+          <View className="mt-12 flex-row justify-center">
+            <Text className="text-gray-600 text-base">Already have an account? </Text>
+            <Link href="/(auth)/sign-in" asChild>
+              <TouchableOpacity>
+                <Text className="text-customGreen font-semibold text-base">Sign In</Text>
+              </TouchableOpacity>
             </Link>
           </View>
         </View>
       </ScrollView>
-      <StatusBar style="dark" />
-    </SafeAreaView>
+    </KeyboardAvoidingView>
   );
-};
-
-export default SignUp;
+}
