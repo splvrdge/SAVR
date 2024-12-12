@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text } from "react-native";
-import { Tabs } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TabIcon = ({ name, color, focused }) => {
   return (
@@ -16,6 +17,18 @@ const TabIcon = ({ name, color, focused }) => {
 };
 
 const TabsLayout = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        router.replace("/(auth)/sign-in");
+      }
+    };
+    checkAuth();
+  }, []);
+
   return (
     <Tabs
       screenOptions={{
