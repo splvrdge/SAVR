@@ -27,7 +27,7 @@ exports.verifyToken = (req, res, next) => {
       return res.status(401).json({ success: false, message });
     }
 
-    req.user_mail = decoded.user_mail;
+    req.user_email = decoded.user_email;
     next();
   });
 };

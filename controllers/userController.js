@@ -3,7 +3,7 @@ const db = require("../config/db");
 // Update user profile
 exports.updateProfile = async (req, res) => {
   const { name, email } = req.body;
-  const currentUserMail = req.user_mail;
+  const currentUserMail = req.user_email;
 
   if (!name || !email) {
     return res
@@ -11,7 +11,7 @@ exports.updateProfile = async (req, res) => {
       .json({ success: false, message: "Missing required fields" });
   }
 
-  const query = `UPDATE user SET user_name = ?, user_mail = ? WHERE user_mail = ?`;
+  const query = `UPDATE user SET user_name = ?, user_email = ? WHERE user_email = ?`;
   try {
     const [results] = await db.execute(query, [name, email, currentUserMail]);
 
@@ -37,9 +37,9 @@ exports.updateProfile = async (req, res) => {
 
 // Get secured user information
 exports.getSecuredInfo = async (req, res) => {
-  const query = `SELECT user_name FROM user WHERE user_mail = ?`;
+  const query = `SELECT user_name FROM user WHERE user_email = ?`;
   try {
-    const [results] = await db.execute(query, [req.user_mail]);
+    const [results] = await db.execute(query, [req.user_email]);
 
     if (results.length === 1) {
       const user = results[0];
