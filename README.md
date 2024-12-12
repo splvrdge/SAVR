@@ -1,51 +1,88 @@
-# Welcome to your Expo app 👋
+# SAVR - Financial Tracker App 💰
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<div align="center">
 
-## Get started
+![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-1. Install dependencies
+<p align="center">
+  <img src="assets/icons/savr-green.png" alt="SAVR Logo" width="200"/>
+</p>
 
-   ```bash
-   npm install
-   ```
+SAVR is a modern financial tracking application built with React Native and Expo, designed to help users manage their expenses and income efficiently.
 
-2. Start the app
+</div>
 
-   ```bash
-    npx expo start
-   ```
+## ✨ Features
 
-In the output, you'll find options to open the app in a
+- 📱 Cross-platform (iOS & Android)
+- 💳 Track expenses and income
+- 📊 Visual analytics and reports
+- 🎯 Set and track financial goals
+- 🔐 Secure authentication
+- 📱 User-friendly interface
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🚀 Quick Start
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Prerequisites
 
-## Get a fresh project
+- Node.js (v14 or higher)
+- npm or yarn
+- Expo CLI
+- iOS Simulator or Android Emulator (optional)
 
-When you're ready, run:
+### Installation
 
+1. Clone the repository
 ```bash
-npm run reset-project
+git clone https://github.com/splvrdge/savr-finance-tracker.git
+cd FRONTEND
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
 
-## Learn more
+3. Start the development server
+```bash
+npx expo start
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Running the App
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+After starting the development server, you can:
+- Press `i` to open in iOS simulator
+- Press `a` to open in Android emulator
+- Scan the QR code with Expo Go app on your physical device
 
-## Join the community
+## 🛠️ Tech Stack
 
-Join our community of developers creating universal apps.
+- [React Native](https://reactnative.dev/) - Mobile framework
+- [Expo](https://expo.dev/) - Development platform
+- [TypeScript](https://www.typescriptlang.org/) - Programming language
+- [TailwindCSS](https://tailwindcss.com/) - Styling
+- [React Navigation](https://reactnavigation.org/) - Navigation
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-# savr-frontend
+## 👥 Authors
+
+- **Francis James A. Lagang** - _Lead Developer_ - [GitHub](https://github.com/splvrdge)
+- **Margaret Grace Docdoc** - _Developer_ - [GitHub](https://github.com/margaretdocdoc)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/splvrdge/savr-finance-tracker/issues).
+
+---
+
+<div align="center">
+  Made with ❤️ by Team SAVR
+</div>
