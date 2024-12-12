@@ -8,7 +8,6 @@ import {
   TextInput,
   Modal,
   RefreshControl,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import { StatusBar } from 'expo-status-bar';
 
 interface Expense {
   id: number;
@@ -47,7 +47,7 @@ const categories: Category[] = [
 
 const getCategoryIcon = (categoryId: string) => {
   const category = categories.find((cat) => cat.id === categoryId);
-  return category?.icon || 'dots-horizontal';
+  return category?.icon || 'help-circle-outline';
 };
 
 export default function Expenses() {
@@ -319,8 +319,8 @@ export default function Expenses() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-red-600" edges={['top']}>
-      <StatusBar style="light" />
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <StatusBar backgroundColor="white" style="dark" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 bg-white"
