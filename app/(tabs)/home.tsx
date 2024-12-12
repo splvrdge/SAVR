@@ -339,7 +339,10 @@ export default function Home() {
             
             {latestTransactions.length > 0 ? (
               latestTransactions.map((transaction, index) => (
-                <View key={transaction.id} className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-xl">
+                <View 
+                  key={`transaction-${transaction.id}-${index}`} 
+                  className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-xl"
+                >
                   <View className="flex-row items-center flex-1">
                     <View
                       className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
@@ -383,14 +386,14 @@ export default function Home() {
             <View className="flex-row flex-wrap justify-between">
               <TouchableOpacity 
                 className="bg-purple-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                onPress={() => router.push('/(tabs)/analytics')}
+                disabled={true}
               >
                 <MaterialCommunityIcons name="chart-line" size={30} color="#7C3AED" />
                 <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 className="bg-orange-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                onPress={() => router.push('/(tabs)/budget')}
+                disabled={true}
               >
                 <MaterialCommunityIcons name="wallet" size={30} color="#EA580C" />
                 <Text className="text-orange-600 mt-2 font-medium">Budget</Text>
@@ -404,7 +407,7 @@ export default function Home() {
               </TouchableOpacity>
               <TouchableOpacity 
                 className="bg-pink-50 p-4 rounded-xl w-[48%] items-center"
-                onPress={() => router.push('/(tabs)/reports')}
+                disabled={true}
               >
                 <MaterialCommunityIcons name="file-document" size={30} color="#DB2777" />
                 <Text className="text-pink-600 mt-2 font-medium">Reports</Text>
