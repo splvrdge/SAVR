@@ -8,23 +8,32 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from 'expo-linear-gradient';
 import "../global.css";
 
-const screenWidth = Dimensions.get("window").width;
-const scaleFactor = screenWidth / 320;
+interface Slide {
+  id: number;
+  title: string;
+  description: string;
+  image: any;
+}
 
-const responsiveFontSize = (size) => {
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const scaleFactor = screenWidth / 375; // Using iPhone standard width as base
+
+const responsiveFontSize = (size: number): number => {
   const newSize = size * scaleFactor;
   return Math.round(newSize);
 };
 
-const setItem = async (key, value) => {
+const setItem = async (key: string, value: string): Promise<void> => {
   try {
     await AsyncStorage.setItem(key, value);
   } catch (error) {
@@ -32,7 +41,7 @@ const setItem = async (key, value) => {
   }
 };
 
-const getItem = async (key) => {
+const getItem = async (key: string): Promise<string | null> => {
   try {
     const value = await AsyncStorage.getItem(key);
     return value;
@@ -42,22 +51,15 @@ const getItem = async (key) => {
   }
 };
 
-const removeItem = async (key) => {
-  try {
-    await AsyncStorage.removeItem(key);
-  } catch (error) {
-    console.log("Error deleting value: ", error);
-  }
-};
-
 export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(true);
-  const flatListRef = useRef(null);
+  const flatListRef = useRef<FlatList>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const router = useRouter();
 
-  const slides = [
+  const slides: Slide[] = [
     {
       id: 1,
       title: "Track Your Expenses",
@@ -81,10 +83,18 @@ export default function App() {
     },
   ];
 
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   const checkOnboardingStatus = async () => {
     const hasOnboarded = await getItem("hasOnboarded");
     if (hasOnboarded) {
-      router.push("/home");
+      router.push("/sign-up");
     } else {
       setIsLoading(false);
     }
@@ -105,37 +115,32 @@ export default function App() {
 
   const handleContinue = async () => {
     if (currentIndex < slides.length - 1) {
-      flatListRef.current.scrollToIndex({ index: currentIndex + 1 });
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     } else {
       await setItem("hasOnboarded", "true");
-      router.push("/home");
+      router.push("/sign-up");
     }
   };
 
-  const getContinueButtonText = () => {
-    return currentIndex === slides.length - 1
-      ? "Explore Dashboard"
-      : "Continue";
-  };
-
-  const showSkipButton = currentIndex < 2;
-
-  const renderIndicator = ({ index }) => {
-    return (
-      <View
-        style={[
-          styles.indicator,
-          { backgroundColor: index === currentIndex ? "#2E8B57" : "#C4C4C4" },
-        ]}
-        key={index}
-      />
-    );
-  };
+  const renderItem = ({ item }: { item: Slide }) => (
+    <Animated.View style={[styles.item, { opacity: fadeAnim }]}>
+      <Image style={styles.image} source={item.image} resizeMode="contain" />
+      <LinearGradient
+        colors={['transparent', 'rgba(255,255,255,0.9)', '#ffffff']}
+        style={styles.gradientOverlay}
+      >
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#2E8B57" />
       </View>
     );
   }
@@ -143,11 +148,13 @@ export default function App() {
   if (!isConnected) {
     return (
       <View style={styles.loadingContainer}>
-        <Text className="text-xl font-bold text-gray-700">
-          No Internet Connection
-        </Text>
-        <Text className="text-[18px] text-gray-500 mt-1">
-          Please connect to the internet to continue.
+        <Image
+          source={require("../assets/icons/no-internet.png")}
+          style={styles.offlineIcon}
+        />
+        <Text style={styles.offlineTitle}>No Internet Connection</Text>
+        <Text style={styles.offlineDescription}>
+          Please check your connection and try again
         </Text>
       </View>
     );
@@ -156,7 +163,7 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.top}>
+      <View style={styles.content}>
         <FlatList
           ref={flatListRef}
           data={slides}
@@ -166,50 +173,50 @@ export default function App() {
           pagingEnabled
           onScroll={(event) => {
             const slideIndex = Math.round(
-              event.nativeEvent.contentOffset.x / Dimensions.get("window").width
+              event.nativeEvent.contentOffset.x / screenWidth
             );
             setCurrentIndex(slideIndex);
           }}
-          renderItem={({ item }) => {
-            return (
-              <View className="items-center pt-3">
-                <Image style={styles.logo} source={item.logo} />
-                <View style={styles.item}>
-                  <View className="pt-8">
-                    <Image style={styles.image} source={item.image} />
-                  </View>
-                  <View style={styles.titleContainer}>
-                    <Text style={styles.title}>{item.title}</Text>
-                    <Text style={styles.description}>{item.description}</Text>
-                  </View>
-                </View>
-              </View>
-            );
-          }}
+          renderItem={renderItem}
         />
-        <View style={styles.indicatorContainer}>
-          {slides.map((_, index) => renderIndicator({ index }))}
-        </View>
-      </View>
-      <View style={styles.bottom}>
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>{getContinueButtonText()}</Text>
-        </TouchableOpacity>
-        {showSkipButton && (
+        
+        <View style={styles.footer}>
+          <View style={styles.indicatorContainer}>
+            {slides.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.indicator,
+                  {
+                    backgroundColor: index === currentIndex ? "#2E8B57" : "#E0E0E0",
+                    width: index === currentIndex ? 20 : 8,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
           <TouchableOpacity
-            style={styles.buttonOutline}
-            onPress={async () => {
-              await setItem("hasOnboarded", "true");
-              router.push("/home");
-            }}
+            style={styles.button}
+            onPress={handleContinue}
+            activeOpacity={0.8}
           >
-            <Text
-              style={[styles.buttonText, { color: "#666", fontWeight: "500" }]}
-            >
-              Skip
+            <Text style={styles.buttonText}>
+              {currentIndex === slides.length - 1 ? "Get Started" : "Continue"}
             </Text>
           </TouchableOpacity>
-        )}
+
+          {currentIndex < slides.length - 1 && (
+            <TouchableOpacity
+              onPress={async () => {
+                await setItem("hasOnboarded", "true");
+                router.push("/sign-up");
+              }}
+            >
+              <Text style={styles.skipText}>Skip</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -218,93 +225,112 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
-  top: {
-    flex: responsiveFontSize(0.9),
-    backgroundColor: "white",
-  },
-  bottom: {
-    flex: 0.2,
-    marginBottom: responsiveFontSize(13),
-    alignItems: "center",
-    backgroundColor: "white",
-  },
-  button: {
-    backgroundColor: "#2E8B57",
-    padding: 18,
-    marginVertical: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 15,
-    width: "70%",
-  },
-  buttonOutline: {
-    borderColor: "#fff",
-    padding: 10,
-    marginVertical: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    width: "70%",
-  },
-  buttonText: {
-    fontWeight: "bold",
-    color: "#fff",
-    fontSize: 15,
-  },
-  item: {
-    width: Dimensions.get("window").width,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  image: {
-    width: responsiveFontSize(230),
-    height: responsiveFontSize(230),
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  titleContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: responsiveFontSize(5),
-    paddingBottom: responsiveFontSize(30),
-  },
-  title: {
-    fontSize: responsiveFontSize(23),
-    fontWeight: "bold",
-    color: "#2E8B57",
-    textAlign: "center",
-  },
-  description: {
-    fontSize: responsiveFontSize(11),
-    textAlign: "center",
-    color: "#666",
-    paddingHorizontal: responsiveFontSize(35),
-    marginTop: responsiveFontSize(7),
-  },
-  indicatorContainer: {
-    flexDirection: "row",
-    right: 0,
-    left: 0,
-    bottom: 20,
-    justifyContent: "center",
-    marginTop: responsiveFontSize(20),
-  },
-  indicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 50,
-    marginHorizontal: 5,
-    borderColor: "#fff",
-    borderWidth: 1,
+  content: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#ffffff",
   },
-  logo: {
-    height: responsiveFontSize(50),
-    width: responsiveFontSize(50),
+  offlineIcon: {
+    width: 80,
+    height: 80,
+    marginBottom: 20,
+  },
+  offlineTitle: {
+    fontSize: responsiveFontSize(20),
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 8,
+  },
+  offlineDescription: {
+    fontSize: responsiveFontSize(16),
+    color: "#666666",
+    textAlign: "center",
+    paddingHorizontal: 40,
+  },
+  item: {
+    width: screenWidth,
+    height: screenHeight * 0.8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    width: screenWidth * 0.8,
+    height: screenWidth * 0.8,
+    marginBottom: 30,
+  },
+  gradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: screenHeight * 0.3,
+    justifyContent: "flex-end",
+    paddingBottom: 20,
+  },
+  titleContainer: {
+    paddingHorizontal: 40,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: responsiveFontSize(24),
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  description: {
+    fontSize: responsiveFontSize(16),
+    color: "#666666",
+    textAlign: "center",
+    lineHeight: responsiveFontSize(24),
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  indicatorContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  indicator: {
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 4,
+    transition: "all 0.3s ease",
+  },
+  button: {
+    backgroundColor: "#2E8B57",
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#2E8B57",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  buttonText: {
+    color: "#ffffff",
+    fontSize: responsiveFontSize(18),
+    fontWeight: "600",
+  },
+  skipText: {
+    color: "#666666",
+    fontSize: responsiveFontSize(16),
+    textAlign: "center",
+    paddingVertical: 8,
   },
 });
