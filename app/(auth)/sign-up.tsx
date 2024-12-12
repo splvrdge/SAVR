@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
-import axios from 'axios';
+import axiosInstance from '@/utils/axiosConfig';
 
 export default function SignUp() {
   const [name, setName] = useState('');
@@ -43,27 +43,30 @@ export default function SignUp() {
 
     try {
       // First check if email exists
-      const checkEmailResponse = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.CHECK_EMAIL}`, {
+      const checkEmailResponse = await axiosInstance.post(API_ENDPOINTS.AUTH.CHECK_EMAIL, {
         user_email: email
       });
 
       if (!checkEmailResponse.data.available) {
         Alert.alert('Error', 'Email already exists');
+        setIsLoading(false);
         return;
       }
 
       // Proceed with sign up
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.SIGNUP}`, {
+      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.SIGNUP, {
         user_name: name,
         user_email: email,
         user_password: password
       });
 
       if (response.data.success) {
+        const { accessToken, refreshToken, user_id, user_name } = response.data;
         await AsyncStorage.multiSet([
-          ['token', response.data.accessToken],
-          ['userId', response.data.user_id.toString()],
-          ['userName', response.data.user_name],
+          ['token', accessToken],
+          ['refreshToken', refreshToken],
+          ['userId', user_id.toString()],
+          ['userName', user_name],
           ['userEmail', email],
         ]);
 

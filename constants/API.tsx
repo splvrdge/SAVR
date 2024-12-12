@@ -33,6 +33,14 @@ export const API_ENDPOINTS = {
     GET_HISTORY: '/api/financial/history/:user_id',
   },
 
+  // Goals endpoints
+  GOALS: {
+    ADD: '/api/goals/add',
+    GET_ALL: '/api/goals/:user_id',
+    UPDATE: '/api/goals/update/:goal_id',
+    DELETE: '/api/goals/delete/:goal_id',
+  },
+
   // User endpoints
   USER: {
     UPDATE_PROFILE: '/api/users/:userId',
