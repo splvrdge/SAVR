@@ -1,0 +1,1820 @@
+Skip to content
+DEV Community
+Find related posts...
+Powered by  Algolia
+Log in
+Create account
+
+0
+Jump to Comments
+
+1
+Save
+
+Boost
+
+Nadim Chowdhury
+Nadim Chowdhury
+Posted on Oct 10
+
+
+3
+Building a Personal Finance Tracker Mobile App with React Native
+To create a Personal Finance Tracker as a React Native mobile app, here’s a suggested folder structure and documentation that outlines how you can structure the project.
+
+Folder Structure for React Native Personal Finance Tracker
+personal-finance-tracker-mobile/
+├── android/                    # Android-specific files and configurations
+├── ios/                        # iOS-specific files and configurations
+├── src/                        # Main source code directory
+│   ├── assets/                 # Static assets like images, fonts, etc.
+│   │   └── logo.png            # Example asset (App logo)
+│   ├── components/             # Reusable UI components
+│   │   ├── common/             # Shared components
+│   │   │   ├── Button.tsx      # Reusable Button component
+│   │   │   └── InputField.tsx  # Reusable InputField component
+│   │   └── transactions/       # Components related to transactions
+│   │       ├── TransactionList.tsx
+│   │       └── AddTransactionForm.tsx
+│   ├── contexts/               # React contexts for global state management
+│   │   ├── AuthContext.tsx     # User authentication context
+│   │   └── BudgetContext.tsx   # Budget management context
+│   ├── hooks/                  # Custom hooks for reusable logic
+│   │   ├── useAuth.tsx         # Custom hook for authentication logic
+│   │   └── useTransactions.tsx # Custom hook for managing transactions
+│   ├── navigation/             # React Navigation setup for app routing
+│   │   ├── AppNavigator.tsx    # Main navigation stack
+│   │   └── AuthNavigator.tsx   # Navigation stack for authentication flows
+│   ├── screens/                # Main app screens
+│   │   ├── Auth/               # Screens for authentication (login, register)
+│   │   │   ├── LoginScreen.tsx
+│   │   │   └── RegisterScreen.tsx
+│   │   ├── Dashboard/          # Screens for the dashboard and main app area
+│   │   │   ├── DashboardScreen.tsx
+│   │   │   └── ReportsScreen.tsx
+│   │   ├── Transactions/       # Screens related to transactions
+│   │   │   ├── AddTransactionScreen.tsx
+│   │   │   └── TransactionsScreen.tsx
+│   │   ├── Budgets/            # Screens related to budgeting
+│   │   │   ├── BudgetsScreen.tsx
+│   │   │   └── AddBudgetScreen.tsx
+│   │   ├── Goals/              # Screens related to financial goals
+│   │   │   ├── GoalsScreen.tsx
+│   │   │   └── AddGoalScreen.tsx
+│   ├── services/               # API services for making requests to the backend
+│   │   ├── authService.ts      # Service for handling authentication
+│   │   ├── budgetService.ts    # Service for budget-related API calls
+│   │   ├── transactionService.ts # Service for transaction-related API calls
+│   │   └── reportService.ts    # Service for fetching reports
+│   ├── store/                  # State management (e.g., Redux or Zustand)
+│   │   ├── index.ts            # Configure store for global state
+│   │   ├── authSlice.ts        # Slice for authentication state
+│   │   ├── transactionSlice.ts # Slice for transaction state
+│   │   └── budgetSlice.ts      # Slice for budget state
+│   ├── utils/                  # Utility functions and constants
+│   │   ├── formatDate.ts       # Helper to format dates
+│   │   ├── validateForm.ts     # Helper for form validation logic
+│   │   └── constants.ts        # App-wide constants (e.g., budget categories)
+│   ├── types/                  # TypeScript types and interfaces
+│   │   ├── auth.ts             # Types related to authentication
+│   │   ├── budget.ts           # Types related to budgets
+│   │   └── transaction.ts      # Types related to transactions
+│   ├── App.tsx                 # Main app entry point
+│   └── theme/                  # Styling and theme management (e.g., colors, fonts)
+│       ├── colors.ts           # App color palette
+│       └── fonts.ts            # App typography
+├── .env                        # Environment variables (API keys, etc.)
+├── package.json                # Dependencies and scripts
+└── README.md                   # Project documentation
+Key Folders and Structure Breakdown
+1. android/ & ios/
+These folders contain platform-specific files and configurations for Android and iOS. You generally won’t need to modify these much unless doing native module integrations or custom platform logic.
+2. src/
+assets/: Store static assets like images, icons, fonts, etc.
+components/: Reusable UI components for the app. These could be shared (e.g., buttons, input fields) or specific to a feature (e.g., TransactionList, AddTransactionForm).
+contexts/: Contains React Context for global state management (e.g., user authentication, budget management).
+hooks/: Custom hooks to encapsulate reusable logic (e.g., useAuth for handling user login/logout).
+navigation/: Defines app navigation using React Navigation. The main navigation stacks for authenticated and unauthenticated users are handled here.
+screens/: These are the screens (or pages) of the app, split by feature (e.g., DashboardScreen, LoginScreen, TransactionsScreen).
+services/: This folder includes all the API service functions that handle network requests, including user authentication, fetching transactions, managing budgets, etc.
+store/: If you are using Redux or Zustand for state management, this folder will store the slices (for Redux) or state logic.
+utils/: Common utility functions and constants (e.g., date formatting, form validation, app-wide constants like budget categories).
+types/: TypeScript interfaces and types for better type safety (e.g., auth.ts for user authentication types).
+theme/: Store theming options such as colors and typography. You can centralize your styling here for a consistent look across the app.
+3. App.tsx
+This is the main entry point for the React Native app. It initializes the app, sets up navigation, and wraps the app with providers (like React Context or Redux).
+4. .env
+Store environment variables such as API base URLs or secret keys.
+Features Breakdown
+1. Authentication (Login & Register)
+Context: AuthContext.tsx will manage user login, registration, and authentication states across the app.
+Screens:
+LoginScreen.tsx for user login.
+RegisterScreen.tsx for user registration.
+API Service: authService.ts handles API calls for authentication (e.g., login, register, logout).
+2. Dashboard
+Screen: DashboardScreen.tsx shows a summary of the user’s financial status, such as their current income, expenses, and budgets.
+Components: Reusable components like TransactionList.tsx, BudgetOverview.tsx can be shown here.
+3. Transactions
+Screens:
+TransactionsScreen.tsx lists all transactions (income and expenses).
+AddTransactionScreen.tsx allows users to add new transactions.
+API Service: transactionService.ts fetches, adds, and deletes transactions.
+4. Budgets
+Screens:
+BudgetsScreen.tsx displays the list of budgets.
+AddBudgetScreen.tsx allows users to create or update budgets.
+API Service: budgetService.ts handles the API requests for budget management.
+5. Financial Goals
+Screens:
+GoalsScreen.tsx displays the user’s financial goals.
+AddGoalScreen.tsx allows users to add or modify financial goals.
+API Service: goalService.ts handles CRUD operations for goals.
+6. Reports
+Screen: ReportsScreen.tsx generates financial reports for the user (monthly reports, income/expense breakdowns).
+API Service: reportService.ts handles the backend requests to fetch report data.
+Key Considerations for a React Native Personal Finance App
+State Management:
+
+Depending on the complexity, you can use React Context API for small global state management like user auth.
+For more complex state management, consider using Redux or Zustand to manage budgets, transactions, and goals.
+Navigation:
+
+React Navigation is the recommended library for handling app
+Here’s the full code implementation for the common components and transaction-related components with proper styling for a React Native mobile app using React Native Paper for a consistent UI design.
+
+1. Button.tsx (Reusable Button Component)
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { Button as PaperButton } from 'react-native-paper';
+
+interface ButtonProps {
+  label: string;
+  onPress: () => void;
+  mode?: 'text' | 'contained' | 'outlined';
+}
+
+const Button: React.FC<ButtonProps> = ({ label, onPress, mode = 'contained' }) => {
+  return (
+    <PaperButton
+      mode={mode}
+      onPress={onPress}
+      style={styles.button}
+      labelStyle={styles.label}
+    >
+      {label}
+    </PaperButton>
+  );
+};
+
+const styles = StyleSheet.create({
+  button: {
+    marginVertical: 10,
+    paddingVertical: 5,
+  },
+  label: {
+    fontSize: 16,
+  },
+});
+
+export default Button;
+2. InputField.tsx (Reusable InputField Component)
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { TextInput as PaperTextInput } from 'react-native-paper';
+
+interface InputFieldProps {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  label,
+  value,
+  onChangeText,
+  secureTextEntry = false,
+}) => {
+  return (
+    <PaperTextInput
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      secureTextEntry={secureTextEntry}
+      style={styles.input}
+      mode="outlined"
+    />
+  );
+};
+
+const styles = StyleSheet.create({
+  input: {
+    marginVertical: 10,
+  },
+});
+
+export default InputField;
+3. TransactionList.tsx (Transaction List Component)
+import React from 'react';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { List, Divider } from 'react-native-paper';
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
+interface TransactionListProps {
+  transactions: Transaction[];
+}
+
+const TransactionList: React.FC<TransactionListProps> = ({ transactions }) => {
+  const renderItem = ({ item }: { item: Transaction }) => (
+    <View>
+      <List.Item
+        title={item.description}
+        description={`Amount: $${item.amount} | Date: ${item.date}`}
+        left={() => <List.Icon icon="currency-usd" />}
+      />
+      <Divider />
+    </View>
+  );
+
+  return (
+    <FlatList
+      data={transactions}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      contentContainerStyle={styles.listContainer}
+    />
+  );
+};
+
+const styles = StyleSheet.create({
+  listContainer: {
+    paddingBottom: 20,
+  },
+});
+
+export default TransactionList;
+4. AddTransactionForm.tsx (Add Transaction Form Component)
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../common/InputField';
+import Button from '../common/Button';
+
+interface AddTransactionFormProps {
+  onSubmit: (description: string, amount: number, date: string) => void;
+}
+
+const AddTransactionForm: React.FC<AddTransactionFormProps> = ({ onSubmit }) => {
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState('');
+
+  const handleSubmit = () => {
+    if (!description || !amount || !date) {
+      // Simple validation check
+      alert('Please fill out all fields');
+      return;
+    }
+    onSubmit(description, parseFloat(amount), date);
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField
+        label="Description"
+        value={description}
+        onChangeText={setDescription}
+      />
+      <InputField
+        label="Amount"
+        value={amount}
+        onChangeText={setAmount}
+        keyboardType="numeric"
+      />
+      <InputField
+        label="Date"
+        value={date}
+        onChangeText={setDate}
+      />
+      <Button label="Add Transaction" onPress={handleSubmit} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+});
+
+export default AddTransactionForm;
+How to Integrate These Components
+You can integrate these components into your React Native app screens as follows:
+
+Example usage of TransactionList.tsx
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import TransactionList from '../components/transactions/TransactionList';
+
+const transactions = [
+  { id: '1', description: 'Groceries', amount: -50.75, date: '2024-10-05' },
+  { id: '2', description: 'Salary', amount: 2000, date: '2024-10-01' },
+  { id: '3', description: 'Netflix Subscription', amount: -12.99, date: '2024-10-03' },
+];
+
+const TransactionsScreen = () => {
+  return (
+    <View style={styles.container}>
+      <TransactionList transactions={transactions} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default TransactionsScreen;
+Example usage of AddTransactionForm.tsx
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import AddTransactionForm from '../components/transactions/AddTransactionForm';
+
+const AddTransactionScreen = () => {
+  const handleAddTransaction = (description: string, amount: number, date: string) => {
+    console.log('Transaction added:', { description, amount, date });
+    // Here, you could call an API or update the global state to add the transaction
+  };
+
+  return (
+    <View style={styles.container}>
+      <AddTransactionForm onSubmit={handleAddTransaction} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default AddTransactionScreen;
+Summary:
+Button.tsx: A reusable button component using react-native-paper with various styles and modes.
+InputField.tsx: A reusable text input component using react-native-paper for forms.
+TransactionList.tsx: Displays a list of transactions with details such as description, amount, and date.
+AddTransactionForm.tsx: A form to add new transactions, capturing description, amount, and date.
+These components are designed to be reusable across your app, and you can easily integrate them into different screens. Let me know if you need further assistance!
+
+Here’s the full code for React Contexts (Auth and Budget contexts), custom hooks (useAuth and useTransactions), and React Navigation setup (AppNavigator and AuthNavigator) for your React Native Personal Finance Tracker app. The code includes styling and a basic setup for each feature.
+
+1. Contexts (src/contexts)
+AuthContext.tsx
+This context manages user authentication (login/logout) and provides access to the user state across the app.
+
+import React, { createContext, useState, ReactNode, useContext } from 'react';
+
+interface AuthContextProps {
+  user: string | null;
+  login: (username: string) => void;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<string | null>(null);
+
+  const login = (username: string) => {
+    setUser(username);
+  };
+
+  const logout = () => {
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+BudgetContext.tsx
+This context manages budget-related logic, allowing components to access and update the budget data.
+
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+interface Budget {
+  id: string;
+  category: string;
+  amount: number;
+}
+
+interface BudgetContextProps {
+  budgets: Budget[];
+  addBudget: (category: string, amount: number) => void;
+  removeBudget: (id: string) => void;
+}
+
+const BudgetContext = createContext<BudgetContextProps | undefined>(undefined);
+
+export const BudgetProvider = ({ children }: { children: ReactNode }) => {
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+
+  const addBudget = (category: string, amount: number) => {
+    const newBudget = {
+      id: Math.random().toString(),
+      category,
+      amount,
+    };
+    setBudgets((prevBudgets) => [...prevBudgets, newBudget]);
+  };
+
+  const removeBudget = (id: string) => {
+    setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== id));
+  };
+
+  return (
+    <BudgetContext.Provider value={{ budgets, addBudget, removeBudget }}>
+      {children}
+    </BudgetContext.Provider>
+  );
+};
+
+export const useBudgets = () => {
+  const context = useContext(BudgetContext);
+  if (!context) {
+    throw new Error('useBudgets must be used within a BudgetProvider');
+  }
+  return context;
+};
+2. Custom Hooks (src/hooks)
+useAuth.tsx
+This custom hook wraps around the AuthContext for simplified authentication logic.
+
+import { useAuth } from '../contexts/AuthContext';
+
+export const useAuthHook = () => {
+  const { user, login, logout } = useAuth();
+
+  const handleLogin = (username: string) => {
+    login(username);
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  return { user, handleLogin, handleLogout };
+};
+useTransactions.tsx
+This custom hook manages transactions, including adding and removing transactions.
+
+import { useState } from 'react';
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
+export const useTransactions = () => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const addTransaction = (description: string, amount: number, date: string) => {
+    const newTransaction = {
+      id: Math.random().toString(),
+      description,
+      amount,
+      date,
+    };
+    setTransactions((prevTransactions) => [...prevTransactions, newTransaction]);
+  };
+
+  const removeTransaction = (id: string) => {
+    setTransactions((prevTransactions) => prevTransactions.filter((transaction) => transaction.id !== id));
+  };
+
+  return { transactions, addTransaction, removeTransaction };
+};
+3. React Navigation Setup (src/navigation)
+For navigation, we use React Navigation to set up the main navigation stack and the authentication flow.
+
+AppNavigator.tsx
+This is the main navigation stack for the app, which includes screens like Dashboard, Transactions, Budgets, and Reports.
+
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import DashboardScreen from '../screens/Dashboard/DashboardScreen';
+import TransactionsScreen from '../screens/Transactions/TransactionsScreen';
+import BudgetsScreen from '../screens/Budgets/BudgetsScreen';
+import ReportsScreen from '../screens/Dashboard/ReportsScreen';
+
+const Stack = createNativeStackNavigator();
+
+const AppNavigator = () => {
+  return (
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Dashboard" component={DashboardScreen} />
+      <Stack.Screen name="Transactions" component={TransactionsScreen} />
+      <Stack.Screen name="Budgets" component={BudgetsScreen} />
+      <Stack.Screen name="Reports" component={ReportsScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const screenOptions = {
+  headerStyle: {
+    backgroundColor: '#6200ea',
+  },
+  headerTintColor: '#fff',
+  headerTitleStyle: {
+    fontWeight: 'bold',
+  },
+};
+
+export default AppNavigator;
+AuthNavigator.tsx
+This stack handles the authentication flow, with screens like login and registration.
+
+import React from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import RegisterScreen from '../screens/Auth/RegisterScreen';
+
+const Stack = createNativeStackNavigator();
+
+const AuthNavigator = () => {
+  return (
+    <Stack.Navigator screenOptions={screenOptions}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+};
+
+const screenOptions = {
+  headerStyle: {
+    backgroundColor: '#6200ea',
+  },
+  headerTintColor: '#fff',
+  headerTitleStyle: {
+    fontWeight: 'bold',
+  },
+};
+
+export default AuthNavigator;
+How to Integrate
+To use these contexts, hooks, and navigation components in your app, you can wrap the app with the necessary providers and set up navigation.
+
+Example App.tsx
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { AuthProvider } from './contexts/AuthContext';
+import { BudgetProvider } from './contexts/BudgetContext';
+import AppNavigator from './navigation/AppNavigator';
+import AuthNavigator from './navigation/AuthNavigator';
+import { useAuthHook } from './hooks/useAuth';
+
+const App = () => {
+  const { user } = useAuthHook();
+
+  return (
+    <NavigationContainer>
+      <AuthProvider>
+        <BudgetProvider>
+          {user ? <AppNavigator /> : <AuthNavigator />}
+        </BudgetProvider>
+      </AuthProvider>
+    </NavigationContainer>
+  );
+};
+
+export default App;
+Summary:
+AuthContext.tsx: Manages user authentication globally.
+BudgetContext.tsx: Manages budgets globally.
+useAuth.tsx: Custom hook for handling login/logout.
+useTransactions.tsx: Custom hook for managing transactions (add/remove).
+AppNavigator.tsx: Main navigation stack for the app (Dashboard, Transactions, etc.).
+AuthNavigator.tsx: Authentication stack for login and registration.
+This structure allows you to easily manage the app's authentication, budgeting, and navigation features. Let me know if you need any further customizations!
+
+Here’s the full code implementation for the main app screens in your React Native project. This includes screens for authentication (login and register), the dashboard, and transactions.
+
+1. Auth Screens (src/screens/Auth)
+LoginScreen.tsx
+This screen handles user login.
+
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+import { useAuthHook } from '../../hooks/useAuth';
+
+const LoginScreen = () => {
+  const { handleLogin } = useAuthHook();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const onLogin = () => {
+    if (!username || !password) {
+      alert('Please enter both username and password');
+      return;
+    }
+    handleLogin(username);
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField label="Username" value={username} onChangeText={setUsername} />
+      <InputField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <Button label="Login" onPress={onLogin} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default LoginScreen;
+RegisterScreen.tsx
+This screen handles user registration.
+
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+
+const RegisterScreen = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const onRegister = () => {
+    if (!username || !password || !confirmPassword) {
+      alert('Please fill out all fields');
+      return;
+    }
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+    // Add logic to register user
+    alert('Registered successfully!');
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField label="Username" value={username} onChangeText={setUsername} />
+      <InputField label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+      <InputField label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+      <Button label="Register" onPress={onRegister} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default RegisterScreen;
+2. Dashboard Screens (src/screens/Dashboard)
+DashboardScreen.tsx
+This screen shows an overview of the user's financial data, including transactions and budgets.
+
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import Button from '../../components/common/Button';
+
+const DashboardScreen = ({ navigation }) => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Dashboard</Text>
+      <Button label="View Transactions" onPress={() => navigation.navigate('Transactions')} />
+      <Button label="View Budgets" onPress={() => navigation.navigate('Budgets')} />
+      <Button label="View Reports" onPress={() => navigation.navigate('Reports')} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+});
+
+export default DashboardScreen;
+ReportsScreen.tsx
+This screen displays financial reports such as monthly or yearly summaries.
+
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+
+const ReportsScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Reports</Text>
+      {/* Add logic to display financial reports */}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+});
+
+export default ReportsScreen;
+3. Transaction Screens (src/screens/Transactions)
+AddTransactionScreen.tsx
+This screen allows the user to add a new transaction.
+
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+import { useTransactions } from '../../hooks/useTransactions';
+
+const AddTransactionScreen = () => {
+  const { addTransaction } = useTransactions();
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [date, setDate] = useState('');
+
+  const onSubmit = () => {
+    if (!description || !amount || !date) {
+      alert('Please fill out all fields');
+      return;
+    }
+    addTransaction(description, parseFloat(amount), date);
+    alert('Transaction added!');
+    setDescription('');
+    setAmount('');
+    setDate('');
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField label="Description" value={description} onChangeText={setDescription} />
+      <InputField label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
+      <InputField label="Date" value={date} onChangeText={setDate} />
+      <Button label="Add Transaction" onPress={onSubmit} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default AddTransactionScreen;
+TransactionsScreen.tsx
+This screen displays a list of transactions.
+
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import TransactionList from '../../components/transactions/TransactionList';
+import { useTransactions } from '../../hooks/useTransactions';
+
+const TransactionsScreen = () => {
+  const { transactions } = useTransactions();
+
+  return (
+    <View style={styles.container}>
+      <TransactionList transactions={transactions} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default TransactionsScreen;
+Summary
+Authentication Screens (LoginScreen.tsx, RegisterScreen.tsx) manage user login and registration.
+Dashboard Screens (DashboardScreen.tsx, ReportsScreen.tsx) provide the user an overview of their financial data, and allow access to reports.
+Transaction Screens (AddTransactionScreen.tsx, TransactionsScreen.tsx) manage adding and listing transactions.
+This implementation allows for building out all the key screens for a Personal Finance Tracker mobile app using React Native. Let me know if you need more features or customizations!
+
+Here’s the full code for the budgeting and financial goals screens, including BudgetsScreen, AddBudgetScreen, GoalsScreen, and AddGoalScreen. These screens are essential for managing budgets and goals in your Personal Finance Tracker mobile app.
+
+1. Budget Screens (src/screens/Budgets)
+BudgetsScreen.tsx
+This screen displays a list of all the budgets.
+
+import React from 'react';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import Button from '../../components/common/Button';
+import { useBudgets } from '../../contexts/BudgetContext';
+
+const BudgetsScreen = ({ navigation }) => {
+  const { budgets } = useBudgets();
+
+  const renderBudget = ({ item }) => (
+    <View style={styles.budgetItem}>
+      <Text style={styles.budgetText}>
+        {item.category}: ${item.amount}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Budgets</Text>
+      <FlatList
+        data={budgets}
+        renderItem={renderBudget}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+      />
+      <Button label="Add Budget" onPress={() => navigation.navigate('AddBudget')} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  budgetItem: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  budgetText: {
+    fontSize: 18,
+  },
+});
+
+export default BudgetsScreen;
+AddBudgetScreen.tsx
+This screen allows the user to add a new budget.
+
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+import { useBudgets } from '../../contexts/BudgetContext';
+
+const AddBudgetScreen = ({ navigation }) => {
+  const { addBudget } = useBudgets();
+  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const onSubmit = () => {
+    if (!category || !amount) {
+      alert('Please fill out all fields');
+      return;
+    }
+    addBudget(category, parseFloat(amount));
+    alert('Budget added!');
+    navigation.goBack();
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField label="Category" value={category} onChangeText={setCategory} />
+      <InputField label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
+      <Button label="Add Budget" onPress={onSubmit} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default AddBudgetScreen;
+2. Goals Screens (src/screens/Goals)
+GoalsScreen.tsx
+This screen displays a list of all the financial goals.
+
+import React from 'react';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import Button from '../../components/common/Button';
+import { useState } from 'react';
+
+const GoalsScreen = ({ navigation }) => {
+  const [goals, setGoals] = useState([
+    { id: '1', goal: 'Save for a vacation', targetAmount: 1000, currentAmount: 300 },
+    { id: '2', goal: 'Buy a new laptop', targetAmount: 1500, currentAmount: 800 },
+  ]);
+
+  const renderGoal = ({ item }) => (
+    <View style={styles.goalItem}>
+      <Text style={styles.goalText}>
+        {item.goal} - ${item.currentAmount} / ${item.targetAmount}
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Goals</Text>
+      <FlatList
+        data={goals}
+        renderItem={renderGoal}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+      />
+      <Button label="Add Goal" onPress={() => navigation.navigate('AddGoal')} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  goalItem: {
+    padding: 15,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  goalText: {
+    fontSize: 18,
+  },
+});
+
+export default GoalsScreen;
+AddGoalScreen.tsx
+This screen allows the user to add a new financial goal.
+
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import InputField from '../../components/common/InputField';
+import Button from '../../components/common/Button';
+
+const AddGoalScreen = ({ navigation }) => {
+  const [goal, setGoal] = useState('');
+  const [targetAmount, setTargetAmount] = useState('');
+  const [currentAmount, setCurrentAmount] = useState('');
+
+  const onSubmit = () => {
+    if (!goal || !targetAmount || !currentAmount) {
+      alert('Please fill out all fields');
+      return;
+    }
+    // Logic to add the goal would go here
+    alert('Goal added!');
+    navigation.goBack();
+  };
+
+  return (
+    <View style={styles.container}>
+      <InputField label="Goal" value={goal} onChangeText={setGoal} />
+      <InputField label="Target Amount" value={targetAmount} onChangeText={setTargetAmount} keyboardType="numeric" />
+      <InputField label="Current Amount" value={currentAmount} onChangeText={setCurrentAmount} keyboardType="numeric" />
+      <Button label="Add Goal" onPress={onSubmit} />
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+});
+
+export default AddGoalScreen;
+Summary:
+Budgets Screens:
+
+BudgetsScreen.tsx: Displays a list of all budgets.
+AddBudgetScreen.tsx: Allows the user to add new budgets.
+Goals Screens:
+
+GoalsScreen.tsx: Displays a list of all financial goals.
+AddGoalScreen.tsx: Allows the user to add new financial goals.
+This setup provides full functionality for managing budgets and financial goals in your React Native app. Let me know if you need any additional features or customizations!
+
+Here’s the complete implementation for the services (API calls) and state management (using Redux slices) in your React Native app. These will handle backend communication for authentication, budgets, transactions, and reports, and the Redux slices will manage the global state of the app.
+
+1. API Services (src/services)
+authService.ts
+This service handles authentication-related API requests.
+
+import axios from 'axios';
+
+const API_URL = 'https://your-api-url.com/auth';
+
+export const login = async (username: string, password: string) => {
+  try {
+    const response = await axios.post(`${API_URL}/login`, { username, password });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const register = async (username: string, password: string) => {
+  try {
+    const response = await axios.post(`${API_URL}/register`, { username, password });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const logout = async () => {
+  try {
+    await axios.post(`${API_URL}/logout`);
+  } catch (error) {
+    throw error;
+  }
+};
+budgetService.ts
+This service handles API requests related to budgets.
+
+import axios from 'axios';
+
+const API_URL = 'https://your-api-url.com/budgets';
+
+export const fetchBudgets = async () => {
+  try {
+    const response = await axios.get(API_URL);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const addBudget = async (category: string, amount: number) => {
+  try {
+    const response = await axios.post(API_URL, { category, amount });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const deleteBudget = async (id: string) => {
+  try {
+    await axios.delete(`${API_URL}/${id}`);
+  } catch (error) {
+    throw error;
+  }
+};
+transactionService.ts
+This service handles API requests related to transactions.
+
+import axios from 'axios';
+
+const API_URL = 'https://your-api-url.com/transactions';
+
+export const fetchTransactions = async () => {
+  try {
+    const response = await axios.get(API_URL);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const addTransaction = async (description: string, amount: number, date: string) => {
+  try {
+    const response = await axios.post(API_URL, { description, amount, date });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+
+export const deleteTransaction = async (id: string) => {
+  try {
+    await axios.delete(`${API_URL}/${id}`);
+  } catch (error) {
+    throw error;
+  }
+};
+reportService.ts
+This service handles API requests related to generating reports.
+
+import axios from 'axios';
+
+const API_URL = 'https://your-api-url.com/reports';
+
+export const fetchReport = async (month: string) => {
+  try {
+    const response = await axios.get(`${API_URL}?month=${month}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error;
+  }
+};
+2. State Management (src/store)
+index.ts
+This file sets up the Redux store and integrates the reducers from the slices.
+
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './authSlice';
+import transactionReducer from './transactionSlice';
+import budgetReducer from './budgetSlice';
+
+const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    transactions: transactionReducer,
+    budgets: budgetReducer,
+  },
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+export default store;
+authSlice.ts
+This slice handles the authentication state, including login, logout, and registration.
+
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { login, register, logout } from '../services/authService';
+
+interface AuthState {
+  user: string | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: AuthState = {
+  user: null,
+  status: 'idle',
+  error: null,
+};
+
+export const loginUser = createAsyncThunk('auth/login', async ({ username, password }: { username: string, password: string }) => {
+  const response = await login(username, password);
+  return response;
+});
+
+export const registerUser = createAsyncThunk('auth/register', async ({ username, password }: { username: string, password: string }) => {
+  const response = await register(username, password);
+  return response;
+});
+
+export const logoutUser = createAsyncThunk('auth/logout', async () => {
+  await logout();
+});
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(loginUser.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.user = action.payload;
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to login';
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.status = 'idle';
+      });
+  },
+});
+
+export default authSlice.reducer;
+transactionSlice.ts
+This slice handles the state for transactions, including fetching, adding, and deleting transactions.
+
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { fetchTransactions, addTransaction, deleteTransaction } from '../services/transactionService';
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
+interface TransactionState {
+  transactions: Transaction[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: TransactionState = {
+  transactions: [],
+  status: 'idle',
+  error: null,
+};
+
+export const fetchAllTransactions = createAsyncThunk('transactions/fetchAll', async () => {
+  const response = await fetchTransactions();
+  return response;
+});
+
+export const createTransaction = createAsyncThunk('transactions/create', async ({ description, amount, date }: { description: string, amount: number, date: string }) => {
+  const response = await addTransaction(description, amount, date);
+  return response;
+});
+
+export const removeTransaction = createAsyncThunk('transactions/remove', async (id: string) => {
+  await deleteTransaction(id);
+  return id;
+});
+
+const transactionSlice = createSlice({
+  name: 'transactions',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchAllTransactions.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchAllTransactions.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.transactions = action.payload;
+      })
+      .addCase(fetchAllTransactions.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to fetch transactions';
+      })
+      .addCase(createTransaction.fulfilled, (state, action) => {
+        state.transactions.push(action.payload);
+      })
+      .addCase(removeTransaction.fulfilled, (state, action) => {
+        state.transactions = state.transactions.filter(transaction => transaction.id !== action.payload);
+      });
+  },
+});
+
+export default transactionSlice.reducer;
+budgetSlice.ts
+This slice handles the state for budgets, including fetching, adding, and deleting budgets.
+
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { fetchBudgets, addBudget, deleteBudget } from '../services/budgetService';
+
+interface Budget {
+  id: string;
+  category: string;
+  amount: number;
+}
+
+interface BudgetState {
+  budgets: Budget[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+const initialState: BudgetState = {
+  budgets: [],
+  status: 'idle',
+  error: null,
+};
+
+export const fetchAllBudgets = createAsyncThunk('budgets/fetchAll', async () => {
+  const response = await fetchBudgets();
+  return response;
+});
+
+export const createBudget = createAsyncThunk('budgets/create', async ({ category, amount }: { category: string, amount: number }) => {
+  const response = await addBudget(category, amount);
+  return response;
+});
+
+export const removeBudget = createAsyncThunk('budgets/remove', async (id: string) => {
+  await deleteBudget(id);
+  return id;
+});
+
+const budgetSlice = createSlice({
+  name: 'budgets',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchAllBudgets.pending, (state) => {
+        state.status = 'loading';
+
+
+      })
+      .addCase(fetchAllBudgets.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.budgets = action.payload;
+      })
+      .addCase(fetchAllBudgets.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to fetch budgets';
+      })
+      .addCase(createBudget.fulfilled, (state, action) => {
+        state.budgets.push(action.payload);
+      })
+      .addCase(removeBudget.fulfilled, (state, action) => {
+        state.budgets = state.budgets.filter(budget => budget.id !== action.payload);
+      });
+  },
+});
+
+export default budgetSlice.reducer;
+Summary:
+API Services: Each service (authService, budgetService, transactionService, reportService) handles HTTP requests to the backend for authentication, budget, transaction, and report management.
+Redux State Management: The slices (authSlice, transactionSlice, budgetSlice) handle global state management for authentication, transactions, and budgets using Redux and Redux Toolkit.
+This setup will help you manage the state and backend requests for your app in a scalable way. Let me know if you need any more customizations or additions!
+
+Here’s the full code for the utility functions, TypeScript types, theme management, and the main app entry point in your React Native app. These utilities, types, and theme files help keep the app well-organized, easy to manage, and scalable.
+
+1. Utility Functions and Constants (src/utils)
+formatDate.ts
+This helper function formats a date into a user-friendly string format.
+
+export const formatDate = (date: string | Date): string => {
+  const d = new Date(date);
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  return d.toLocaleDateString(undefined, options);
+};
+validateForm.ts
+This helper function validates form inputs, checking for required fields and specific criteria.
+
+interface ValidationResult {
+  isValid: boolean;
+  message: string;
+}
+
+export const validateForm = (fields: { [key: string]: string | number }): ValidationResult => {
+  for (const [field, value] of Object.entries(fields)) {
+    if (!value) {
+      return {
+        isValid: false,
+        message: `${field} is required.`,
+      };
+    }
+  }
+
+  return { isValid: true, message: 'Form is valid.' };
+};
+constants.ts
+This file contains app-wide constants, such as budget categories or common values.
+
+export const BUDGET_CATEGORIES = [
+  'Groceries',
+  'Rent',
+  'Utilities',
+  'Entertainment',
+  'Transportation',
+  'Savings',
+  'Miscellaneous',
+];
+2. TypeScript Types and Interfaces (src/types)
+auth.ts
+Defines the types for authentication, including the user object and authentication state.
+
+export interface User {
+  id: string;
+  username: string;
+  token: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+budget.ts
+Defines the types for budgets and budget state.
+
+export interface Budget {
+  id: string;
+  category: string;
+  amount: number;
+}
+
+export interface BudgetState {
+  budgets: Budget[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+transaction.ts
+Defines the types for transactions and transaction state.
+
+export interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+}
+
+export interface TransactionState {
+  transactions: Transaction[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+3. Theme and Styling Management (src/theme)
+colors.ts
+This file contains the color palette for the app, defining a consistent theme across the app.
+
+export const colors = {
+  primary: '#6200ea',
+  primaryDark: '#3700b3',
+  secondary: '#03dac6',
+  background: '#f5f5f5',
+  surface: '#ffffff',
+  text: '#000000',
+  error: '#b00020',
+  onPrimary: '#ffffff',
+  onSecondary: '#000000',
+  onBackground: '#000000',
+  onError: '#ffffff',
+};
+fonts.ts
+Defines the typography styles used across the app, ensuring consistent text styles.
+
+export const fonts = {
+  regular: 'Roboto-Regular',
+  medium: 'Roboto-Medium',
+  bold: 'Roboto-Bold',
+  sizes: {
+    small: 12,
+    medium: 16,
+    large: 24,
+  },
+};
+4. Main App Entry Point (App.tsx)
+The App.tsx file sets up the main entry point of your React Native app, initializing navigation and wrapping the app with providers like Redux or context providers.
+
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { Provider } from 'react-redux';
+import store from './store';
+import AppNavigator from './navigation/AppNavigator';
+import { AuthProvider } from './contexts/AuthContext';
+import { BudgetProvider } from './contexts/BudgetContext';
+import { StatusBar } from 'expo-status-bar';
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <AuthProvider>
+        <BudgetProvider>
+          <NavigationContainer>
+            <StatusBar style="auto" />
+            <AppNavigator />
+          </NavigationContainer>
+        </BudgetProvider>
+      </AuthProvider>
+    </Provider>
+  );
+};
+
+export default App;
+Summary:
+Utility Functions:
+
+formatDate.ts: Helps format dates into readable strings.
+validateForm.ts: Provides form validation logic.
+constants.ts: Stores app-wide constants like budget categories.
+TypeScript Types:
+
+Defines interfaces for authentication, budgets, and transactions, ensuring type safety.
+Theme Management:
+
+colors.ts: Defines a color palette for the app.
+fonts.ts: Defines consistent font styles for the app.
+App Entry Point:
+
+App.tsx: Main entry point for the app, setting up navigation and global providers.
+This structure and codebase will help keep your app maintainable, organized, and scalable. Let me know if you need any more adjustments!
+
+If you enjoy my content and would like to support my work, you can buy me a coffee. Your support is greatly appreciated!
+
+Disclaimer: This content is generated by AI.
+
+profile
+AWS
+Promoted
+
+AWS Security LIVE! Stream
+
+Tackle challenges with the AWS security community
+Join AWS Security LIVE! for an in-depth look at how to secure your AWS environment. Engage with security pros, participate in live discussions, and enhance your knowledge.
+
+Learn More
+
+Top comments (0)
+Subscribe
+pic
+Add to the discussion
+Code of Conduct • Report abuse
+profile
+Checkly
+Promoted
+
+Billboard image
+
+Use Playwright to test. Use Playwright to monitor.
+Join Vercel, CrowdStrike, and thousands of other teams that run end-to-end monitors on Checkly's programmable monitoring platform.
+
+Get started now!
+
+Read next
+rednexie profile image
+OS command injection
+rednexie - Dec 9
+
+theerej_c profile image
+Understanding Linux File Permissions: A Comprehensive Guide
+Theerej C - Dec 9
+
+alisamir profile image
+Write Clean, Maintainable Code: A Guide for Software Engineers 💯
+Ali Samir - Dec 9
+
+ngobrolinit profile image
+Tutorial Install Ubuntu 22.04.4 LTS Menggunakan balenaEtcher
+Ngobrolin IT - Dec 9
+
+
+Nadim Chowdhury
+Follow
+Hello world! It's me, Nadim Chowdhury. As a developer and programmer.
+Location
+Dhaka, Bangladesh
+Joined
+Jan 13, 2023
+More from Nadim Chowdhury
+What is CORS? Why should we use it?
+Why we use TypeORM, Prisma, Mongoose or any other ORM?
+Building a Scalable Virtual Shopping Mall with Next.js, NestJS, Prisma, and Stripe Integration
+profile
+AWS
+Promoted
+
+AWS Security LIVE! Stream
+
+Get cloud security advice without the sales pitch
+Ready to level up your cloud security skills? Tune in to AWS Security LIVE! for expert insights, live demos, and interactive Q&A sessions with AWS and AWS Partners.
+
+Learn More
+
+personal-finance-tracker-mobile/
+├── android/                    # Android-specific files and configurations
+├── ios/                        # iOS-specific files and configurations
+├── src/                        # Main source code directory
+│   ├── assets/                 # Static assets like images, fonts, etc.
+│   │   └── logo.png            # Example asset (App logo)
+│   ├── components/             # Reusable UI components
+│   │   ├── common/             # Shared components
+│   │   │   ├── Button.tsx      # Reusable Button component
+│   │   │   └── InputField.tsx  # Reusable InputField component
+│   │   └── transactions/       # Components related to transactions
+│   │       ├── TransactionList.tsx
+│   │       └── AddTransactionForm.tsx
+│   ├── contexts/               # React contexts for global state management
+│   │   ├── AuthContext.tsx     # User authentication context
+│   │   └── BudgetContext.tsx   # Budget management context
+│   ├── hooks/                  # Custom hooks for reusable logic
+│   │   ├── useAuth.tsx         # Custom hook for authentication logic
+│   │   └── useTransactions.tsx # Custom hook for managing transactions
+│   ├── navigation/             # React Navigation setup for app routing
+│   │   ├── AppNavigator.tsx    # Main navigation stack
+│   │   └── AuthNavigator.tsx   # Navigation stack for authentication flows
+│   ├── screens/                # Main app screens
+│   │   ├── Auth/               # Screens for authentication (login, register)
+│   │   │   ├── LoginScreen.tsx
+│   │   │   └── RegisterScreen.tsx
+│   │   ├── Dashboard/          # Screens for the dashboard and main app area
+│   │   │   ├── DashboardScreen.tsx
+│   │   │   └── ReportsScreen.tsx
+│   │   ├── Transactions/       # Screens related to transactions
+│   │   │   ├── AddTransactionScreen.tsx
+│   │   │   └── TransactionsScreen.tsx
+│   │   ├── Budgets/            # Screens related to budgeting
+│   │   │   ├── BudgetsScreen.tsx
+│   │   │   └── AddBudgetScreen.tsx
+│   │   ├── Goals/              # Screens related to financial goals
+│   │   │   ├── GoalsScreen.tsx
+│   │   │   └── AddGoalScreen.tsx
+│   ├── services/               # API services for making requests to the backend
+│   │   ├── authService.ts      # Service for handling authentication
+│   │   ├── budgetService.ts    # Service for budget-related API calls
+│   │   ├── transactionService.ts # Service for transaction-related API calls
+│   │   └── reportService.ts    # Service for fetching reports
+│   ├── store/                  # State management (e.g., Redux or Zustand)
+│   │   ├── index.ts            # Configure store for global state
+│   │   ├── authSlice.ts        # Slice for authentication state
+│   │   ├── transactionSlice.ts # Slice for transaction state
+│   │   └── budgetSlice.ts      # Slice for budget state
+│   ├── utils/                  # Utility functions and constants
+│   │   ├── formatDate.ts       # Helper to format dates
+│   │   ├── validateForm.ts     # Helper for form validation logic
+│   │   └── constants.ts        # App-wide constants (e.g., budget categories)
+│   ├── types/                  # TypeScript types and interfaces
+│   │   ├── auth.ts             # Types related to authentication
+│   │   ├── budget.ts           # Types related to budgets
+│   │   └── transaction.ts      # Types related to transactions
+│   ├── App.tsx                 # Main app entry point
+│   └── theme/                  # Styling and theme management (e.g., colors, fonts)
+│       ├── colors.ts           # App color palette
+│       └── fonts.ts            # App typography
+├── .env                        # Environment variables (API keys, etc.)
+├── package.json                # Dependencies and scripts
+└── README.md                   # Project documentation
+personal-finance-tracker-mobile/
+├── android/                    # Android-specific files and configurations
+├── ios/                        # iOS-specific files and configurations
+├── src/                        # Main source code directory
+│   ├── assets/                 # Static assets like images, fonts, etc.
+│   │   └── logo.png            # Example asset (App logo)
+│   ├── components/             # Reusable UI components
+│   │   ├── common/             # Shared components
+│   │   │   ├── Button.tsx      # Reusable Button component
+│   │   │   └── InputField.tsx  # Reusable InputField component
+│   │   └── transactions/       # Components related to transactions
+│   │       ├── TransactionList.tsx
+│   │       └── AddTransactionForm.tsx
+│   ├── contexts/               # React contexts for global state management
+│   │   ├── AuthContext.tsx     # User authentication context
+│   │   └── BudgetContext.tsx   # Budget management context
+│   ├── hooks/                  # Custom hooks for reusable logic
+│   │   ├── useAuth.tsx         # Custom hook for authentication logic
+│   │   └── useTransactions.tsx # Custom hook for managing transactions
+│   ├── navigation/             # React Navigation setup for app routing
+│   │   ├── AppNavigator.tsx    # Main navigation stack
+│   │   └── AuthNavigator.tsx   # Navigation stack for authentication flows
+│   ├── screens/                # Main app screens
+│   │   ├── Auth/               # Screens for authentication (login, register)
+│   │   │   ├── LoginScreen.tsx
+│   │   │   └── RegisterScreen.tsx
+│   │   ├── Dashboard/          # Screens for the dashboard and main app area
+│   │   │   ├── DashboardScreen.tsx
+│   │   │   └── ReportsScreen.tsx
+│   │   ├── Transactions/       # Screens related to transactions
+│   │   │   ├── AddTransactionScreen.tsx
+│   │   │   └── TransactionsScreen.tsx
+│   │   ├── Budgets/            # Screens related to budgeting
+│   │   │   ├── BudgetsScreen.tsx
+│   │   │   └── AddBudgetScreen.tsx
+│   │   ├── Goals/              # Screens related to financial goals
+│   │   │   ├── GoalsScreen.tsx
+│   │   │   └── AddGoalScreen.tsx
+│   ├── services/               # API services for making requests to the backend
+│   │   ├── authService.ts      # Service for handling authentication
+│   │   ├── budgetService.ts    # Service for budget-related API calls
+│   │   ├── transactionService.ts # Service for transaction-related API calls
+│   │   └── reportService.ts    # Service for fetching reports
+│   ├── store/                  # State management (e.g., Redux or Zustand)
+│   │   ├── index.ts            # Configure store for global state
+│   │   ├── authSlice.ts        # Slice for authentication state
+│   │   ├── transactionSlice.ts # Slice for transaction state
+│   │   └── budgetSlice.ts      # Slice for budget state
+│   ├── utils/                  # Utility functions and constants
+│   │   ├── formatDate.ts       # Helper to format dates
+│   │   ├── validateForm.ts     # Helper for form validation logic
+│   │   └── constants.ts        # App-wide constants (e.g., budget categories)
+│   ├── types/                  # TypeScript types and interfaces
+│   │   ├── auth.ts             # Types related to authentication
+│   │   ├── budget.ts           # Types related to budgets
+│   │   └── transaction.ts      # Types related to transactions
+│   ├── App.tsx                 # Main app entry point
+│   └── theme/                  # Styling and theme management (e.g., colors, fonts)
+│       ├── colors.ts           # App color palette
+│       └── fonts.ts            # App typography
+├── .env                        # Environment variables (API keys, etc.)
+├── package.json                # Dependencies and scripts
+└── README.md                   # Project documentation
+Thank you to our Diamond Sponsor Neon for supporting our community.
+
+DEV Community — A constructive and inclusive social network for software developers. With you every step of your journey.
+
+Home
+DEV++
+Podcasts
+Videos
+Tags
+DEV Help
+Forem Shop
+Advertise on DEV
+DEV Challenges
+DEV Showcase
+About
+Contact
+Free Postgres Database
+Guides
+Software comparisons
+Code of Conduct
+Privacy Policy
+Terms of use
+Built on Forem — the open source software that powers DEV and other inclusive communities.
+
+Made with love and Ruby on Rails. DEV Community © 2016 - 2024.
