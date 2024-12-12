@@ -11,11 +11,15 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    } catch (error) {
+      return Promise.reject(error);
     }
-    return config;
   },
   (error) => {
     return Promise.reject(error);
@@ -38,22 +42,24 @@ axiosInstance.interceptors.response.use(
 
         const response = await axios.post(
           `${API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-          { refresh_token: refreshToken }  
+          { refreshToken }
         );
 
         if (response.data.success) {
-          const { accessToken, refreshToken: newRefreshToken } = response.data;  
+          const { accessToken, refreshToken: newRefreshToken } = response.data;
           await AsyncStorage.setItem('token', accessToken);
           if (newRefreshToken) {
             await AsyncStorage.setItem('refreshToken', newRefreshToken);
           }
-          
+
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return axiosInstance(originalRequest);
+        } else {
+          throw new Error('Token refresh failed');
         }
       } catch (refreshError) {
-        await AsyncStorage.multiRemove(['token', 'refreshToken', 'userId', 'userName']);
-        throw new Error('Session expired. Please login again.');
+        await AsyncStorage.multiRemove(['token', 'refreshToken', 'userId', 'userName', 'userEmail']);
+        throw refreshError;
       }
     }
 
