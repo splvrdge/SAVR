@@ -214,7 +214,7 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-customGreen" edges={['top']}>
       <StatusBar style="light" />
       <ScrollView
         refreshControl={
@@ -270,8 +270,8 @@ export default function Home() {
             </View>
           </View>
         </View>
-
-        {/* Quick Actions */}
+        <View className='bg-white'>
+           {/* Quick Actions */}
         <View className="px-6 mt-8">
           <Text className="text-lg font-semibold text-gray-800 mb-4">
             Quick Actions
@@ -378,6 +378,7 @@ export default function Home() {
               <Text className="text-pink-600 mt-2 font-medium">Reports</Text>
             </TouchableOpacity>
           </View>
+        </View>
         </View>
       </ScrollView>
     </SafeAreaView>

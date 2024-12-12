@@ -128,7 +128,7 @@ const IncomeScreen = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
       const token = await AsyncStorage.getItem('token');
       const userId = await AsyncStorage.getItem('userId');
@@ -137,22 +137,23 @@ const IncomeScreen = () => {
         return;
       }
 
-      const endpoint = isEditing ? `${API_URL}/income/update` : `${API_URL}/income/add`;
-      const method = isEditing ? 'PUT' : 'POST';
+      const endpoint = isEditing 
+        ? `${API_URL}${API_ENDPOINTS.INCOME.UPDATE}`
+        : `${API_URL}${API_ENDPOINTS.INCOME.ADD}`;
       
       const response = await axios({
-        method: method,
+        method: isEditing ? 'PUT' : 'POST',
         url: endpoint,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         data: {
-          user_id: userId,
-          income_id: selectedIncome?.id, // Only included when editing
+          user_id: parseInt(userId),
           amount: parseFloat(amount),
           description,
-          category: selectedCategory
+          category: selectedCategory,
+          ...(isEditing && { income_id: selectedIncome?.id })
         }
       });
 
@@ -165,7 +166,7 @@ const IncomeScreen = () => {
         // Reset form
         setAmount('');
         setDescription('');
-        setSelectedCategory('');
+        setSelectedCategory(categories[0].id);
         setSelectedIncome(null);
         setIsEditing(false);
       } else {
@@ -173,14 +174,18 @@ const IncomeScreen = () => {
       }
     } catch (error) {
       console.error('Error:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-        router.replace('/(auth)/sign-in');
-        return;
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
+          return;
+        }
+        Alert.alert('Error', error.response?.data?.message || 'Failed to process income');
+      } else {
+        Alert.alert('Error', 'Failed to process income');
       }
-      Alert.alert('Error', 'Failed to process income');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
