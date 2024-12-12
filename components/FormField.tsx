@@ -1,13 +1,23 @@
 import { View, Text, TextInput, Image, TouchableOpacity } from "react-native";
 import React, { useState } from "react";
+import { Ionicons } from '@expo/vector-icons';
 
-import { icons } from "../constants/icons";
+interface FormFieldProps {
+  title?: string;
+  value: string;
+  handleChangeText: (text: string) => void;
+  otherStyles?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
+  [key: string]: any;
+}
 
-const FormField = ({
+const FormField: React.FC<FormFieldProps> = ({
   title = "",
   value,
   handleChangeText,
   otherStyles,
+  secureTextEntry,
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +25,8 @@ const FormField = ({
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
+
+  const isPassword = title.toLowerCase().includes('password');
 
   return (
     <View className={`space-y-2 ${otherStyles}`}>
@@ -24,17 +36,19 @@ const FormField = ({
           className="flex-1 text-gray-600 font-psemibold text-[16px]"
           value={value}
           onChangeText={handleChangeText}
-          secureTextEntry={
-            (title === "Password" || title === "Confirm Password") &&
-            !showPassword
-          }
+          secureTextEntry={isPassword && !showPassword}
           {...props}
         />
-        {(title === "Password" || title === "Confirm Password") && (
-          <TouchableOpacity onPress={toggleShowPassword} className="ml-2">
-            <Image
-              source={showPassword ? icons.eye : icons.eyeHide}
-              style={{ width: 24, height: 24 }}
+        {isPassword && (
+          <TouchableOpacity 
+            onPress={toggleShowPassword} 
+            className="ml-2 p-2"
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={showPassword ? "eye-outline" : "eye-off-outline"}
+              size={24}
+              color="#666"
             />
           </TouchableOpacity>
         )}
