@@ -40,6 +40,32 @@ export default function Home() {
   const [userName, setUserName] = useState<string>('');
   const router = useRouter();
 
+  // Income Categories
+  const incomeCategories = {
+    salary: { name: 'Salary', icon: 'cash-multiple' },
+    business: { name: 'Business', icon: 'store-outline' },
+    investment: { name: 'Investment', icon: 'trending-up' },
+    freelance: { name: 'Freelance', icon: 'laptop-outline' },
+    gift: { name: 'Gift', icon: 'gift-outline' },
+    other: { name: 'Other', icon: 'dots-horizontal' }
+  };
+
+  // Expense Categories
+  const expenseCategories = {
+    food: { name: 'Food & Dining', icon: 'food-fork-drink' },
+    transport: { name: 'Transportation', icon: 'car-outline' },
+    utilities: { name: 'Utilities', icon: 'lightning-bolt-outline' },
+    shopping: { name: 'Shopping', icon: 'shopping-outline' },
+    entertainment: { name: 'Entertainment', icon: 'gamepad-variant-outline' },
+    health: { name: 'Healthcare', icon: 'hospital-box-outline' },
+    other: { name: 'Other', icon: 'dots-horizontal' }
+  };
+
+  const getCategoryIcon = (category: string, type: 'income' | 'expense') => {
+    const categories = type === 'income' ? incomeCategories : expenseCategories;
+    return categories[category]?.icon || 'help-circle-outline';
+  };
+
   const fetchFinancialData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -138,46 +164,6 @@ export default function Home() {
     }
   };
 
-  const getCategoryIcon = (category: string, type: string) => {
-    if (type === 'income') {
-      switch (category.toLowerCase()) {
-        case 'salary':
-          return 'cash';
-        case 'business':
-          return 'store';
-        case 'investment':
-          return 'chart-line';
-        case 'freelance':
-          return 'laptop';
-        case 'other':
-          return 'dots-horizontal';
-        default:
-          return 'cash';
-      }
-    } else {
-      switch (category.toLowerCase()) {
-        case 'food':
-          return 'food';
-        case 'transportation':
-          return 'car';
-        case 'utilities':
-          return 'lightning-bolt';
-        case 'shopping':
-          return 'shopping';
-        case 'entertainment':
-          return 'movie';
-        case 'health':
-          return 'medical-bag';
-        case 'education':
-          return 'school';
-        case 'other':
-          return 'dots-horizontal';
-        default:
-          return 'cash';
-      }
-    }
-  };
-
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   };
@@ -215,7 +201,7 @@ export default function Home() {
 
   return (
     <SafeAreaView className="flex-1 bg-customGreen" edges={['top']}>
-      <StatusBar style="light" />
+      <StatusBar backgroundColor="transparent" style="light" />
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -300,40 +286,33 @@ export default function Home() {
           
           {latestTransactions.length > 0 ? (
             latestTransactions.map((transaction, index) => (
-              <View key={transaction.id} className="bg-gray-50 p-4 rounded-lg mb-3">
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-center">
-                    {/* Transaction Type Indicator */}
-                    <View className={`w-8 h-8 rounded-full ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'} items-center justify-center mr-2`}>
-                      <MaterialCommunityIcons
-                        name={transaction.type === 'income' ? 'arrow-up' : 'arrow-down'}
-                        size={20}
-                        color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
-                      />
-                    </View>
-                    {/* Category Icon */}
-                    <View className="w-8 h-8 rounded-full bg-gray-200 items-center justify-center mr-3">
-                      <MaterialCommunityIcons
-                        name={getCategoryIcon(transaction.category, transaction.type)}
-                        size={20}
-                        color="#4b5563"
-                      />
-                    </View>
-                    <View>
-                      <Text className="text-sm text-gray-500">{capitalizeFirstLetter(transaction.category)}</Text>
-                      <Text className="text-xs text-gray-400">
-                        {new Date(transaction.timestamp).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </Text>
-                    </View>
+              <View key={transaction.id} className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-xl">
+                <View className="flex-row items-center flex-1">
+                  <View
+                    className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                      transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                    }`}
+                  >
+                    <MaterialCommunityIcons
+                      name={getCategoryIcon(transaction.category, transaction.type)}
+                      size={20}
+                      color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
+                    />
                   </View>
-                  <Text className={transaction.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                  </Text>
+                  <View>
+                    <Text className="text-sm text-gray-500">{capitalizeFirstLetter(transaction.category)}</Text>
+                    <Text className="text-xs text-gray-400">
+                      {new Date(transaction.timestamp).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </Text>
+                  </View>
                 </View>
+                <Text className={transaction.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                  {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                </Text>
               </View>
             ))
           ) : (

@@ -8,7 +8,6 @@ import {
   TextInput,
   Modal,
   RefreshControl,
-  StatusBar,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -20,6 +19,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
 import { Picker } from '@react-native-picker/picker';
+import { StatusBar } from 'expo-status-bar';
 
 interface Income {
   id: number;
@@ -44,6 +44,11 @@ const categories: Category[] = [
   { id: 'gift', name: 'Gift', icon: 'gift-outline' },
   { id: 'other', name: 'Other', icon: 'dots-horizontal' },
 ];
+
+const getCategoryIcon = (categoryId: string) => {
+  const category = categories.find((cat) => cat.id === categoryId);
+  return category?.icon || 'help-circle-outline';
+};
 
 const IncomeScreen = () => {
   const router = useRouter();
@@ -326,8 +331,8 @@ const IncomeScreen = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-green-600" edges={['top']}>
-      <StatusBar style="light" />
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <StatusBar backgroundColor="white" style="dark" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 bg-white"
@@ -395,7 +400,7 @@ const IncomeScreen = () => {
                     <View className="flex-row items-center flex-1">
                       <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
                         <MaterialCommunityIcons
-                          name={income.category}
+                          name={getCategoryIcon(income.category)}
                           size={20}
                           color="#16a34a"
                         />
@@ -571,7 +576,7 @@ const IncomeScreen = () => {
                   <View className="items-center mb-6">
                     <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-3">
                       <MaterialCommunityIcons
-                        name={selectedIncome.category}
+                        name={getCategoryIcon(selectedIncome.category)}
                         size={32}
                         color="#16a34a"
                       />
