@@ -15,11 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import { API_ENDPOINTS } from '@/constants/API';
 import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
+import axiosInstance from '@/utils/axiosConfig';
+import TabHeader from '../../components/TabHeader';
 
 interface Income {
   id: number;
@@ -50,21 +51,21 @@ const getCategoryIcon = (categoryId: string) => {
   return category?.icon || 'help-circle-outline';
 };
 
-const IncomeScreen = () => {
+export default function IncomeScreen() {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0].id);
   const [incomes, setIncomes] = useState<Income[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'category'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'category' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const sortedIncomes = useMemo(() => {
@@ -75,12 +76,16 @@ const IncomeScreen = () => {
         const dateA = new Date(a.timestamp).getTime();
         const dateB = new Date(b.timestamp).getTime();
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-      } else {
+      } else if (sortBy === 'category') {
         const categoryA = a.category.toLowerCase();
         const categoryB = b.category.toLowerCase();
         return sortOrder === 'desc' 
           ? categoryB.localeCompare(categoryA)
           : categoryA.localeCompare(categoryB);
+      } else {
+        const amountA = a.amount;
+        const amountB = b.amount;
+        return sortOrder === 'desc' ? amountB - amountA : amountA - amountB;
       }
     });
   }, [incomes, sortBy, sortOrder]);
@@ -91,39 +96,38 @@ const IncomeScreen = () => {
 
   const fetchIncomes = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const userId = await AsyncStorage.getItem('userId');
-
-      if (!token || !userId) {
+      if (!userId) {
         router.replace('/(auth)/sign-in');
         return;
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      const response = await axios.get(
-        `${API_URL}${API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId)}`,
-        { headers }
-      );
+      console.log('Fetching incomes for user:', userId);
+      const response = await axiosInstance.get(API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId));
+      console.log('Income response:', response.data);
 
       if (response.data.success) {
         setIncomes(response.data.data);
       } else {
         setIncomes([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching incomes:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      console.error('Error details:', error.response?.data);
+      
+      if (error.response?.status === 401) {
         await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
-        return;
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to fetch incomes'
+        );
       }
       setIncomes([]);
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -135,24 +139,27 @@ const IncomeScreen = () => {
 
     setIsSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
       const userId = await AsyncStorage.getItem('userId');
-      if (!token || !userId) {
+      if (!userId) {
         Alert.alert('Error', 'Authentication required');
         return;
       }
 
+      console.log('Submitting income:', {
+        user_id: parseInt(userId),
+        amount: parseFloat(amount),
+        description,
+        category: selectedCategory,
+        ...(isEditing && { income_id: selectedIncome?.id })
+      });
+
       const endpoint = isEditing 
-        ? `${API_URL}${API_ENDPOINTS.INCOME.UPDATE}`
-        : `${API_URL}${API_ENDPOINTS.INCOME.ADD}`;
+        ? API_ENDPOINTS.INCOME.UPDATE
+        : API_ENDPOINTS.INCOME.ADD;
       
-      const response = await axios({
+      const response = await axiosInstance({
         method: isEditing ? 'PUT' : 'POST',
         url: endpoint,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         data: {
           user_id: parseInt(userId),
           amount: parseFloat(amount),
@@ -162,9 +169,9 @@ const IncomeScreen = () => {
         }
       });
 
-      const { data } = response;
-      
-      if (data.success) {
+      console.log('Submit response:', response.data);
+
+      if (response.data.success) {
         Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
         setShowModal(false);
         fetchIncomes(); // Refresh the list
@@ -175,22 +182,60 @@ const IncomeScreen = () => {
         setSelectedIncome(null);
         setIsEditing(false);
       } else {
-        Alert.alert('Error', data.message || 'Something went wrong');
+        Alert.alert('Error', response.data.message || 'Something went wrong');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
-        Alert.alert('Error', error.response?.data?.message || 'Failed to process income');
+    } catch (error: any) {
+      console.error('Error submitting income:', error);
+      console.error('Error details:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
       } else {
-        Alert.alert('Error', 'Failed to process income');
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to process income'
+        );
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (incomeId: number) => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        Alert.alert('Error', 'Authentication required');
+        return;
+      }
+
+      console.log('Deleting income:', incomeId);
+      const response = await axiosInstance.delete(
+        API_ENDPOINTS.INCOME.DELETE.replace(':income_id', incomeId.toString())
+      );
+      console.log('Delete response:', response.data);
+
+      if (response.data.success) {
+        Alert.alert('Success', 'Income deleted successfully');
+        setShowViewModal(false);
+        fetchIncomes(); // Refresh the list
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to delete income');
+      }
+    } catch (error: any) {
+      console.error('Error deleting income:', error);
+      console.error('Error details:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to delete income'
+        );
+      }
     }
   };
 
@@ -203,36 +248,19 @@ const IncomeScreen = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (incomeId: number) => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const userId = await AsyncStorage.getItem('userId');
-      if (!token || !userId) {
-        Alert.alert('Error', 'Authentication required');
-        return;
-      }
+  const handleIncomePress = (income: Income) => {
+    setSelectedIncome(income);
+    setShowViewModal(true);
+  };
 
-      const response = await axios.delete(`${API_URL}/income/delete/${incomeId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.data.success) {
-        Alert.alert('Success', 'Income deleted successfully');
-        setShowViewModal(false);
-        fetchIncomes(); // Refresh the list
-      } else {
-        Alert.alert('Error', response.data.message || 'Failed to delete income');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-        router.replace('/(auth)/sign-in');
-        return;
-      }
-      Alert.alert('Error', 'Failed to delete income');
+  const handleEditPress = () => {
+    if (selectedIncome) {
+      setAmount(selectedIncome.amount.toString());
+      setDescription(selectedIncome.description);
+      setSelectedCategory(selectedIncome.category);
+      setIsEditing(true);
+      setShowViewModal(false);
+      setShowModal(true);
     }
   };
 
@@ -266,22 +294,6 @@ const IncomeScreen = () => {
     setShowModal(true);
   };
 
-  const handleIncomePress = (income: Income) => {
-    setSelectedIncome(income);
-    setShowViewModal(true);
-  };
-
-  const handleEditPress = () => {
-    if (selectedIncome) {
-      setAmount(selectedIncome.amount.toString());
-      setDescription(selectedIncome.description);
-      setSelectedCategory(selectedIncome.category);
-      setIsEditing(true);
-      setShowViewModal(false);
-      setShowModal(true);
-    }
-  };
-
   useEffect(() => {
     const checkAuthentication = async () => {
       try {
@@ -297,7 +309,7 @@ const IncomeScreen = () => {
         fetchIncomes();
       } catch (error) {
         console.error('Authentication error:', error);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
           await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
           router.replace('/(auth)/sign-in');
           return;
@@ -331,321 +343,273 @@ const IncomeScreen = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-white">
       <StatusBar backgroundColor="white" style="dark" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
-        style={{ position: 'relative' }}
+      
+      <TabHeader
+        title="Income"
+        sortOptions={[
+          { id: 'date', label: 'Date' },
+          { id: 'category', label: 'Category' },
+          { id: 'amount', label: 'Amount' }
+        ]}
+        selectedSort={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={setSortBy}
+        onSortOrderChange={toggleSortOrder}
+      />
+
+      {/* Add Income Button */}
+      <TouchableOpacity
+        onPress={() => {
+          setIsEditing(false);
+          setSelectedIncome(null);
+          setAmount('');
+          setDescription('');
+          setSelectedCategory(categories[0].id);
+          setShowModal(true);
+        }}
+        className="absolute bottom-4 right-4 z-10 bg-blue-500 rounded-full w-14 h-14 items-center justify-center"
       >
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          className="flex-1"
-        >
-          {/* Header and Sorting */}
-          <View className="p-4 border-b border-gray-100">
-            <Text className="text-2xl font-bold text-gray-800 mb-4">
-              Income
-            </Text>
-            
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row space-x-2">
-                <TouchableOpacity
-                  onPress={() => setSortBy('date')}
-                  className={`px-4 py-2 rounded-full border ${
-                    sortBy === 'date' ? 'bg-green-100 border-green-200' : 'border-gray-200'
-                  }`}
-                >
-                  <Text className={sortBy === 'date' ? 'text-green-600' : 'text-gray-600'}>
-                    Date
+        <MaterialCommunityIcons name="plus" size={30} color="white" />
+      </TouchableOpacity>
+
+      {/* Income List */}
+      <ScrollView
+        className="flex-1 px-4 pb-20"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
+        {isLoading ? (
+          <ActivityIndicator size="large" className="mt-20" color="#3B82F6" />
+        ) : sortedIncomes.length > 0 ? (
+          sortedIncomes.map((income) => (
+            <TouchableOpacity
+              key={income.id}
+              onPress={() => handleIncomePress(income)}
+              className="bg-white p-4 rounded-xl mb-3 border border-gray-100"
+            >
+              <View className="flex-row justify-between items-center">
+                <View className="flex-row items-center flex-1">
+                  <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
+                    <MaterialCommunityIcons
+                      name={getCategoryIcon(income.category)}
+                      size={20}
+                      color="#16a34a"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-gray-800 font-medium">
+                      {income.description || 'Income'}
+                    </Text>
+                    <Text className="text-gray-500 text-sm">
+                      {income.category}
+                    </Text>
+                    <Text className="text-gray-400 text-xs">
+                      {formatDate(income.timestamp)}
+                    </Text>
+                  </View>
+                </View>
+                <View className="flex-row items-center">
+                  <Text className="text-green-600 font-semibold mr-2">
+                    {formatCurrency(income.amount)}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setSortBy('category')}
-                  className={`px-4 py-2 rounded-full border ${
-                    sortBy === 'category' ? 'bg-green-100 border-green-200' : 'border-gray-200'
-                  }`}
-                >
-                  <Text className={sortBy === 'category' ? 'text-green-600' : 'text-gray-600'}>
-                    Category
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDelete(income.id)}
+                    className="p-2"
+                  >
+                    <MaterialCommunityIcons name="trash-can-outline" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View className="flex-1 items-center justify-center mt-20">
+            <Text className="text-gray-500 text-lg">No income records found</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add/Edit Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showModal}
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/30">
+          <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-2xl font-bold text-gray-800">
+                {isEditing ? 'Edit Income' : 'Add Income'}
+              </Text>
               <TouchableOpacity
-                onPress={toggleSortOrder}
+                onPress={() => setShowModal(false)}
                 className="p-2"
               >
-                <MaterialCommunityIcons
-                  name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'}
-                  size={24}
-                  color="#666"
-                />
+                <MaterialCommunityIcons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
-          </View>
 
-          {/* Income List */}
-          {sortedIncomes.length > 0 ? (
-            <View className="p-4">
-              {sortedIncomes.map((income) => (
-                <TouchableOpacity
-                  key={income.id}
-                  onPress={() => handleIncomePress(income)}
-                  className="bg-white p-4 rounded-xl mb-3 border border-gray-100"
-                >
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
-                        <MaterialCommunityIcons
-                          name={getCategoryIcon(income.category)}
-                          size={20}
-                          color="#16a34a"
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-gray-800 font-medium">
-                          {income.description || 'Income'}
-                        </Text>
-                        <Text className="text-gray-500 text-sm">
-                          {income.category}
-                        </Text>
-                        <Text className="text-gray-400 text-xs">
-                          {new Date(income.timestamp).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Text className="text-green-600 font-semibold mr-2">
-                        {formatCurrency(income.amount)}
-                      </Text>
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              <View className="space-y-6">
+                {/* Description Input */}
+                <View>
+                  <Text className="text-gray-600 mb-2">Description</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    placeholder="Enter description"
+                    value={description}
+                    onChangeText={setDescription}
+                  />
+                </View>
+
+                {/* Amount Input */}
+                <View>
+                  <Text className="text-gray-600 mb-2">Amount</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    placeholder="Enter amount"
+                    keyboardType="numeric"
+                    value={amount}
+                    onChangeText={setAmount}
+                  />
+                </View>
+
+                {/* Category Input */}
+                <View>
+                  <Text className="text-gray-600 mb-2">Category</Text>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false} 
+                    className="flex-row space-x-2"
+                  >
+                    {categories.map((cat) => (
                       <TouchableOpacity
-                        onPress={() => handleDelete(income.id)}
-                        className="p-2"
+                        key={cat.id}
+                        onPress={() => setSelectedCategory(cat.id)}
+                        className={`p-4 rounded-xl flex-row items-center space-x-2 ${
+                          selectedCategory === cat.id ? 'bg-green-100 border border-green-200' : 'bg-gray-50'
+                        }`}
                       >
-                        <MaterialCommunityIcons name="trash-can-outline" size={20} color="#666" />
+                        <MaterialCommunityIcons
+                          name={cat.icon}
+                          size={24}
+                          color={selectedCategory === cat.id ? '#16a34a' : '#666'}
+                        />
+                        <Text className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}>
+                          {cat.name}
+                        </Text>
                       </TouchableOpacity>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <View className="flex-1 justify-center items-center p-4">
-              <MaterialCommunityIcons name="cash-remove" size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 text-center mt-4">
-                No income recorded yet
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+                    ))}
+                  </ScrollView>
+                </View>
 
-        {/* Add Button */}
-        <TouchableOpacity
-          onPress={handleAddPress}
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            right: 24,
-            zIndex: 1000,
-          }}
-          className="w-14 h-14 bg-green-600 rounded-full items-center justify-center"
-        >
-          <MaterialCommunityIcons name="plus" size={30} color="white" />
-        </TouchableOpacity>
-
-        {/* Add/Edit Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showModal}
-          onRequestClose={() => setShowModal(false)}
-        >
-          <View className="flex-1 justify-end bg-black/30">
-            <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-bold text-gray-800">
-                  {isEditing ? 'Edit Income' : 'Add Income'}
-                </Text>
+                {/* Submit Button */}
                 <TouchableOpacity
-                  onPress={() => setShowModal(false)}
-                  className="p-2"
+                  onPress={handleSubmit}
+                  className="bg-green-600 p-4 rounded-xl mt-6"
                 >
-                  <MaterialCommunityIcons name="close" size={24} color="#666" />
+                  <Text className="text-white text-center font-semibold text-lg">
+                    {isEditing ? 'Update Income' : 'Add Income'}
+                  </Text>
                 </TouchableOpacity>
               </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
-              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <View className="space-y-6">
-                  {/* Description Input */}
-                  <View>
-                    <Text className="text-gray-600 mb-2">Description</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter description"
-                      value={description}
-                      onChangeText={setDescription}
+      {/* View Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showViewModal}
+        onRequestClose={() => setShowViewModal(false)}
+      >
+        <View className="flex-1 justify-end bg-black/30">
+          <View className="bg-white rounded-t-3xl p-6 shadow-2xl">
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-2xl font-bold text-gray-800">
+                Income Details
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowViewModal(false)}
+                className="p-2"
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedIncome && (
+              <View className="space-y-6">
+                <View className="items-center mb-6">
+                  <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-3">
+                    <MaterialCommunityIcons
+                      name={getCategoryIcon(selectedIncome.category)}
+                      size={32}
+                      color="#16a34a"
                     />
                   </View>
+                  <Text className="text-3xl font-bold text-green-600">
+                    {formatCurrency(selectedIncome.amount)}
+                  </Text>
+                </View>
 
-                  {/* Amount Input */}
+                <View className="space-y-4">
                   <View>
-                    <Text className="text-gray-600 mb-2">Amount</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter amount"
-                      keyboardType="numeric"
-                      value={amount}
-                      onChangeText={setAmount}
-                    />
+                    <Text className="text-gray-500 text-sm mb-1">Description</Text>
+                    <Text className="text-gray-800 text-lg">
+                      {selectedIncome.description || 'No description'}
+                    </Text>
                   </View>
 
-                  {/* Category Input */}
                   <View>
-                    <Text className="text-gray-600 mb-2">Category</Text>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false} 
-                      className="flex-row space-x-2"
-                    >
-                      {categories.map((cat) => (
-                        <TouchableOpacity
-                          key={cat.id}
-                          onPress={() => setSelectedCategory(cat.id)}
-                          className={`p-4 rounded-xl flex-row items-center space-x-2 ${
-                            selectedCategory === cat.id ? 'bg-green-100 border border-green-200' : 'bg-gray-50'
-                          }`}
-                        >
-                          <MaterialCommunityIcons
-                            name={cat.icon}
-                            size={24}
-                            color={selectedCategory === cat.id ? '#16a34a' : '#666'}
-                          />
-                          <Text className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}>
-                            {cat.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                    <Text className="text-gray-500 text-sm mb-1">Category</Text>
+                    <Text className="text-gray-800 text-lg">
+                      {selectedIncome.category}
+                    </Text>
                   </View>
 
-                  {/* Submit Button */}
+                  <View>
+                    <Text className="text-gray-500 text-sm mb-1">Date</Text>
+                    <Text className="text-gray-800 text-lg">
+                      {formatDate(selectedIncome.timestamp)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row space-x-4 mt-6">
                   <TouchableOpacity
-                    onPress={handleSubmit}
-                    className="bg-green-600 p-4 rounded-xl mt-6"
+                    onPress={() => {
+                      setShowViewModal(false);
+                      handleEditPress();
+                    }}
+                    className="flex-1 bg-gray-100 p-4 rounded-xl"
                   >
-                    <Text className="text-white text-center font-semibold text-lg">
-                      {isEditing ? 'Update Income' : 'Add Income'}
+                    <Text className="text-center text-gray-800 font-semibold">
+                      Edit
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowViewModal(false);
+                      handleDelete(selectedIncome.id);
+                    }}
+                    className="flex-1 bg-green-100 p-4 rounded-xl"
+                  >
+                    <Text className="text-center text-green-600 font-semibold">
+                      Delete
                     </Text>
                   </TouchableOpacity>
                 </View>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-
-        {/* View Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showViewModal}
-          onRequestClose={() => setShowViewModal(false)}
-        >
-          <View className="flex-1 justify-end bg-black/30">
-            <View className="bg-white rounded-t-3xl p-6 shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-bold text-gray-800">
-                  Income Details
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowViewModal(false)}
-                  className="p-2"
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="#666" />
-                </TouchableOpacity>
               </View>
-
-              {selectedIncome && (
-                <View className="space-y-6">
-                  <View className="items-center mb-6">
-                    <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-3">
-                      <MaterialCommunityIcons
-                        name={getCategoryIcon(selectedIncome.category)}
-                        size={32}
-                        color="#16a34a"
-                      />
-                    </View>
-                    <Text className="text-3xl font-bold text-green-600">
-                      {formatCurrency(selectedIncome.amount)}
-                    </Text>
-                  </View>
-
-                  <View className="space-y-4">
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Description</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {selectedIncome.description || 'No description'}
-                      </Text>
-                    </View>
-
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Category</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {selectedIncome.category}
-                      </Text>
-                    </View>
-
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Date</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {new Date(selectedIncome.timestamp).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row space-x-4 mt-6">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowViewModal(false);
-                        handleEditPress();
-                      }}
-                      className="flex-1 bg-gray-100 p-4 rounded-xl"
-                    >
-                      <Text className="text-center text-gray-800 font-semibold">
-                        Edit
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowViewModal(false);
-                        handleDelete(selectedIncome.id);
-                      }}
-                      className="flex-1 bg-green-100 p-4 rounded-xl"
-                    >
-                      <Text className="text-center text-green-600 font-semibold">
-                        Delete
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
+            )}
           </View>
-        </Modal>
-      </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
-};
-
-export default IncomeScreen;
+}

@@ -35,25 +35,21 @@ export const API_ENDPOINTS = {
 
   // Goals endpoints
   GOALS: {
-    ADD: '/api/goal/add',
-    GET_ALL: '/api/goal/:user_id',
-    UPDATE: '/api/goal/update/:goal_id',
-    DELETE: '/api/goal/delete/:goal_id',
-    ADD_CONTRIBUTION: '/api/goal/contribution/add',
-    GET_CONTRIBUTIONS: '/api/goal/contributions/:goal_id',
-    DELETE_CONTRIBUTION: '/api/goal/contribution/:contribution_id',
+    ADD: '/api/goals/add',
+    GET_ALL: '/api/goals/:user_id',
+    UPDATE: '/api/goals/update/:goal_id',
+    DELETE: '/api/goals/delete/:goal_id',
+    ADD_CONTRIBUTION: '/api/goals/contribution/add',
+    GET_CONTRIBUTIONS: '/api/goals/contributions/:goal_id',
+    DELETE_CONTRIBUTION: '/api/goals/contribution/:contribution_id',
   },
 
-  // User endpoints
-  USER: {
-    UPDATE_PROFILE: '/api/users/:userId',
-    GET_PROFILE: '/api/users/:userId',
+  // Analytics endpoints
+  ANALYTICS: {
+    EXPENSES: '/api/analytics/expenses/:user_id',
+    INCOME: '/api/analytics/income/:user_id',
+    TRENDS: '/api/analytics/trends/:user_id',
   },
-};
-
-// API Headers
-export const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
 };
 
 // API Response Types
@@ -69,5 +65,6 @@ export const API_ERRORS = {
   NETWORK_ERROR: 'Network error. Please check your internet connection.',
   UNAUTHORIZED: 'Unauthorized. Please log in again.',
   SERVER_ERROR: 'Server error. Please try again later.',
+  INVALID_CREDENTIALS: 'Invalid email or password.',
   VALIDATION_ERROR: 'Please check your input and try again.',
 };

@@ -19,6 +19,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
 import { StatusBar } from 'expo-status-bar';
+import TabHeader from '../../components/TabHeader';
 
 interface Expense {
   id: number;
@@ -64,7 +65,7 @@ export default function Expenses() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [sortBy, setSortBy] = useState<'date' | 'category'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'category' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const sortedExpenses = useMemo(() => {
@@ -75,12 +76,16 @@ export default function Expenses() {
         const dateA = new Date(a.timestamp).getTime();
         const dateB = new Date(b.timestamp).getTime();
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-      } else {
+      } else if (sortBy === 'category') {
         const categoryA = a.category.toLowerCase();
         const categoryB = b.category.toLowerCase();
         return sortOrder === 'desc' 
           ? categoryB.localeCompare(categoryA)
           : categoryA.localeCompare(categoryB);
+      } else {
+        const amountA = a.amount;
+        const amountB = b.amount;
+        return sortOrder === 'desc' ? amountB - amountA : amountA - amountB;
       }
     });
   }, [expenses, sortBy, sortOrder]);
@@ -319,8 +324,22 @@ export default function Expenses() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-white">
       <StatusBar backgroundColor="white" style="dark" />
+      
+      <TabHeader
+        title="Expenses"
+        sortOptions={[
+          { id: 'date', label: 'Date' },
+          { id: 'category', label: 'Category' },
+          { id: 'amount', label: 'Amount' }
+        ]}
+        selectedSort={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={setSortBy}
+        onSortOrderChange={toggleSortOrder}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 bg-white"
@@ -332,49 +351,6 @@ export default function Expenses() {
           }
           className="flex-1"
         >
-          {/* Header and Sorting */}
-          <View className="p-4 border-b border-gray-100">
-            <Text className="text-2xl font-bold text-gray-800 mb-4">
-              Expenses
-            </Text>
-            
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row space-x-2">
-                <TouchableOpacity
-                  onPress={() => setSortBy('date')}
-                  className={`px-4 py-2 rounded-full border ${
-                    sortBy === 'date' ? 'bg-red-100 border-red-200' : 'border-gray-200'
-                  }`}
-                >
-                  <Text className={sortBy === 'date' ? 'text-red-600' : 'text-gray-600'}>
-                    Date
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setSortBy('category')}
-                  className={`px-4 py-2 rounded-full border ${
-                    sortBy === 'category' ? 'bg-red-100 border-red-200' : 'border-gray-200'
-                  }`}
-                >
-                  <Text className={sortBy === 'category' ? 'text-red-600' : 'text-gray-600'}>
-                    Category
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              <TouchableOpacity
-                onPress={toggleSortOrder}
-                className="p-2"
-              >
-                <MaterialCommunityIcons
-                  name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'}
-                  size={24}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Expense List */}
           {sortedExpenses.length > 0 ? (
             <View className="p-4">

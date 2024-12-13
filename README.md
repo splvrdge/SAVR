@@ -6,6 +6,8 @@
 ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
 
 <p align="center">
   <img src="assets/icons/savr-green.png" alt="SAVR Logo" width="200"/>
@@ -23,6 +25,13 @@ SAVR is a modern financial tracking application built with React Native and Expo
 - 🎯 Set and track financial goals
 - 🔐 Secure authentication
 - 📱 User-friendly interface
+
+## ⚠️ Important Notice
+
+This application is hosted on Render's free tier, which means:
+- The server automatically spins down after 15 minutes of inactivity
+- Initial requests after inactivity may take 50 seconds or more to respond
+- Please be patient during the initial load as the server spins up
 
 ## 🚀 Quick Start
 
@@ -62,16 +71,22 @@ After starting the development server, you can:
 
 ## 🛠️ Tech Stack
 
+### Frontend
 - [React Native](https://reactnative.dev/) - Mobile framework
 - [Expo](https://expo.dev/) - Development platform
 - [TypeScript](https://www.typescriptlang.org/) - Programming language
 - [TailwindCSS](https://tailwindcss.com/) - Styling
 - [React Navigation](https://reactnavigation.org/) - Navigation
 
+### Backend
+- [Express.js](https://expressjs.com/) - Backend framework
+- [MySQL](https://www.mysql.com/) - Database
+- [Render](https://render.com/) - Cloud hosting platform
+
 ## 👥 Authors
 
 - **Francis James A. Lagang** - _Lead Developer_ - [GitHub](https://github.com/splvrdge)
-- **Margaret Grace Docdoc** - _Developer_ - [GitHub](https://github.com/margaretdocdoc)
+- **Margaret Grace Docdoc** - _Developer_ - [GitHub](https://github.com/dushaaaa)
 
 ## 📄 License
 
