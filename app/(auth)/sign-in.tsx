@@ -89,8 +89,8 @@ export default function SignIn() {
 
           {/* Form */}
           <View className="space-y-8">
-            <View>
-              <Text className="text-gray-700 mb-3 text-base font-medium">Email</Text>
+            <View className="mb-4">
+              <Text className="text-gray-700 mb-2 text-base font-medium">Email</Text>
               <TextInput
                 className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
                 placeholder="Enter your email"
@@ -102,8 +102,8 @@ export default function SignIn() {
               />
             </View>
 
-            <View>
-              <Text className="text-gray-700 mb-3 text-base font-medium">Password</Text>
+            <View className="mb-4">
+              <Text className="text-gray-700 mb-2 text-base font-medium">Password</Text>
               <View className="relative">
                 <TextInput
                   className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
@@ -126,21 +126,23 @@ export default function SignIn() {
               </View>
             </View>
 
-            <TouchableOpacity
-              className={`bg-customGreen py-4 rounded-2xl ${
-                isLoading ? 'opacity-70' : ''
-              }`}
-              onPress={handleSignIn}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-white text-center text-lg font-semibold">
-                  Sign In
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View className="mt-6">
+              <TouchableOpacity
+                className={`bg-customGreen py-4 rounded-2xl ${
+                  isLoading ? 'opacity-70' : ''
+                }`}
+                onPress={handleSignIn}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white text-center text-lg font-semibold">
+                    Sign In
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
             <View className="flex-row items-center my-8">
               <View className="flex-1 h-[1px] bg-gray-200" />

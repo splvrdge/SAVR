@@ -341,6 +341,7 @@ export default function Expenses() {
                   className={`px-4 py-2 rounded-full border ${
                     sortBy === 'date' ? 'bg-red-100 border-red-200' : 'border-gray-200'
                   }`}
+                  style={{ marginRight: 6 }}
                 >
                   <Text className={sortBy === 'date' ? 'text-red-600' : 'text-gray-600'}>
                     Date
@@ -468,7 +469,7 @@ export default function Expenses() {
               <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
                 <View className="space-y-6">
                   {/* Description Input */}
-                  <View>
+                  <View className="mb-4">
                     <Text className="text-gray-600 mb-2">Description</Text>
                     <TextInput
                       className="bg-gray-50 p-4 rounded-xl text-gray-800"
@@ -479,7 +480,7 @@ export default function Expenses() {
                   </View>
 
                   {/* Amount Input */}
-                  <View>
+                  <View className="mb-4">
                     <Text className="text-gray-600 mb-2">Amount</Text>
                     <TextInput
                       className="bg-gray-50 p-4 rounded-xl text-gray-800"
@@ -491,7 +492,7 @@ export default function Expenses() {
                   </View>
 
                   {/* Category Input */}
-                  <View>
+                  <View className="mb-4">
                     <Text className="text-gray-600 mb-2">Category</Text>
                     <ScrollView 
                       horizontal 
@@ -505,13 +506,17 @@ export default function Expenses() {
                           className={`p-4 rounded-xl flex-row items-center space-x-2 ${
                             selectedCategory === cat.id ? 'bg-red-100 border border-red-200' : 'bg-gray-50'
                           }`}
+                          style={{ marginRight: 10 }}
                         >
                           <MaterialCommunityIcons
                             name={getCategoryIcon(cat.id)}
                             size={24}
                             color={selectedCategory === cat.id ? '#dc2626' : '#666'}
                           />
-                          <Text className={selectedCategory === cat.id ? 'text-red-600' : 'text-gray-600'}>
+                          <Text 
+                            className={selectedCategory === cat.id ? 'text-red-600' : 'text-gray-600'}
+                            style={{ marginLeft: 8 }} 
+                          >
                             {cat.name}
                           </Text>
                         </TouchableOpacity>
