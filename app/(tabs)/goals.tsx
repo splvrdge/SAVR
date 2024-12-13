@@ -81,6 +81,41 @@ export default function Goals() {
     setSortOrder(current => current === 'desc' ? 'asc' : 'desc');
   };
 
+  // Helper function to format date input (MM-DD-YYYY)
+  const formatDateInput = (text: string) => {
+    // Remove any non-digit characters
+    const cleaned = text.replace(/\D/g, '');
+    
+    // Format as MM-DD-YYYY
+    if (cleaned.length <= 2) {
+      return cleaned;
+    } else if (cleaned.length <= 4) {
+      return cleaned.slice(0, 2) + '-' + cleaned.slice(2);
+    } else {
+      const month = cleaned.slice(0, 2);
+      const day = cleaned.slice(2, 4);
+      const year = cleaned.slice(4, 8);
+      return `${month}-${day}-${year}`;
+    }
+  };
+
+  // Helper function to convert MM-DD-YYYY to YYYY-MM-DD for API
+  const convertDateForAPI = (dateString: string) => {
+    if (!dateString || dateString.length !== 10) return dateString;
+    const [month, day, year] = dateString.split('-');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper function to convert YYYY-MM-DD to MM-DD-YYYY for display
+  const convertDateForDisplay = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}-${day}-${year}`;
+  };
+
   const fetchGoals = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
@@ -114,6 +149,22 @@ export default function Goals() {
     }, [])
   );
 
+  const formatAmount = (text: string) => {
+    const cleaned = text.replace(/[^\d.]/g, '');
+    
+    const parts = cleaned.split('.');
+    const wholeNumber = parts[0];
+    const decimal = parts[1];
+
+    const formatted = wholeNumber.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    
+    return decimal ? `${formatted}.${decimal}` : formatted;
+  };
+
+  const cleanAmount = (amount: string) => {
+    return amount.replace(/,/g, '');
+  };
+
   const handleAddGoal = async () => {
     if (!formData.title || !formData.target_amount || !formData.target_date) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -130,8 +181,8 @@ export default function Goals() {
       const payload = {
         user_id: parseInt(userId),
         title: formData.title,
-        target_amount: parseFloat(formData.target_amount),
-        target_date: formData.target_date
+        target_amount: parseFloat(cleanAmount(formData.target_amount)),
+        target_date: convertDateForAPI(formData.target_date)
       };
 
       const response = await axiosInstance.post(API_ENDPOINTS.GOALS.ADD, payload);
@@ -224,7 +275,7 @@ export default function Goals() {
       const response = await axiosInstance.post(API_ENDPOINTS.GOALS.ADD_CONTRIBUTION, {
         goal_id: editingGoal.goal_id,
         user_id: parseInt(userId),
-        amount: parseFloat(formData.target_amount),
+        amount: parseFloat(cleanAmount(formData.target_amount)),
       });
 
       if (response.data.success) {
@@ -330,7 +381,7 @@ export default function Goals() {
                         {goal.title}
                       </Text>
                       <Text className="text-gray-500 text-sm">
-                        Target Date: {new Date(goal.target_date).toLocaleDateString()}
+                        Target Date: {convertDateForDisplay(goal.target_date)}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -460,20 +511,27 @@ export default function Goals() {
                       <TextInput
                         className="border border-gray-300 rounded-lg p-3"
                         value={formData.target_amount}
-                        onChangeText={(text) => setFormData({ ...formData, target_amount: text })}
+                        onChangeText={(text) => {
+                          const formatted = formatAmount(text);
+                          setFormData({ ...formData, target_amount: formatted });
+                        }}
                         placeholder="Enter target amount"
                         keyboardType="numeric"
                       />
                     </View>
 
                     <View>
-                      <Text className="text-gray-600 mb-2">Target Date (YYYY-MM-DD)*</Text>
+                      <Text className="text-gray-600 mb-2">Target Date*</Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-3"
                         value={formData.target_date}
-                        onChangeText={(text) => setFormData({ ...formData, target_date: text })}
-                        placeholder="YYYY-MM-DD"
+                        onChangeText={(text) => {
+                          const formatted = formatDateInput(text);
+                          setFormData({ ...formData, target_date: formatted });
+                        }}
+                        placeholder="MM-DD-YYYY"
                         keyboardType="numeric"
+                        maxLength={10}
                       />
                     </View>
                   </View>
@@ -541,7 +599,10 @@ export default function Goals() {
                     <TextInput
                       className="border border-gray-300 rounded-lg p-3"
                       value={formData.target_amount}
-                      onChangeText={(text) => setFormData({ ...formData, target_amount: text })}
+                      onChangeText={(text) => {
+                        const formatted = formatAmount(text);
+                        setFormData({ ...formData, target_amount: formatted });
+                      }}
                       placeholder="Enter amount"
                       keyboardType="numeric"
                     />

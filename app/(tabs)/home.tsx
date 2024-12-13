@@ -100,17 +100,17 @@ export default function Home() {
           });
         }
       } catch (error) {
-        console.error('Error fetching financial summary:', error);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
+        console.log('No financial data yet, setting default values');
         setFinancialSummary({
           current_balance: 0,
           net_savings: 0,
           total_expenses: 0
         });
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
+          return;
+        }
       }
 
       // Fetch all transactions
