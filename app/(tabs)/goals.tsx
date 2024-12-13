@@ -215,8 +215,15 @@ export default function Goals() {
     }
 
     try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        router.replace('/(auth)/sign-in');
+        return;
+      }
+
       const response = await axiosInstance.post(API_ENDPOINTS.GOALS.ADD_CONTRIBUTION, {
         goal_id: editingGoal.goal_id,
+        user_id: parseInt(userId),
         amount: parseFloat(formData.target_amount),
       });
 
