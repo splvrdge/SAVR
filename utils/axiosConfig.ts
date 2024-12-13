@@ -1,6 +1,6 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import { API_URL } from '@/constants/API';
+import tokenManager from './tokenManager';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -12,7 +12,7 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await tokenManager.getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -26,70 +26,22 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-let isRefreshing = false;
-let failedQueue: any[] = [];
-
-const processQueue = (error: any, token: string | null = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        try {
-          const token = await new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          });
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return axiosInstance(originalRequest);
-        } catch (err) {
-          return Promise.reject(err);
-        }
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
 
       try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) {
-          throw new Error('No token available');
-        }
-
-        const response = await axios.post(
-          `${API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-          { token }
-        );
-
-        if (response.data.success) {
-          const { accessToken } = response.data;
-          await AsyncStorage.setItem('token', accessToken);
-          
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          processQueue(null, accessToken);
-          return axiosInstance(originalRequest);
-        } else {
-          processQueue(new Error('Failed to refresh token'));
-          await AsyncStorage.multiRemove(['token', 'userId']);
-          throw new Error('Failed to refresh token');
-        }
+        const newToken = await tokenManager.handleTokenRefresh();
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return axiosInstance(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError);
-        await AsyncStorage.multiRemove(['token', 'userId']);
+        // If token refresh fails, redirect to login
+        await tokenManager.clearTokens();
         throw refreshError;
-      } finally {
-        isRefreshing = false;
       }
     }
 

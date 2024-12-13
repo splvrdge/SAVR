@@ -119,24 +119,28 @@ export default function WeeklyAnalytics() {
     barPercentage: 0.5,
   };
 
-  const generateChartData = (data: CategoryData[]) => {
+  const generateChartData = (data: CategoryData[], type: 'income' | 'expense') => {
+    const colors = type === 'income' 
+      ? ['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800']  // Green complementary
+      : ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3']; // Red complementary
+
     return data.map((item, index) => ({
-      name: item.category,
+      name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
       amount: item.total_amount,
       percentage: item.percentage,
-      color: `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
+      color: colors[index % colors.length],
       legendFontColor: '#7F7F7F',
       legendFontSize: 12,
     }));
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ flexGrow: 1 }}
       >
         {error ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
@@ -153,44 +157,61 @@ export default function WeeklyAnalytics() {
             </TouchableOpacity>
           </View>
         ) : (
-          <>
-            <Text style={styles.title}>Weekly Analytics</Text>
-
+          <View style={{ flex: 1, padding: 16 }}>
             {/* Week Selector */}
             <View style={styles.weekSelector}>
-              <TouchableOpacity onPress={handlePreviousWeek} style={styles.weekButton}>
-                <MaterialIcons name="chevron-left" size={24} color="#000" />
+              <TouchableOpacity 
+                onPress={handlePreviousWeek} 
+                style={styles.weekArrowButton}
+              >
+                <MaterialIcons name="chevron-left" size={28} color="#4CAF50" />
               </TouchableOpacity>
               
-              <TouchableOpacity onPress={handleCurrentWeek} style={styles.weekInfo}>
-                <Text style={styles.weekText}>
-                  {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
-                </Text>
-                <Text style={styles.currentWeekText}>
-                  {format(new Date(), 'MMM d') === format(weekStart, 'MMM d')
-                    ? '(Current Week)'
-                    : ''}
-                </Text>
+              <TouchableOpacity 
+                onPress={handleCurrentWeek} 
+                style={styles.weekInfoContainer}
+              >
+                <View style={styles.weekDateContainer}>
+                  <Text style={styles.weekDateText}>
+                    {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+                  </Text>
+                  {format(new Date(), 'MMM d') === format(weekStart, 'MMM d') && (
+                    <View style={styles.currentWeekBadge}>
+                      <Text style={styles.currentWeekText}>Current Week</Text>
+                    </View>
+                  )}
+                </View>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={handleNextWeek} style={styles.weekButton}>
-                <MaterialIcons name="chevron-right" size={24} color="#000" />
+              <TouchableOpacity 
+                onPress={handleNextWeek} 
+                style={styles.weekArrowButton}
+              >
+                <MaterialIcons name="chevron-right" size={28} color="#4CAF50" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.chartContainer}>
               <Text style={styles.sectionTitle}>Expenses</Text>
               {expenseData.length > 0 ? (
-                <PieChart
-                  data={generateChartData(expenseData)}
-                  width={width - 32}
-                  height={200}
-                  chartConfig={chartConfig}
-                  accessor="amount"
-                  backgroundColor="transparent"
-                  paddingLeft="15"
-                  absolute
-                />
+                <>
+                  <PieChart
+                    data={generateChartData(expenseData, 'expense')}
+                    width={width - 32}
+                    height={220}
+                    chartConfig={chartConfig}
+                    accessor="amount"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalLabel}>Total Expenses:</Text>
+                    <Text style={styles.totalAmount}>
+                      ₱{expenseData.reduce((sum, item) => sum + item.total_amount, 0).toLocaleString()}
+                    </Text>
+                  </View>
+                </>
               ) : (
                 <Text style={styles.noDataText}>No expense data available for this week</Text>
               )}
@@ -199,69 +220,121 @@ export default function WeeklyAnalytics() {
             <View style={styles.chartContainer}>
               <Text style={styles.sectionTitle}>Income</Text>
               {incomeData.length > 0 ? (
-                <PieChart
-                  data={generateChartData(incomeData)}
-                  width={width - 32}
-                  height={200}
-                  chartConfig={chartConfig}
-                  accessor="amount"
-                  backgroundColor="transparent"
-                  paddingLeft="15"
-                  absolute
-                />
+                <>
+                  <PieChart
+                    data={generateChartData(incomeData, 'income')}
+                    width={width - 32}
+                    height={220}
+                    chartConfig={chartConfig}
+                    accessor="amount"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalLabel}>Total Income:</Text>
+                    <Text style={[styles.totalAmount, { color: '#2E7D32' }]}>
+                      ₱{incomeData.reduce((sum, item) => sum + item.total_amount, 0).toLocaleString()}
+                    </Text>
+                  </View>
+                </>
               ) : (
                 <Text style={styles.noDataText}>No income data available for this week</Text>
               )}
             </View>
-          </>
+          </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
   weekSelector: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    backgroundColor: '#f5f5f5',
+    marginBottom: 24,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  weekArrowButton: {
+    padding: 8,
     borderRadius: 8,
-    padding: 8,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  weekButton: {
-    padding: 8,
-  },
-  weekInfo: {
+  weekInfoContainer: {
     flex: 1,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekDateContainer: {
     alignItems: 'center',
   },
-  weekText: {
+  weekDateText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#2d3436',
+    marginBottom: 4,
+  },
+  currentWeekBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   currentWeekText: {
+    color: '#fff',
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    fontWeight: '500',
   },
   chartContainer: {
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   noDataText: {
     textAlign: 'center',
     color: '#666',
     marginTop: 16,
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#C62828',
   },
 });
