@@ -21,6 +21,7 @@ import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
 import axiosInstance from '@/utils/axiosConfig';
 import TabHeader from '../../components/TabHeader';
+import AddButton from '../../components/AddButton';
 
 interface Income {
   id: number;
@@ -360,19 +361,14 @@ export default function IncomeScreen() {
       />
 
       {/* Add Income Button */}
-      <TouchableOpacity
-        onPress={() => {
-          setIsEditing(false);
-          setSelectedIncome(null);
-          setAmount('');
-          setDescription('');
-          setSelectedCategory(categories[0].id);
-          setShowModal(true);
-        }}
-        className="absolute bottom-4 right-4 z-10 bg-blue-500 rounded-full w-14 h-14 items-center justify-center"
-      >
-        <MaterialCommunityIcons name="plus" size={30} color="white" />
-      </TouchableOpacity>
+      <AddButton onPress={() => {
+        setIsEditing(false);
+        setSelectedIncome(null);
+        setAmount('');
+        setDescription('');
+        setSelectedCategory(categories[0].id);
+        setShowModal(true);
+      }} />
 
       {/* Income List */}
       <ScrollView

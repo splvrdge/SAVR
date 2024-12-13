@@ -23,6 +23,7 @@ import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from "@/utils/axiosConfig";
 import { StatusBar } from 'expo-status-bar';
 import TabHeader from '../../components/TabHeader';
+import AddButton from '../../components/AddButton';
 
 interface Goal {
   goal_id: number;
@@ -335,16 +336,11 @@ export default function Goals() {
       />
 
       {/* Add Goal Button */}
-      <TouchableOpacity
-        onPress={() => {
-          setEditingGoal(null);
-          setFormData({ title: '', target_amount: '', target_date: '' });
-          setShowModal(true);
-        }}
-        className="absolute bottom-4 right-4 z-10 bg-blue-500 rounded-full w-14 h-14 items-center justify-center shadow-lg"
-      >
-        <MaterialCommunityIcons name="plus" size={30} color="white" />
-      </TouchableOpacity>
+      <AddButton onPress={() => {
+        setEditingGoal(null);
+        setFormData({ title: '', target_amount: '', target_date: '' });
+        setShowModal(true);
+      }} />
 
       {/* Goals List */}
       <ScrollView
