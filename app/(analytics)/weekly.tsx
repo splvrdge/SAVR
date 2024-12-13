@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PieChart } from 'react-native-chart-kit';
 import { API_ENDPOINTS, API_ERRORS } from '@/constants/API';
 import axiosInstance from '@/utils/axiosConfig';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface CategoryData {
   category: string;
@@ -37,6 +39,18 @@ export default function WeeklyAnalytics() {
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
   const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+  const handlePreviousWeek = () => {
+    setSelectedDate(prevDate => subWeeks(prevDate, 1));
+  };
+
+  const handleNextWeek = () => {
+    setSelectedDate(prevDate => addWeeks(prevDate, 1));
+  };
+
+  const handleCurrentWeek = () => {
+    setSelectedDate(new Date());
+  };
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -140,14 +154,32 @@ export default function WeeklyAnalytics() {
           </View>
         ) : (
           <>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
-              Weekly Analytics
-            </Text>
+            <Text style={styles.title}>Weekly Analytics</Text>
 
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
-                Expenses
-              </Text>
+            {/* Week Selector */}
+            <View style={styles.weekSelector}>
+              <TouchableOpacity onPress={handlePreviousWeek} style={styles.weekButton}>
+                <MaterialIcons name="chevron-left" size={24} color="#000" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={handleCurrentWeek} style={styles.weekInfo}>
+                <Text style={styles.weekText}>
+                  {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+                </Text>
+                <Text style={styles.currentWeekText}>
+                  {format(new Date(), 'MMM d') === format(weekStart, 'MMM d')
+                    ? '(Current Week)'
+                    : ''}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleNextWeek} style={styles.weekButton}>
+                <MaterialIcons name="chevron-right" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.chartContainer}>
+              <Text style={styles.sectionTitle}>Expenses</Text>
               {expenseData.length > 0 ? (
                 <PieChart
                   data={generateChartData(expenseData)}
@@ -160,14 +192,12 @@ export default function WeeklyAnalytics() {
                   absolute
                 />
               ) : (
-                <Text>No expense data available for this week</Text>
+                <Text style={styles.noDataText}>No expense data available for this week</Text>
               )}
             </View>
 
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 8 }}>
-                Income
-              </Text>
+            <View style={styles.chartContainer}>
+              <Text style={styles.sectionTitle}>Income</Text>
               {incomeData.length > 0 ? (
                 <PieChart
                   data={generateChartData(incomeData)}
@@ -180,7 +210,7 @@ export default function WeeklyAnalytics() {
                   absolute
                 />
               ) : (
-                <Text>No income data available for this week</Text>
+                <Text style={styles.noDataText}>No income data available for this week</Text>
               )}
             </View>
           </>
@@ -189,3 +219,49 @@ export default function WeeklyAnalytics() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  weekSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 8,
+  },
+  weekButton: {
+    padding: 8,
+  },
+  weekInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  weekText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  currentWeekText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  chartContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 16,
+  },
+});

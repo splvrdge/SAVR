@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface SortOption {
@@ -25,34 +25,45 @@ export default function TabHeader({
   onSortOrderChange = () => {},
 }: TabHeaderProps) {
   return (
-    <View className="p-4 border-b border-gray-100">
-      <Text className="text-2xl font-bold text-gray-800 mb-4">
-        {title}
-      </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>{title}</Text>
       
       {sortOptions.length > 0 && (
-        <View className="flex-row justify-between items-center">
-          <View className="flex-row space-x-2">
+        <View style={styles.sortContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sortOptionsContainer}
+          >
             {sortOptions.map((option) => (
               <TouchableOpacity
                 key={option.id}
                 onPress={() => onSortChange(option.id)}
-                className={`px-4 py-2 rounded-full border ${
-                  selectedSort === option.id ? 'bg-blue-100 border-blue-200' : 'border-gray-200'
-                }`}
+                style={[
+                  styles.sortOption,
+                  selectedSort === option.id && styles.selectedSortOption,
+                ]}
               >
-                <Text className={selectedSort === option.id ? 'text-blue-600' : 'text-gray-600'}>
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    selectedSort === option.id && styles.selectedSortOptionText,
+                  ]}
+                >
                   {option.label}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
           
-          <TouchableOpacity onPress={onSortOrderChange} className="p-2">
+          <TouchableOpacity 
+            onPress={onSortOrderChange}
+            style={styles.sortOrderButton}
+          >
             <MaterialCommunityIcons
-              name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'}
+              name={sortOrder === 'asc' ? 'sort-ascending' : 'sort-descending'}
               size={24}
-              color="#666"
+              color="#0066FF"
             />
           </TouchableOpacity>
         </View>
@@ -60,3 +71,50 @@ export default function TabHeader({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sortOptionsContainer: {
+    paddingRight: 8,
+  },
+  sortOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    marginRight: 8,
+  },
+  selectedSortOption: {
+    backgroundColor: '#0066FF',
+  },
+  sortOptionText: {
+    fontSize: 14,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  selectedSortOptionText: {
+    color: '#FFFFFF',
+  },
+  sortOrderButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+  },
+});

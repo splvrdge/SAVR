@@ -20,6 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
 import { StatusBar } from 'expo-status-bar';
 import TabHeader from '../../components/TabHeader';
+import AddButton from '../../components/AddButton';
 
 interface Expense {
   id: number;
@@ -297,11 +298,6 @@ export default function Expenses() {
     setIsEditing(false);
   };
 
-  const handleAddPress = () => {
-    resetForm();
-    setShowModal(true);
-  };
-
   const handleExpensePress = (expense: Expense) => {
     setSelectedExpense(expense);
     setShowViewModal(true);
@@ -324,8 +320,8 @@ export default function Expenses() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar backgroundColor="white" style="dark" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <StatusBar style="auto" />
       
       <TabHeader
         title="Expenses"
@@ -340,270 +336,260 @@ export default function Expenses() {
         onSortOrderChange={toggleSortOrder}
       />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
-        style={{ position: 'relative' }}
-      >
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          className="flex-1"
-        >
-          {/* Expense List */}
-          {sortedExpenses.length > 0 ? (
-            <View className="p-4">
-              {sortedExpenses.map((expense) => (
-                <TouchableOpacity
-                  key={expense.id}
-                  onPress={() => handleExpensePress(expense)}
-                  className="bg-white p-4 rounded-xl mb-3 border border-gray-100"
-                >
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
+      {isLoading ? (
+        <View className="flex-1 justify-center items-center bg-white">
+          <ActivityIndicator size="large" color="#DC2626" />
+        </View>
+      ) : (
+        <>
+          <ScrollView
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            }
+            className="flex-1"
+          >
+            {/* Expense List */}
+            {sortedExpenses.length > 0 ? (
+              <View className="p-4">
+                {sortedExpenses.map((expense) => (
+                  <TouchableOpacity
+                    key={expense.id}
+                    onPress={() => handleExpensePress(expense)}
+                    className="bg-white p-4 rounded-xl mb-3 border border-gray-100"
+                  >
+                    <View className="flex-row justify-between items-center">
+                      <View className="flex-row items-center flex-1">
+                        <View className="w-10 h-10 rounded-full bg-red-100 items-center justify-center mr-3">
+                          <MaterialCommunityIcons
+                            name={getCategoryIcon(expense.category)}
+                            size={20}
+                            color="#dc2626"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text className="text-gray-800 font-medium">
+                            {expense.description || 'Expense'}
+                          </Text>
+                          <Text className="text-gray-500 text-sm">
+                            {expense.category}
+                          </Text>
+                          <Text className="text-gray-400 text-xs">
+                            {new Date(expense.timestamp).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="flex-row items-center">
+                        <Text className="text-red-600 font-semibold mr-2">
+                          {formatCurrency(expense.amount)}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => handleDelete(expense.id)}
+                          className="p-2"
+                        >
+                          <MaterialCommunityIcons name="trash-can-outline" size={20} color="#666" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View className="flex-1 justify-center items-center p-4">
+                <MaterialCommunityIcons name="cash-remove" size={48} color="#9CA3AF" />
+                <Text className="text-gray-500 text-center mt-4">
+                  No expenses recorded yet
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          <AddButton onPress={() => setShowModal(true)} />
+          
+          {/* Add/Edit Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showModal}
+            onRequestClose={() => setShowModal(false)}
+          >
+            <View className="flex-1 justify-end bg-black/30">
+              <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text className="text-2xl font-bold text-gray-800">
+                    {isEditing ? 'Edit Expense' : 'Add Expense'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowModal(false)}
+                    className="p-2"
+                  >
+                    <MaterialCommunityIcons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                  <View className="space-y-6">
+                    {/* Description Input */}
+                    <View>
+                      <Text className="text-gray-600 mb-2">Description</Text>
+                      <TextInput
+                        className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                        placeholder="Enter description"
+                        value={description}
+                        onChangeText={setDescription}
+                      />
+                    </View>
+
+                    {/* Amount Input */}
+                    <View>
+                      <Text className="text-gray-600 mb-2">Amount</Text>
+                      <TextInput
+                        className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                        placeholder="Enter amount"
+                        keyboardType="numeric"
+                        value={amount}
+                        onChangeText={setAmount}
+                      />
+                    </View>
+
+                    {/* Category Input */}
+                    <View>
+                      <Text className="text-gray-600 mb-2">Category</Text>
+                      <ScrollView 
+                        horizontal 
+                        showsHorizontalScrollIndicator={false} 
+                        className="flex-row space-x-2"
+                      >
+                        {categories.map((cat) => (
+                          <TouchableOpacity
+                            key={cat.id}
+                            onPress={() => setSelectedCategory(cat.id)}
+                            className={`p-4 rounded-xl flex-row items-center space-x-2 ${
+                              selectedCategory === cat.id ? 'bg-red-100 border border-red-200' : 'bg-gray-50'
+                            }`}
+                          >
+                            <MaterialCommunityIcons
+                              name={getCategoryIcon(cat.id)}
+                              size={24}
+                              color={selectedCategory === cat.id ? '#dc2626' : '#666'}
+                            />
+                            <Text className={selectedCategory === cat.id ? 'text-red-600' : 'text-gray-600'}>
+                              {cat.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      onPress={handleSubmit}
+                      className="bg-red-600 p-4 rounded-xl mt-6"
+                    >
+                      <Text className="text-white text-center font-semibold text-lg">
+                        {isEditing ? 'Update Expense' : 'Add Expense'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+
+          {/* View Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showViewModal}
+            onRequestClose={() => setShowViewModal(false)}
+          >
+            <View className="flex-1 justify-end bg-black/30">
+              <View className="bg-white rounded-t-3xl p-6 shadow-2xl">
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text className="text-2xl font-bold text-gray-800">
+                    Expense Details
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setShowViewModal(false)}
+                    className="p-2"
+                  >
+                    <MaterialCommunityIcons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
+
+                {selectedExpense && (
+                  <View className="space-y-6">
+                    <View className="items-center mb-6">
+                      <View className="w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-3">
                         <MaterialCommunityIcons
-                          name={getCategoryIcon(expense.category)}
-                          size={20}
+                          name={getCategoryIcon(selectedExpense.category)}
+                          size={32}
                           color="#dc2626"
                         />
                       </View>
-                      <View className="flex-1">
-                        <Text className="text-gray-800 font-medium">
-                          {expense.description || 'Expense'}
+                      <Text className="text-3xl font-bold text-red-600">
+                        {formatCurrency(selectedExpense.amount)}
+                      </Text>
+                    </View>
+
+                    <View className="space-y-4">
+                      <View>
+                        <Text className="text-gray-500 text-sm mb-1">Description</Text>
+                        <Text className="text-gray-800 text-lg">
+                          {selectedExpense.description || 'No description'}
                         </Text>
-                        <Text className="text-gray-500 text-sm">
-                          {expense.category}
+                      </View>
+
+                      <View>
+                        <Text className="text-gray-500 text-sm mb-1">Category</Text>
+                        <Text className="text-gray-800 text-lg">
+                          {selectedExpense.category}
                         </Text>
-                        <Text className="text-gray-400 text-xs">
-                          {new Date(expense.timestamp).toLocaleDateString('en-US', {
-                            month: 'short',
+                      </View>
+
+                      <View>
+                        <Text className="text-gray-500 text-sm mb-1">Date</Text>
+                        <Text className="text-gray-800 text-lg">
+                          {new Date(selectedExpense.timestamp).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'long',
                             day: 'numeric',
-                            year: 'numeric'
+                            year: 'numeric',
                           })}
                         </Text>
                       </View>
                     </View>
-                    <View className="flex-row items-center">
-                      <Text className="text-red-600 font-semibold mr-2">
-                        {formatCurrency(expense.amount)}
-                      </Text>
+
+                    <View className="flex-row space-x-4 mt-6">
                       <TouchableOpacity
-                        onPress={() => handleDelete(expense.id)}
-                        className="p-2"
+                        onPress={() => {
+                          setShowViewModal(false);
+                          handleEdit(selectedExpense);
+                        }}
+                        className="flex-1 bg-gray-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
                       >
-                        <MaterialCommunityIcons name="trash-can-outline" size={20} color="#666" />
+                        <MaterialCommunityIcons name="pencil" size={20} color="#666" />
+                        <Text className="text-gray-600 font-semibold">Edit</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => handleDelete(selectedExpense.id)}
+                        className="flex-1 bg-red-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
+                      >
+                        <MaterialCommunityIcons name="trash-can" size={20} color="#dc2626" />
+                        <Text className="text-red-600 font-semibold">Delete</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <View className="flex-1 justify-center items-center p-4">
-              <MaterialCommunityIcons name="cash-remove" size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 text-center mt-4">
-                No expenses recorded yet
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Add Button */}
-        <TouchableOpacity
-          onPress={handleAddPress}
-          style={{
-            position: 'absolute',
-            bottom: 24,
-            right: 24,
-            zIndex: 1000,
-          }}
-          className="w-14 h-14 bg-red-600 rounded-full items-center justify-center"
-        >
-          <MaterialCommunityIcons name="plus" size={30} color="white" />
-        </TouchableOpacity>
-
-        {/* Add/Edit Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showModal}
-          onRequestClose={() => setShowModal(false)}
-        >
-          <View className="flex-1 justify-end bg-black/30">
-            <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-bold text-gray-800">
-                  {isEditing ? 'Edit Expense' : 'Add Expense'}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowModal(false)}
-                  className="p-2"
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="#666" />
-                </TouchableOpacity>
+                )}
               </View>
-
-              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <View className="space-y-6">
-                  {/* Description Input */}
-                  <View>
-                    <Text className="text-gray-600 mb-2">Description</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter description"
-                      value={description}
-                      onChangeText={setDescription}
-                    />
-                  </View>
-
-                  {/* Amount Input */}
-                  <View>
-                    <Text className="text-gray-600 mb-2">Amount</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter amount"
-                      keyboardType="numeric"
-                      value={amount}
-                      onChangeText={setAmount}
-                    />
-                  </View>
-
-                  {/* Category Input */}
-                  <View>
-                    <Text className="text-gray-600 mb-2">Category</Text>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false} 
-                      className="flex-row space-x-2"
-                    >
-                      {categories.map((cat) => (
-                        <TouchableOpacity
-                          key={cat.id}
-                          onPress={() => setSelectedCategory(cat.id)}
-                          className={`p-4 rounded-xl flex-row items-center space-x-2 ${
-                            selectedCategory === cat.id ? 'bg-red-100 border border-red-200' : 'bg-gray-50'
-                          }`}
-                        >
-                          <MaterialCommunityIcons
-                            name={getCategoryIcon(cat.id)}
-                            size={24}
-                            color={selectedCategory === cat.id ? '#dc2626' : '#666'}
-                          />
-                          <Text className={selectedCategory === cat.id ? 'text-red-600' : 'text-gray-600'}>
-                            {cat.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    onPress={handleSubmit}
-                    className="bg-red-600 p-4 rounded-xl mt-6"
-                  >
-                    <Text className="text-white text-center font-semibold text-lg">
-                      {isEditing ? 'Update Expense' : 'Add Expense'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
             </View>
-          </View>
-        </Modal>
-
-        {/* View Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showViewModal}
-          onRequestClose={() => setShowViewModal(false)}
-        >
-          <View className="flex-1 justify-end bg-black/30">
-            <View className="bg-white rounded-t-3xl p-6 shadow-2xl">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-2xl font-bold text-gray-800">
-                  Expense Details
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setShowViewModal(false)}
-                  className="p-2"
-                >
-                  <MaterialCommunityIcons name="close" size={24} color="#666" />
-                </TouchableOpacity>
-              </View>
-
-              {selectedExpense && (
-                <View className="space-y-6">
-                  <View className="items-center mb-6">
-                    <View className="w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-3">
-                      <MaterialCommunityIcons
-                        name={getCategoryIcon(selectedExpense.category)}
-                        size={32}
-                        color="#dc2626"
-                      />
-                    </View>
-                    <Text className="text-3xl font-bold text-red-600">
-                      {formatCurrency(selectedExpense.amount)}
-                    </Text>
-                  </View>
-
-                  <View className="space-y-4">
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Description</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {selectedExpense.description || 'No description'}
-                      </Text>
-                    </View>
-
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Category</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {selectedExpense.category}
-                      </Text>
-                    </View>
-
-                    <View>
-                      <Text className="text-gray-500 text-sm mb-1">Date</Text>
-                      <Text className="text-gray-800 text-lg">
-                        {new Date(selectedExpense.timestamp).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          month: 'long',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row space-x-4 mt-6">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setShowViewModal(false);
-                        handleEdit(selectedExpense);
-                      }}
-                      className="flex-1 bg-gray-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
-                    >
-                      <MaterialCommunityIcons name="pencil" size={20} color="#666" />
-                      <Text className="text-gray-600 font-semibold">Edit</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => handleDelete(selectedExpense.id)}
-                      className="flex-1 bg-red-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
-                    >
-                      <MaterialCommunityIcons name="trash-can" size={20} color="#dc2626" />
-                      <Text className="text-red-600 font-semibold">Delete</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
-          </View>
-        </Modal>
-      </KeyboardAvoidingView>
+          </Modal>
+        </>
+      )}
     </SafeAreaView>
   );
 }
