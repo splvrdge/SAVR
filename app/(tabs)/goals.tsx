@@ -22,6 +22,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from "@/utils/axiosConfig";
 import { StatusBar } from 'expo-status-bar';
+import TabHeader from '../../components/TabHeader';
 
 interface Goal {
   goal_id: number;
@@ -119,23 +120,44 @@ export default function Goals() {
   const fetchGoals = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
-      if (!userId) {
+      const token = await AsyncStorage.getItem('token');
+
+      if (!userId || !token) {
         router.replace('/(auth)/sign-in');
         return;
       }
 
+      console.log('Fetching goals for user:', userId);
+      console.log('API URL:', API_ENDPOINTS.GOALS.GET_ALL.replace(':user_id', userId));
+
       const response = await axiosInstance.get(API_ENDPOINTS.GOALS.GET_ALL.replace(':user_id', userId));
       
+      console.log('Goals response:', response.data);
+
       if (response.data.success) {
-        setGoals(response.data.data);
+        const formattedGoals = response.data.data.map((goal: Goal) => ({
+          ...goal,
+          target_amount: parseFloat(goal.target_amount.toString()) || 0,
+          current_amount: parseFloat(goal.current_amount.toString()) || 0,
+          progress_percentage: parseFloat(goal.progress_percentage.toString()) || 0,
+          target_date: convertDateForDisplay(goal.target_date)
+        }));
+        setGoals(formattedGoals);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to fetch goals');
       }
     } catch (error: any) {
       console.error('Error fetching goals:', error);
+      console.error('Error details:', error.response?.data);
+      
       if (error.response?.status === 401) {
         await AsyncStorage.multiRemove(['token', 'refreshToken', 'userId']);
         router.replace('/(auth)/sign-in');
       } else {
-        Alert.alert('Error', error.response?.data?.message || 'Failed to fetch goals');
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to fetch goals. Please try again.'
+        );
       }
     } finally {
       setIsLoading(false);
@@ -299,45 +321,18 @@ export default function Goals() {
     <SafeAreaView className="flex-1 bg-white">
       <StatusBar backgroundColor="white" style="dark" />
       
-      {/* Header and Sorting */}
-      <View className="p-4 border-b border-gray-100">
-        <Text className="text-2xl font-bold text-gray-800 mb-4">
-          Goals
-        </Text>
-        
-        <View className="flex-row justify-between items-center">
-          <View className="flex-row space-x-2">
-            <TouchableOpacity
-              onPress={() => setSortBy('date')}
-              className={`px-4 py-2 rounded-full border ${
-                sortBy === 'date' ? 'bg-blue-100 border-blue-200' : 'border-gray-200'
-              }`}
-            >
-              <Text className={sortBy === 'date' ? 'text-blue-600' : 'text-gray-600'}>
-                Date
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSortBy('progress')}
-              className={`px-4 py-2 rounded-full border ${
-                sortBy === 'progress' ? 'bg-blue-100 border-blue-200' : 'border-gray-200'
-              }`}
-            >
-              <Text className={sortBy === 'progress' ? 'text-blue-600' : 'text-gray-600'}>
-                Progress
-              </Text>
-            </TouchableOpacity>
-          </View>
-          
-          <TouchableOpacity onPress={toggleSortOrder} className="p-2">
-            <MaterialCommunityIcons
-              name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'}
-              size={24}
-              color="#666"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <TabHeader
+        title="Goals"
+        sortOptions={[
+          { id: 'date', label: 'Due Date' },
+          { id: 'progress', label: 'Progress' },
+          { id: 'amount', label: 'Amount' }
+        ]}
+        selectedSort={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={setSortBy}
+        onSortOrderChange={toggleSortOrder}
+      />
 
       {/* Add Goal Button */}
       <TouchableOpacity
@@ -381,7 +376,7 @@ export default function Goals() {
                         {goal.title}
                       </Text>
                       <Text className="text-gray-500 text-sm">
-                        Target Date: {convertDateForDisplay(goal.target_date)}
+                        Target Date: {goal.target_date}
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -396,7 +391,7 @@ export default function Goals() {
                     <View className="flex-row justify-between mb-1">
                       <Text className="text-gray-600 text-sm">Progress</Text>
                       <Text className="text-gray-600 text-sm">
-                        {((goal.current_amount / goal.target_amount) * 100).toFixed(1)}%
+                        {goal.progress_percentage.toFixed(1)}%
                       </Text>
                     </View>
                     <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
@@ -404,7 +399,7 @@ export default function Goals() {
                         className="bg-blue-500 h-full rounded-full"
                         style={{
                           width: `${Math.min(
-                            (goal.current_amount / goal.target_amount) * 100,
+                            goal.progress_percentage,
                             100
                           )}%`,
                         }}

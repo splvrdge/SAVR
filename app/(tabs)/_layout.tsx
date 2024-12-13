@@ -82,6 +82,16 @@ const TabsLayout = () => {
           ),
         }}
       />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: "Analytics",
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="chart-line" color={color} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 };

@@ -386,7 +386,7 @@ export default function Home() {
             <View className="flex-row flex-wrap justify-between">
               <TouchableOpacity 
                 className="bg-purple-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                disabled={true}
+                onPress={() => router.push('/(tabs)/analytics')}
               >
                 <MaterialCommunityIcons name="chart-line" size={30} color="#7C3AED" />
                 <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
