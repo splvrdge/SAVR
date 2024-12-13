@@ -1,17 +1,18 @@
 const express = require("express");
 const userController = require("../controllers/userController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const { authenticateToken } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
 router.put(
   "/profile",
-  authMiddleware.verifyToken,
+  authenticateToken,
   userController.updateProfile
 );
+
 router.get(
   "/secured-info",
-  authMiddleware.verifyToken,
+  authenticateToken,
   userController.getSecuredInfo
 );
 

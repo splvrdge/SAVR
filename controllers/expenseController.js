@@ -8,22 +8,59 @@ exports.addExpense = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // Insert into user_financial_data
-    const insertQuery = `
-      INSERT INTO user_financial_data (user_id, amount, description, category, type, timestamp)
-      VALUES (?, ?, ?, ?, 'expense', ?)
+    // First insert into expenses table
+    const insertExpenseQuery = `
+      INSERT INTO expenses (user_id, amount, description, category, timestamp, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    await connection.execute(insertQuery, [user_id, amount, description, category, timestamp]);
+    const [expenseResult] = await connection.execute(insertExpenseQuery, [
+      user_id,
+      amount,
+      description,
+      category,
+      timestamp,
+      timestamp,
+      timestamp
+    ]);
+    const expense_id = expenseResult.insertId;
 
-    // Update financial summary
-    const updateSummaryQuery = `
-      INSERT INTO user_financial_summary (user_id, current_balance, total_expenses)
-      VALUES (?, -?, ?)
-      ON DUPLICATE KEY UPDATE
-      current_balance = current_balance - ?,
-      total_expenses = total_expenses + ?
+    // Then insert into user_financial_data with the expense_id reference
+    const insertDataQuery = `
+      INSERT INTO user_financial_data (user_id, expense_id, amount, description, category, type, timestamp)
+      VALUES (?, ?, ?, ?, ?, 'expense', ?)
     `;
-    await connection.execute(updateSummaryQuery, [user_id, amount, amount, amount, amount]);
+    await connection.execute(insertDataQuery, [
+      user_id,
+      expense_id,
+      amount,
+      description,
+      category,
+      timestamp
+    ]);
+
+    // Update financial summary with new fields
+    const updateSummaryQuery = `
+      INSERT INTO user_financial_summary (
+        user_id, 
+        current_balance, 
+        total_expenses,
+        last_expense_date
+      )
+      VALUES (?, -?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        current_balance = current_balance - ?,
+        total_expenses = total_expenses + ?,
+        last_expense_date = ?
+    `;
+    await connection.execute(updateSummaryQuery, [
+      user_id, 
+      amount, 
+      amount, 
+      timestamp,
+      amount,
+      amount,
+      timestamp
+    ]);
 
     await connection.commit();
     res.status(201).json({ success: true, message: "Expense added successfully" });
@@ -36,35 +73,60 @@ exports.addExpense = async (req, res) => {
   }
 };
 
+exports.getExpenses = async (req, res) => {
+  const { user_id } = req.params;
+  const query = `
+    SELECT 
+      e.expense_id as id,
+      e.user_id,
+      e.amount,
+      e.description,
+      e.category,
+      e.timestamp,
+      e.created_at,
+      e.updated_at,
+      'expense' as type
+    FROM expenses e
+    WHERE e.user_id = ?
+    ORDER BY e.timestamp DESC
+  `;
+
+  try {
+    const [results] = await db.execute(query, [user_id]);
+    
+    const formattedResults = results.map(item => ({
+      id: item.id,
+      amount: parseFloat(item.amount),
+      description: item.description || '',
+      category: item.category || 'Other',
+      timestamp: item.timestamp,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      type: item.type
+    }));
+    
+    res.json({ 
+      success: true, 
+      data: formattedResults 
+    });
+  } catch (err) {
+    console.error("Error fetching expenses:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 exports.updateExpense = async (req, res) => {
   const { expense_id, amount, description, category, user_id } = req.body;
   
-  // First, get the old amount to update the summary
-  const getOldAmountQuery = `
-    SELECT amount FROM user_financial_data 
-    WHERE id = ? AND type = 'expense'
-  `;
-  
-  const updateExpenseQuery = `
-    UPDATE user_financial_data 
-    SET amount = ?, description = ?, category = ? 
-    WHERE id = ? AND type = 'expense'
-  `;
-
-  const updateSummaryQuery = `
-    UPDATE user_financial_summary 
-    SET 
-      current_balance = current_balance + ? - ?,
-      total_expenses = total_expenses - ? + ?,
-      last_updated = NOW()
-    WHERE user_id = ?
-  `;
-
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
     // Get the old amount
+    const getOldAmountQuery = `
+      SELECT amount FROM expenses 
+      WHERE expense_id = ?
+    `;
     const [oldAmountResult] = await connection.execute(getOldAmountQuery, [expense_id]);
     if (!oldAmountResult.length) {
       await connection.rollback();
@@ -72,11 +134,31 @@ exports.updateExpense = async (req, res) => {
     }
     const oldAmount = oldAmountResult[0].amount;
 
-    // Update the expense
-    await connection.execute(updateExpenseQuery, [amount, description, category, expense_id]);
+    // Update the expense in both tables
+    const updateExpenseQuery = `
+      UPDATE expenses 
+      SET amount = ?, description = ?, category = ?, updated_at = ? 
+      WHERE expense_id = ?
+    `;
+    await connection.execute(updateExpenseQuery, [amount, description, category, new Date().toISOString().slice(0, 19).replace('T', ' '), expense_id]);
+
+    const updateDataQuery = `
+      UPDATE user_financial_data 
+      SET amount = ?, description = ?, category = ? 
+      WHERE expense_id = ?
+    `;
+    await connection.execute(updateDataQuery, [amount, description, category, expense_id]);
 
     // Update the summary
-    await connection.execute(updateSummaryQuery, [oldAmount, amount, oldAmount, amount, user_id]);
+    const updateSummaryQuery = `
+      UPDATE user_financial_summary 
+      SET 
+        current_balance = current_balance + ? - ?,
+        total_expenses = total_expenses - ? + ?,
+        last_expense_date = ?
+      WHERE user_id = ?
+    `;
+    await connection.execute(updateSummaryQuery, [oldAmount, amount, oldAmount, amount, new Date().toISOString().slice(0, 19).replace('T', ' '), user_id]);
 
     await connection.commit();
     res.json({ success: true, message: "Expense updated successfully" });
@@ -92,43 +174,48 @@ exports.updateExpense = async (req, res) => {
 exports.deleteExpense = async (req, res) => {
   const { expense_id } = req.params;
   
-  // First, get the amount to update the summary
-  const getAmountQuery = `
-    SELECT amount, user_id FROM user_financial_data 
-    WHERE id = ? AND type = 'expense'
-  `;
-  
-  const deleteExpenseQuery = `
-    DELETE FROM user_financial_data 
-    WHERE id = ? AND type = 'expense'
-  `;
-
-  const updateSummaryQuery = `
-    UPDATE user_financial_summary 
-    SET 
-      current_balance = current_balance + ?,
-      total_expenses = total_expenses - ?,
-      last_updated = NOW()
-    WHERE user_id = ?
-  `;
-
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Get the amount and user_id
-    const [amountResult] = await connection.execute(getAmountQuery, [expense_id]);
-    if (!amountResult.length) {
+    // Get the amount and user_id for updating the summary
+    const getExpenseQuery = `
+      SELECT amount, user_id FROM expenses 
+      WHERE expense_id = ?
+    `;
+    const [expenseResult] = await connection.execute(getExpenseQuery, [expense_id]);
+    
+    if (!expenseResult.length) {
       await connection.rollback();
       return res.status(404).json({ success: false, message: "Expense not found" });
     }
-    const { amount, user_id } = amountResult[0];
 
-    // Delete the expense
+    const { amount, user_id } = expenseResult[0];
+
+    // Delete from user_financial_data first (due to foreign key)
+    const deleteDataQuery = `
+      DELETE FROM user_financial_data 
+      WHERE expense_id = ?
+    `;
+    await connection.execute(deleteDataQuery, [expense_id]);
+
+    // Delete from expenses
+    const deleteExpenseQuery = `
+      DELETE FROM expenses 
+      WHERE expense_id = ?
+    `;
     await connection.execute(deleteExpenseQuery, [expense_id]);
 
     // Update the summary
-    await connection.execute(updateSummaryQuery, [amount, amount, user_id]);
+    const updateSummaryQuery = `
+      UPDATE user_financial_summary 
+      SET 
+        current_balance = current_balance + ?,
+        total_expenses = total_expenses - ?,
+        last_expense_date = ?
+      WHERE user_id = ?
+    `;
+    await connection.execute(updateSummaryQuery, [amount, amount, new Date().toISOString().slice(0, 19).replace('T', ' '), user_id]);
 
     await connection.commit();
     res.json({ success: true, message: "Expense deleted successfully" });
@@ -138,43 +225,5 @@ exports.deleteExpense = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     connection.release();
-  }
-};
-
-exports.getExpenses = async (req, res) => {
-  const { user_id } = req.params;
-  const query = `
-    SELECT 
-      id,
-      amount,
-      description,
-      category,
-      timestamp,
-      type
-    FROM user_financial_data 
-    WHERE user_id = ? AND type = 'expense'
-    ORDER BY timestamp DESC
-  `;
-
-  try {
-    const [results] = await db.execute(query, [user_id]);
-    
-    // Map the results to match the frontend's expected format
-    const formattedResults = results.map(item => ({
-      id: item.id,
-      amount: parseFloat(item.amount),
-      description: item.description || '',
-      category: item.category || 'Other',
-      timestamp: item.timestamp,
-      type: item.type
-    }));
-    
-    res.json({ 
-      success: true, 
-      data: formattedResults 
-    });
-  } catch (err) {
-    console.error("Error fetching expenses:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

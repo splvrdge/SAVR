@@ -1,22 +1,43 @@
 const express = require("express");
 const router = express.Router();
 const incomeController = require("../controllers/incomeController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const { authenticateToken } = require("../middlewares/authMiddleware");
+const { 
+  incomeValidationRules, 
+  handleValidationErrors,
+  userIdValidation 
+} = require("../middlewares/validationMiddleware");
+const { param } = require("express-validator");
 
-router.post("/add", authMiddleware.verifyToken, incomeController.addIncome);
+router.post(
+  "/add", 
+  authenticateToken, 
+  incomeValidationRules,
+  handleValidationErrors,
+  incomeController.addIncome
+);
+
 router.get(
   "/:user_id",
-  authMiddleware.verifyToken,
+  authenticateToken,
+  userIdValidation,
+  handleValidationErrors,
   incomeController.getIncomes
 );
+
 router.put(
   "/update",
-  authMiddleware.verifyToken,
+  authenticateToken,
+  incomeValidationRules,
+  handleValidationErrors,
   incomeController.updateIncome
 );
+
 router.delete(
   "/delete/:income_id",
-  authMiddleware.verifyToken,
+  authenticateToken,
+  param('income_id').isInt().withMessage('Invalid income ID'),
+  handleValidationErrors,
   incomeController.deleteIncome
 );
 

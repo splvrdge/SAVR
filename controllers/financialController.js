@@ -8,9 +8,15 @@ exports.getFinancialSummary = async (req, res) => {
     const [results] = await db.execute(query, [user_id]);
 
     if (results.length === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Financial summary not found" });
+      // Return default values for new users instead of 404
+      return res.json({ 
+        success: true, 
+        data: {
+          current_balance: 0,
+          net_savings: 0,
+          total_expenses: 0
+        }
+      });
     }
 
     res.json({ success: true, data: results[0] });
