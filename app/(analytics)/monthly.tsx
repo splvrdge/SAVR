@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   TouchableOpacity,
+  StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -102,132 +103,176 @@ export default function MonthlyAnalytics() {
     },
   };
 
-  const expenseChartData = expenseData.map((item, index) => ({
-    name: item.category,
-    amount: item.total_amount,
-    color: `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
-  }));
+  const generateChartData = (data: CategoryData[], type: 'income' | 'expense') => {
+    const colors = type === 'income' 
+      ? ['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B', '#FFC107', '#FF9800']  // Green complementary
+      : ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3']; // Red complementary
 
-  const incomeChartData = incomeData.map((item, index) => ({
-    name: item.category,
-    amount: item.total_amount,
-    color: `hsl(${(index * 137.5 + 60) % 360}, 70%, 50%)`,
-    legendFontColor: '#7F7F7F',
-    legendFontSize: 12,
-  }));
-
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <Text style={{ color: 'red', marginBottom: 16 }}>{error}</Text>
-        <TouchableOpacity
-          onPress={onRefresh}
-          style={{
-            backgroundColor: '#007AFF',
-            padding: 12,
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: '#FFFFFF' }}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+    return data.map((item, index) => ({
+      name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
+      amount: item.total_amount,
+      percentage: item.percentage,
+      color: colors[index % colors.length],
+      legendFontColor: '#7F7F7F',
+      legendFontSize: 12,
+    }));
+  };
 
   return (
-    <ScrollView
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-      contentContainerStyle={{ padding: 16 }}
-    >
-      <View style={{ marginBottom: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
-          Select Month
-        </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {monthsInYear.map((month) => (
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {error ? (
+          <View style={{ padding: 16, alignItems: 'center' }}>
+            <Text style={{ color: 'red', marginBottom: 8 }}>{error}</Text>
             <TouchableOpacity
-              key={month.toISOString()}
-              onPress={() => setSelectedDate(month)}
+              onPress={onRefresh}
               style={{
-                padding: 10,
-                marginRight: 10,
-                backgroundColor:
-                  format(month, 'yyyy-MM') === format(selectedDate, 'yyyy-MM')
-                    ? '#007AFF'
-                    : '#F0F0F0',
-                borderRadius: 8,
+                backgroundColor: '#4CAF50',
+                padding: 8,
+                borderRadius: 4,
               }}
             >
-              <Text
-                style={{
-                  color:
-                    format(month, 'yyyy-MM') === format(selectedDate, 'yyyy-MM')
-                      ? '#FFFFFF'
-                      : '#000000',
-                }}
-              >
-                {format(month, 'MMMM')}
-              </Text>
+              <Text style={{ color: '#fff' }}>Try Again</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
-          Expense Distribution
-        </Text>
-        {expenseData.length > 0 ? (
-          <PieChart
-            data={expenseChartData}
-            width={width - 32}
-            height={220}
-            chartConfig={chartConfig}
-            accessor="amount"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
+          </View>
         ) : (
-          <Text style={{ textAlign: 'center', color: '#666' }}>
-            No expense data available for the selected month
-          </Text>
-        )}
-      </View>
+          <View style={{ flex: 1, padding: 16 }}>
+            <View style={styles.monthSelector}>
+              <Text style={styles.sectionTitle}>Select Month</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {monthsInYear.map((month) => (
+                  <TouchableOpacity
+                    key={month.toISOString()}
+                    onPress={() => setSelectedDate(month)}
+                    style={[
+                      styles.monthButton,
+                      format(month, 'yyyy-MM') === format(selectedDate, 'yyyy-MM') && styles.selectedMonth
+                    ]}
+                  >
+                    <Text style={[
+                      styles.monthText,
+                      format(month, 'yyyy-MM') === format(selectedDate, 'yyyy-MM') && styles.selectedMonthText
+                    ]}>
+                      {format(month, 'MMMM')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-      <View style={{ marginBottom: 24 }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
-          Income Distribution
-        </Text>
-        {incomeData.length > 0 ? (
-          <PieChart
-            data={incomeChartData}
-            width={width - 32}
-            height={220}
-            chartConfig={chartConfig}
-            accessor="amount"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
-        ) : (
-          <Text style={{ textAlign: 'center', color: '#666' }}>
-            No income data available for the selected month
-          </Text>
+            <View style={styles.chartContainer}>
+              <Text style={styles.sectionTitle}>Expenses</Text>
+              {expenseData.length > 0 ? (
+                <>
+                  <PieChart
+                    data={generateChartData(expenseData, 'expense')}
+                    width={width - 32}
+                    height={220}
+                    chartConfig={chartConfig}
+                    accessor="amount"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalLabel}>Total Expenses:</Text>
+                    <Text style={styles.totalAmount}>
+                      ₱{expenseData.reduce((sum, item) => sum + item.total_amount, 0).toLocaleString()}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.noDataText}>No expense data available for this month</Text>
+              )}
+            </View>
+
+            <View style={styles.chartContainer}>
+              <Text style={styles.sectionTitle}>Income</Text>
+              {incomeData.length > 0 ? (
+                <>
+                  <PieChart
+                    data={generateChartData(incomeData, 'income')}
+                    width={width - 32}
+                    height={220}
+                    chartConfig={chartConfig}
+                    accessor="amount"
+                    backgroundColor="transparent"
+                    paddingLeft="15"
+                    absolute
+                  />
+                  <View style={styles.totalContainer}>
+                    <Text style={styles.totalLabel}>Total Income:</Text>
+                    <Text style={[styles.totalAmount, { color: '#4CAF50' }]}>
+                      ₱{incomeData.reduce((sum, item) => sum + item.total_amount, 0).toLocaleString()}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.noDataText}>No income data available for this month</Text>
+              )}
+            </View>
+          </View>
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  monthSelector: {
+    marginBottom: 24,
+  },
+  monthButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginRight: 8,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  selectedMonth: {
+    backgroundColor: '#4CAF50',
+  },
+  monthText: {
+    fontSize: 14,
+    color: '#000000',
+  },
+  selectedMonthText: {
+    color: '#FFFFFF',
+  },
+  chartContainer: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  noDataText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 16,
+  },
+  totalContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  totalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  totalAmount: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F44336',
+  },
+});
