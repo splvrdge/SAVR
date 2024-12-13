@@ -392,25 +392,11 @@ export default function Home() {
                 <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
               </TouchableOpacity>
               <TouchableOpacity 
-                className="bg-orange-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                disabled={true}
-              >
-                <MaterialCommunityIcons name="wallet" size={30} color="#EA580C" />
-                <Text className="text-orange-600 mt-2 font-medium">Budget</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="bg-cyan-50 p-4 rounded-xl w-[48%] items-center"
+                className="bg-cyan-50 p-4 rounded-xl w-[48%] items-center mb-4"
                 onPress={() => router.push('/(tabs)/goals')}
               >
                 <MaterialCommunityIcons name="flag" size={30} color="#0891B2" />
                 <Text className="text-cyan-600 mt-2 font-medium">Goals</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="bg-pink-50 p-4 rounded-xl w-[48%] items-center"
-                disabled={true}
-              >
-                <MaterialCommunityIcons name="file-document" size={30} color="#DB2777" />
-                <Text className="text-pink-600 mt-2 font-medium">Reports</Text>
               </TouchableOpacity>
             </View>
           </View>
