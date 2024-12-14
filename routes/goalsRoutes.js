@@ -65,9 +65,8 @@ router.post(
 
 // Get goals
 router.get(
-  "/:user_id",
+  "/",
   validateToken,
-  validateUser,
   goalController.getGoals
 );
 

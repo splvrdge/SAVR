@@ -32,7 +32,7 @@ exports.createGoal = async (req, res) => {
 
 exports.getGoals = async (req, res) => {
   try {
-    const { user_id } = req.params;
+    const userId = req.user.user_id;
 
     const [goals] = await db.execute(`
       SELECT 
@@ -44,7 +44,7 @@ exports.getGoals = async (req, res) => {
       WHERE g.user_id = ?
       GROUP BY g.goal_id
       ORDER BY g.created_at DESC
-    `, [user_id]);
+    `, [userId]);
 
     if (goals.length === 0) {
       return res.status(404).json({
