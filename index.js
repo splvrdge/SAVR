@@ -56,20 +56,53 @@ app.use(cors({
   credentials: true
 }));
 
-// Initialize routes with proper error handling
+// Define routes with their descriptions
+const routes = [
+  { path: "/api/auth", router: authRoutes, description: "Authentication endpoints" },
+  { path: "/api/users", router: userRoutes, description: "User management" },
+  { path: "/api/income", router: incomeRoutes, description: "Income tracking" },
+  { path: "/api/expenses", router: expenseRoutes, description: "Expense tracking" },
+  { path: "/api/goals", router: goalsRoutes, description: "Financial goals" },
+  { path: "/api/financial", router: financialRoutes, description: "Financial overview" },
+  { path: "/api/analytics", router: analyticsRoutes, description: "Financial analytics" },
+  { path: "/api/categories", router: categoryRoutes, description: "Transaction categories" }
+];
+
+// Initialize routes with documentation
 const initializeRoutes = () => {
-  app.use("/api/auth", authRoutes);
-  app.use("/api/users", userRoutes);
-  app.use("/api/income", incomeRoutes);
-  app.use("/api/expenses", expenseRoutes);
-  app.use("/api/goals", goalsRoutes);
-  app.use("/api/financial", financialRoutes);
-  app.use("/api/analytics", analyticsRoutes);
-  app.use("/api/categories", categoryRoutes);
+  // Mount all API routes
+  routes.forEach(({ path, router, description }) => {
+    app.use(path, router);
+  });
+
+  // API documentation endpoint
+  app.get("/api", (req, res) => {
+    const apiDocs = routes.map(({ path, description }) => ({
+      path,
+      description,
+      endpoints: router.stack
+        .filter(r => r.route)
+        .map(r => ({
+          path: path + r.route.path,
+          method: Object.keys(r.route.methods)[0].toUpperCase(),
+        }))
+    }));
+
+    res.json({
+      name: "Savr-FinTracker API",
+      version: "1.0.0",
+      description: "Financial tracking and management API",
+      routes: apiDocs
+    });
+  });
 
   // Health check endpoint
   app.get("/health", (req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      version: "1.0.0"
+    });
   });
 
   // Handle 404
@@ -114,11 +147,13 @@ app.use((err, req, res, next) => {
 // Initialize database connection
 const initializeDatabase = async () => {
   try {
-    await db.getConnection();
-    logger.info("Database connection established");
+    const connection = await db.getConnection();
+    connection.release();
+    logger.info("✓ Database connection established");
+    return true;
   } catch (error) {
     logger.error("Database connection failed:", error);
-    process.exit(1);
+    return false;
   }
 };
 
@@ -127,25 +162,38 @@ cron.schedule("0 0 * * *", async () => {
   try {
     const query = `DELETE FROM tokens WHERE expires_at <= NOW()`;
     await db.execute(query);
-    logger.info("Expired tokens cleaned up");
+    logger.info("✓ Expired tokens cleaned up");
   } catch (error) {
     logger.error("Token cleanup failed:", error);
   }
 });
 
 // Start server
-const startServer = () => {
+const startServer = async () => {
+  // First initialize database
+  const dbConnected = await initializeDatabase();
+  if (!dbConnected) {
+    process.exit(1);
+  }
+
+  // Then start the server
   app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
-    
+    logger.info("╔═══════════════════════════════════════╗");
+    logger.info("║        Savr-FinTracker Backend        ║");
+    logger.info("╚═══════════════════════════════════════╝");
+    logger.info(`✓ Environment: ${process.env.NODE_ENV}`);
+    logger.info(`✓ Server running on port ${PORT}`);
+    logger.info("═══════════════════════════════════════════");
+
     // Initialize routes after server starts
     initializeRoutes();
-    
-    // Initialize database connection
-    initializeDatabase().catch(error => {
-      logger.error("Failed to initialize database:", error);
-      process.exit(1);
+
+    // Log available routes
+    logger.info("Available Routes:");
+    routes.forEach(({ path, description }) => {
+      logger.info(`✓ ${path.padEnd(20)} - ${description}`);
     });
+    logger.info("═══════════════════════════════════════════");
   });
 };
 
@@ -161,4 +209,5 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// Start the server
 startServer();

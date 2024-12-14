@@ -1,5 +1,6 @@
 const fs = require("fs");
 const mysql = require("mysql2/promise");
+const logger = require("../utils/logger");
 require("dotenv").config();
 
 const pool = mysql.createPool({
@@ -16,14 +17,6 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-pool
-  .getConnection()
-  .then((connection) => {
-    console.log("Connected to MySQL database");
-    connection.release();
-  })
-  .catch((err) => {
-    console.error("Error connecting to MySQL database: " + err.stack);
-  });
+// Remove the automatic connection check here since we'll handle it in index.js
 
 module.exports = pool;
