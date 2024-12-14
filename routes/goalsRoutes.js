@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const goalController = require("../controllers/goalsController");
-const { validateToken } = require("../middlewares/authMiddleware");
+const { validateToken, validateUser } = require("../middlewares/authMiddleware");
 const { body, param } = require("express-validator");
 const { handleValidationErrors } = require("../middlewares/validationMiddleware");
 
@@ -55,20 +55,7 @@ const validateGoalId = [
   handleValidationErrors
 ];
 
-const validateUserId = [
-  param("user_id")
-    .isInt({ min: 1 })
-    .withMessage("Invalid user ID"),
-  handleValidationErrors
-];
-
-const validateContributionId = [
-  param("contribution_id")
-    .isInt({ min: 1 })
-    .withMessage("Invalid contribution ID"),
-  handleValidationErrors
-];
-
+// Create goal
 router.post(
   "/create",
   validateToken,
@@ -76,13 +63,15 @@ router.post(
   goalController.createGoal
 );
 
+// Get goals
 router.get(
   "/:user_id",
   validateToken,
-  validateUserId,
+  validateUser,
   goalController.getGoals
 );
 
+// Add contribution
 router.post(
   "/contribute",
   validateToken,
@@ -90,14 +79,15 @@ router.post(
   goalController.addContribution
 );
 
+// Update goal
 router.put(
   "/update/:goal_id",
   validateToken,
-  validateGoalId,
   validateGoal,
   goalController.updateGoal
 );
 
+// Delete goal
 router.delete(
   "/delete/:goal_id",
   validateToken,
