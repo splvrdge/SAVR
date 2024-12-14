@@ -27,8 +27,6 @@ export default function RootLayout() {
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(settings)" options={{ headerShown: false }} />
       <Stack.Screen name="(profile)" options={{ headerShown: false }} />
-      <Stack.Screen name="(systems)" options={{ headerShown: false }} />
-      <Stack.Screen name="(term)" options={{ headerShown: false }} />
     </Stack>
   );
 }

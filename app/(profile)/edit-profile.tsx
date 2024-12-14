@@ -68,23 +68,52 @@ const EditProfile = () => {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
       const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `HTTP error! Status: ${response.status}`);
+      }
 
       if (responseData.success) {
         await AsyncStorage.setItem("userName", name);
+        
+        if (responseData.requireRelogin) {
+          // Store new tokens before redirecting
+          if (responseData.accessToken && responseData.refreshToken) {
+            await AsyncStorage.multiSet([
+              ["token", responseData.accessToken],
+              ["refreshToken", responseData.refreshToken],
+              ["userName", name],
+              ["userEmail", email],
+              ["userId", responseData.user_id.toString()]
+            ]);
+          }
 
-        if (name !== user.name) {
-          router.push("/home");
-        } else if (email !== user.email) {
-          await AsyncStorage.removeItem("token");
-          Alert.alert("Log In Again", "Email updated. Please log in again.");
-          router.push("/sign-in");
+          Alert.alert(
+            "Email Updated",
+            "Your email has been updated successfully. You'll be redirected to the home screen.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.replace("/(tabs)/home");
+                },
+              },
+            ]
+          );
         } else {
-          router.push("/profile");
+          Alert.alert(
+            "Success",
+            "Profile updated successfully!",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  router.push("/(profile)/profile");
+                },
+              },
+            ]
+          );
         }
       } else {
         Alert.alert(
@@ -94,17 +123,19 @@ const EditProfile = () => {
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      if (
+      if (error.message.includes("Email already in use")) {
+        Alert.alert("Error", "This email is already registered with another account.");
+      } else if (
         error.message.includes("Unauthorized") ||
         error.message.includes("401")
       ) {
         Alert.alert("Session Expired", "Please log in again.");
-        await AsyncStorage.removeItem("token");
-        router.push("/sign-in");
+        await AsyncStorage.multiRemove(["token", "refreshToken", "userName", "userEmail", "userId"]);
+        router.push("/(auth)/sign-in");
       } else {
         Alert.alert(
           "Error",
-          "An unexpected error occurred. Please try again later."
+          error.message || "An unexpected error occurred. Please try again later."
         );
       }
     } finally {

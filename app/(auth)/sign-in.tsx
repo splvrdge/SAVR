@@ -12,11 +12,11 @@ import {
   Image
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { API_URL, API_ENDPOINTS } from '@/constants/API';
-import axios from 'axios';
+import { API_ENDPOINTS } from '@/constants/API';
+import axiosInstance from '@/utils/axiosConfig';
+import tokenManager from '@/utils/tokenManager';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -34,17 +34,18 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.LOGIN}`, {
+      const response = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN, {
         user_email: email,
         user_password: password
       });
 
       if (response.data.success) {
-        await AsyncStorage.multiSet([
-          ['token', response.data.accessToken],
-          ['userId', response.data.user_id.toString()],
-          ['userName', response.data.user_name],
-          ['userEmail', email],
+        const { accessToken, refreshToken, user_id, user_name } = response.data;
+        
+        // Store tokens and user info using TokenManager
+        await Promise.all([
+          tokenManager.setTokens(accessToken, refreshToken),
+          tokenManager.setUserInfo(user_id.toString(), user_name)
         ]);
 
         router.replace('/(tabs)/home');
