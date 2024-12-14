@@ -67,7 +67,10 @@ exports.getTransactionHistory = async (req, res) => {
   try {
     let query = `
       SELECT 
-        COALESCE(income_id, expense_id) as id,
+        CASE 
+          WHEN type = 'income' THEN income_id 
+          ELSE expense_id 
+        END as id,
         type,
         amount,
         description,
@@ -75,10 +78,36 @@ exports.getTransactionHistory = async (req, res) => {
         timestamp,
         created_at,
         updated_at
-      FROM user_financial_data
-      WHERE user_id = ?
+      FROM (
+        SELECT 
+          income_id,
+          NULL as expense_id,
+          'income' as type,
+          amount,
+          description,
+          category,
+          timestamp,
+          created_at,
+          updated_at
+        FROM incomes
+        WHERE user_id = ?
+        UNION ALL
+        SELECT 
+          NULL as income_id,
+          expense_id,
+          'expense' as type,
+          amount,
+          description,
+          category,
+          timestamp,
+          created_at,
+          updated_at
+        FROM expenses
+        WHERE user_id = ?
+      ) as transactions
+      WHERE 1=1
     `;
-    const queryParams = [user_id];
+    const queryParams = [user_id, user_id];
 
     if (start_date) {
       query += " AND timestamp >= ?";
@@ -99,7 +128,7 @@ exports.getTransactionHistory = async (req, res) => {
 
     // Get total count
     const countQuery = query.replace(
-      "SELECT COALESCE(income_id, expense_id) as id, type, amount, description, category, timestamp, created_at, updated_at",
+      "SELECT CASE WHEN type = 'income' THEN income_id ELSE expense_id END as id, type, amount, description, category, timestamp, created_at, updated_at",
       "SELECT COUNT(*) as total"
     );
     const [countResults] = await db.execute(countQuery, queryParams);
