@@ -49,99 +49,84 @@ const descriptionValidation = (fieldName = 'description') =>
     .optional()
     .isString()
     .trim()
-    .isLength({ max: 255 })
-    .withMessage('Description must not exceed 255 characters');
+    .isLength({ max: 500 })
+    .withMessage('Description must not exceed 500 characters');
 
-// Income validation rules
-const incomeValidationRules = [
-  body('user_id').isInt().withMessage('User ID must be an integer'),
+// Income validation
+const validateIncome = [
   amountValidation(),
   categoryValidation(),
   descriptionValidation(),
-  body('income_date')
+  body('type')
     .optional()
-    .isISO8601()
-    .withMessage('Invalid date format')
+    .isIn(['one-time', 'recurring'])
+    .withMessage('Type must be either one-time or recurring')
 ];
 
-// Expense validation rules
-const expenseValidationRules = [
-  body('user_id').isInt().withMessage('User ID must be an integer'),
+// Expense validation
+const validateExpense = [
   amountValidation(),
   categoryValidation(),
   descriptionValidation(),
-  body('expense_date')
+  body('type')
     .optional()
-    .isISO8601()
-    .withMessage('Invalid date format')
+    .isIn(['one-time', 'recurring'])
+    .withMessage('Type must be either one-time or recurring')
 ];
 
-// Goal validation rules
-const goalValidationRules = [
-  body('user_id').isInt().withMessage('User ID must be an integer'),
-  body('title')
+// Category validation
+const validateCategory = [
+  body('name')
     .isString()
     .trim()
     .notEmpty()
-    .withMessage('Title is required')
-    .isLength({ min: 3, max: 100 })
-    .withMessage('Title must be between 3 and 100 characters'),
-  amountValidation('target_amount'),
-  body('current_amount')
+    .withMessage('Category name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Category name must be between 2 and 50 characters'),
+  body('type')
+    .isIn(['income', 'expense'])
+    .withMessage('Type must be either income or expense'),
+  body('description')
     .optional()
-    .isFloat({ min: 0 })
-    .withMessage('Current amount must be a positive number')
-    .custom((value, { req }) => {
-      if (value > req.body.target_amount) {
-        throw new Error('Current amount cannot exceed target amount');
-      }
-      return true;
-    }),
-  body('target_date')
-    .isISO8601()
-    .withMessage('Invalid date format')
-    .custom(value => {
-      const targetDate = new Date(value);
-      const today = new Date();
-      if (targetDate < today) {
-        throw new Error('Target date must be in the future');
-      }
-      return true;
-    })
+    .isString()
+    .trim()
+    .isLength({ max: 200 })
+    .withMessage('Description must not exceed 200 characters')
 ];
 
-// Goal contribution validation rules
-const contributionValidationRules = [
-  body('user_id').isInt().withMessage('User ID must be an integer'),
-  body('goal_id').isInt().withMessage('Goal ID must be an integer'),
-  amountValidation(),
-  descriptionValidation('notes'),
-  body('contribution_date')
-    .optional()
-    .isISO8601()
-    .withMessage('Invalid date format')
+// Registration validation
+const validateRegistration = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Please enter a valid email address'),
+  body('password')
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters long'),
+  body('name')
+    .trim()
+    .notEmpty()
+    .withMessage('Name is required')
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Name must be between 2 and 50 characters')
 ];
 
-// User ID param validation
-const userIdValidation = [
-  param('user_id')
-    .isInt()
-    .withMessage('Invalid user ID')
-];
-
-// Goal ID param validation
-const goalIdValidation = [
-  param('goal_id')
-    .isInt()
-    .withMessage('Invalid goal ID')
+// Login validation
+const validateLogin = [
+  body('email')
+    .trim()
+    .isEmail()
+    .withMessage('Please enter a valid email address'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required')
 ];
 
 module.exports = {
   handleValidationErrors,
-  incomeValidationRules,
-  expenseValidationRules,
-  goalValidationRules,
-  contributionValidationRules,
-  userIdValidation,
-  goalIdValidation
+  validateIncome,
+  validateExpense,
+  validateCategory,
+  validateRegistration,
+  validateLogin
 };

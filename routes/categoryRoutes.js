@@ -2,17 +2,11 @@ const express = require('express');
 const router = express.Router();
 const { body, param } = require('express-validator');
 const { handleValidationErrors } = require('../middlewares/validationMiddleware');
-const { authenticateToken } = require('../middlewares/authMiddleware');
-const {
-    getAllCategories,
-    getCategoryById,
-    createCategory,
-    updateCategory,
-    deleteCategory
-} = require('../controllers/categoryController');
+const { validateToken } = require('../middlewares/authMiddleware');
+const categoryController = require('../controllers/categoryController');
 
 // Validation rules
-const categoryValidationRules = [
+const validateCategory = [
     body('name')
         .trim()
         .notEmpty()
@@ -42,7 +36,7 @@ const categoryValidationRules = [
         .withMessage('Description must not exceed 255 characters')
 ];
 
-const updateCategoryValidationRules = [
+const validateCategoryUpdate = [
     body('name')
         .optional()
         .trim()
@@ -62,14 +56,57 @@ const updateCategoryValidationRules = [
         .optional()
         .trim()
         .isLength({ max: 255 })
-        .withMessage('Description must not exceed 255 characters')
+        .withMessage('Description must not exceed 255 characters'),
+    body('type')
+        .optional()
+        .trim()
+        .isIn(['expense', 'income'])
+        .withMessage('Type must be either expense or income')
+];
+
+const validateCategoryId = [
+    param('id')
+        .isInt({ min: 1 })
+        .withMessage('Invalid category ID'),
+    handleValidationErrors
 ];
 
 // Routes
-router.get('/', authenticateToken, getAllCategories);
-router.get('/:id', authenticateToken, getCategoryById);
-router.post('/', authenticateToken, categoryValidationRules, handleValidationErrors, createCategory);
-router.put('/:id', authenticateToken, updateCategoryValidationRules, handleValidationErrors, updateCategory);
-router.delete('/:id', authenticateToken, deleteCategory);
+router.get(
+    '/', 
+    validateToken, 
+    categoryController.getAllCategories
+);
+
+router.get(
+    '/:id', 
+    validateToken,
+    validateCategoryId,
+    categoryController.getCategoryById
+);
+
+router.post(
+    '/', 
+    validateToken,
+    validateCategory,
+    handleValidationErrors,
+    categoryController.createCategory
+);
+
+router.put(
+    '/:id', 
+    validateToken,
+    validateCategoryId,
+    validateCategoryUpdate,
+    handleValidationErrors,
+    categoryController.updateCategory
+);
+
+router.delete(
+    '/:id', 
+    validateToken,
+    validateCategoryId,
+    categoryController.deleteCategory
+);
 
 module.exports = router;

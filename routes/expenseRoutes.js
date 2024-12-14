@@ -1,23 +1,54 @@
 const express = require("express");
 const router = express.Router();
 const expenseController = require("../controllers/expenseController");
-const { authenticateToken } = require("../middlewares/authMiddleware");
+const { validateToken, validateUser } = require("../middlewares/authMiddleware");
+const { validateExpense, handleValidationErrors } = require("../middlewares/validationMiddleware");
+const { param } = require("express-validator");
 
-router.post("/add", authenticateToken, expenseController.addExpense);
+router.post(
+  "/add", 
+  validateToken,
+  validateExpense,
+  handleValidationErrors,
+  expenseController.addExpense
+);
+
 router.get(
   "/:user_id",
-  authenticateToken,
+  validateToken,
+  validateUser,
   expenseController.getExpenses
 );
+
 router.put(
-  "/update",
-  authenticateToken,
+  "/update/:expense_id",
+  validateToken,
+  validateExpense,
+  handleValidationErrors,
   expenseController.updateExpense
 );
+
 router.delete(
   "/delete/:expense_id",
-  authenticateToken,
+  validateToken,
+  param('expense_id').isInt().withMessage('Invalid expense ID'),
+  handleValidationErrors,
   expenseController.deleteExpense
 );
+
+router.get("/categories", (req, res) => {
+  const categories = [
+    "Food",
+    "Transportation",
+    "Housing",
+    "Utilities",
+    "Healthcare",
+    "Entertainment",
+    "Shopping",
+    "Education",
+    "Other"
+  ];
+  res.json({ success: true, data: categories });
+});
 
 module.exports = router;
