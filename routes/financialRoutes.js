@@ -24,7 +24,17 @@ router.get(
   "/history/:user_id",
   validateToken,
   validateUserId,
-  financialController.getFinancialHistory
+  financialController.getTransactionHistory
+);
+
+router.get(
+  "/transaction/:transaction_id",
+  validateToken,
+  param("transaction_id")
+    .isInt({ min: 1 })
+    .withMessage("Invalid transaction ID"),
+  handleValidationErrors,
+  financialController.getTransactionDetails
 );
 
 module.exports = router;

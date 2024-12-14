@@ -19,7 +19,7 @@ const path = require('path');
 const app = express();
 app.set('trust proxy', 1);
 
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 // Create logs directory if it doesn't exist
 const logsDir = path.join(__dirname, 'logs');
@@ -56,69 +56,68 @@ app.use(cors({
   credentials: true
 }));
 
-// Security headers
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
-});
-
-// Initialize routes with logging
+// Initialize routes with proper error handling
 const initializeRoutes = () => {
-  const routes = [
-    { path: "/api/auth", router: authRoutes, name: "Authentication" },
-    { path: "/api/user", router: userRoutes, name: "User" },
-    { path: "/api/income", router: incomeRoutes, name: "Income" },
-    { path: "/api/expense", router: expenseRoutes, name: "Expense" },
-    { path: "/api/goals", router: goalsRoutes, name: "Goals" },
-    { path: "/api/financial", router: financialRoutes, name: "Financial" },
-    { path: "/api/analytics", router: analyticsRoutes, name: "Analytics" },
-    { path: "/api/categories", router: categoryRoutes, name: "Categories" }
-  ];
+  app.use("/api/auth", authRoutes);
+  app.use("/api/users", userRoutes);
+  app.use("/api/income", incomeRoutes);
+  app.use("/api/expenses", expenseRoutes);
+  app.use("/api/goals", goalsRoutes);
+  app.use("/api/financial", financialRoutes);
+  app.use("/api/analytics", analyticsRoutes);
+  app.use("/api/categories", categoryRoutes);
 
-  routes.forEach(({ path, router, name }) => {
-    app.use(path, router);
-    logger.info(`✓ ${name} routes initialized at ${path}`);
+  // Health check endpoint
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Handle 404
+  app.use((req, res) => {
+    res.status(404).json({ 
+      success: false, 
+      message: "Route not found" 
+    });
   });
 };
 
-// Initialize all routes
-initializeRoutes();
-
 // Global error handler
 app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', { 
+  logger.error("Unhandled error:", {
     error: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    stack: err.stack,
     path: req.path,
     method: req.method
   });
-  
+
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token"
+    });
+  }
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: "Validation error",
+      errors: err.errors
+    });
+  }
+
   res.status(500).json({
     success: false,
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
-// 404 handler
-app.use((req, res) => {
-  logger.warn(`Route not found: ${req.method} ${req.path}`);
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
+    message: "Internal server error"
   });
 });
 
 // Initialize database connection
 const initializeDatabase = async () => {
   try {
-    const connection = await db.getConnection();
-    connection.release();
-    logger.info('✓ Database connection established');
-  } catch (err) {
-    logger.error('Failed to connect to database:', err);
+    await db.getConnection();
+    logger.info("Database connection established");
+  } catch (error) {
+    logger.error("Database connection failed:", error);
     process.exit(1);
   }
 };
@@ -128,29 +127,38 @@ cron.schedule("0 0 * * *", async () => {
   try {
     const query = `DELETE FROM tokens WHERE expires_at <= NOW()`;
     await db.execute(query);
-    logger.info("✓ Expired tokens cleaned up");
-  } catch (err) {
-    logger.error("Failed to clean up tokens:", err);
+    logger.info("Expired tokens cleaned up");
+  } catch (error) {
+    logger.error("Token cleanup failed:", error);
   }
 });
 
 // Start server
-const startServer = async () => {
-  try {
-    await initializeDatabase();
+const startServer = () => {
+  app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
     
-    app.listen(PORT, () => {
-      logger.info('╔═══════════════════════════════════════╗');
-      logger.info('║        Savr-FinTracker Backend        ║');
-      logger.info('╚═══════════════════════════════════════╝');
-      logger.info(`✓ Server is running on port ${PORT}`);
-      logger.info(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info('═══════════════════════════════════════════');
+    // Initialize routes after server starts
+    initializeRoutes();
+    
+    // Initialize database connection
+    initializeDatabase().catch(error => {
+      logger.error("Failed to initialize database:", error);
+      process.exit(1);
     });
-  } catch (err) {
-    logger.error('Failed to start server:', err);
-    process.exit(1);
-  }
+  });
 };
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection:', reason);
+  process.exit(1);
+});
 
 startServer();
