@@ -27,7 +27,7 @@ interface Slide {
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-const scaleFactor = screenWidth / 375; // Using iPhone standard width as base
+const scaleFactor = screenWidth / 375;
 
 const responsiveFontSize = (size: number): number => {
   const newSize = size * scaleFactor;
@@ -98,13 +98,10 @@ export default function App() {
       const token = await getItem("token");
       
       if (token) {
-        // If user is already logged in, go to home
         router.replace("/(tabs)/home");
       } else if (hasOnboarded) {
-        // If onboarded but not logged in, go to sign in
         router.replace("/(auth)/sign-in");
       } else {
-        // First time user, show onboarding
         setIsLoading(false);
       }
     } catch (error) {

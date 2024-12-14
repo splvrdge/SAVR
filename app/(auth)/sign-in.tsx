@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from '@/utils/axiosConfig';
-import { AsyncStorage } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -26,8 +26,12 @@ export default function SignIn() {
   const router = useRouter();
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
+      return;
+    }
+    if (!password) {
+      Alert.alert('Error', 'Please enter your password');
       return;
     }
 
@@ -35,37 +39,46 @@ export default function SignIn() {
 
     try {
       const response = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN, {
-        user_email: email,
+        user_email: email.trim().toLowerCase(),
         user_password: password
       });
 
-      if (response.data.success) {
-        const { accessToken, refreshToken, user_id, user_name, user_email } = response.data;
+      const { data } = response;
+      
+      if (data.success) {
+        const { accessToken, refreshToken, user_name, user_id } = data;
         
-        // Store all user data and tokens
+        // Store the tokens
+        await AsyncStorage.setItem('token', accessToken);
+        await AsyncStorage.setItem('refreshToken', refreshToken);
+        
+        // Store user data
         await AsyncStorage.multiSet([
-          ['token', accessToken],
-          ['refreshToken', refreshToken],
           ['userId', user_id.toString()],
           ['userName', user_name],
-          ['userEmail', user_email]
+          ['userEmail', email.trim().toLowerCase()]
         ]);
 
         router.replace('/(tabs)/home');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to sign in');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to sign in. Please check your credentials.'
-      );
+      let errorMessage = 'Failed to sign in. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (!navigator.onLine) {
+        errorMessage = 'No internet connection. Please check your network.';
+      }
+      
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    // Implement Google Sign In
     Alert.alert('Coming Soon', 'Google Sign In will be available soon!');
   };
 
