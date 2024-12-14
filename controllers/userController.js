@@ -25,12 +25,17 @@ function generateRefreshToken(user) {
 // Update user profile
 exports.updateProfile = async (req, res) => {
   const { name, email } = req.body;
-  const currentUserMail = req.user_email;
+  const currentUserMail = req.user.email;
 
   if (!name || !email) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
+    logger.warn('Missing required fields for profile update:', {
+      userId: req.user.id,
+      providedFields: { name: !!name, email: !!email }
+    });
+    return res.status(400).json({ 
+      success: false, 
+      message: "Missing required fields" 
+    });
   }
 
   const connection = await db.getConnection();
@@ -46,7 +51,10 @@ exports.updateProfile = async (req, res) => {
       
       if (existingUsers.length > 0) {
         await connection.rollback();
-        logger.warn('Email already in use:', { email });
+        logger.warn('Email already in use:', { 
+          userId: req.user.id,
+          attemptedEmail: email 
+        });
         return res.status(400).json({
           success: false,
           message: "Email already in use"
@@ -62,7 +70,10 @@ exports.updateProfile = async (req, res) => {
 
     if (results.affectedRows === 0) {
       await connection.rollback();
-      logger.warn('User not found:', { email: currentUserMail });
+      logger.warn('User not found:', { 
+        userId: req.user.id,
+        email: currentUserMail 
+      });
       return res.status(404).json({ 
         success: false, 
         message: "User not found" 
@@ -79,7 +90,10 @@ exports.updateProfile = async (req, res) => {
       
       if (userInfo.length === 0) {
         await connection.rollback();
-        logger.warn('User not found after update:', { email });
+        logger.warn('User not found after update:', { 
+          userId: req.user.id,
+          email 
+        });
         return res.status(404).json({ 
           success: false, 
           message: "User not found after update" 
@@ -107,7 +121,7 @@ exports.updateProfile = async (req, res) => {
 
       await connection.commit();
       
-      logger.info('Profile updated successfully:', { 
+      logger.info('Profile updated successfully with new tokens:', { 
         userId: user.user_id,
         fieldsUpdated: {
           name: true,
@@ -128,7 +142,7 @@ exports.updateProfile = async (req, res) => {
     await connection.commit();
     
     logger.info('Profile updated successfully:', { 
-      userId: req.user_id,
+      userId: req.user.id,
       fieldsUpdated: {
         name: true,
         email: false
@@ -143,13 +157,13 @@ exports.updateProfile = async (req, res) => {
   } catch (err) {
     await connection.rollback();
     logger.error('Failed to update profile:', { 
-      userId: req.user_id,
+      userId: req.user.id,
       error: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
     res.status(500).json({ 
       success: false, 
-      message: "Failed to update profile" 
+      message: "Internal server error" 
     });
   } finally {
     connection.release();
@@ -158,30 +172,34 @@ exports.updateProfile = async (req, res) => {
 
 // Get secured user information
 exports.getSecuredInfo = async (req, res) => {
-  const query = `SELECT user_name FROM users WHERE user_email = ?`;
   try {
-    const [results] = await db.execute(query, [req.user_email]);
+    const [userInfo] = await db.execute(
+      'SELECT user_id, user_name, user_email, created_at FROM users WHERE user_id = ?',
+      [req.user.id]
+    );
 
-    if (results.length === 1) {
-      const user = results[0];
-      logger.debug('User authenticated:', { userId: req.user_id });
-      res.json({
-        success: true,
-        message: "User authenticated",
-        user_name: user.user_name,
+    if (userInfo.length === 0) {
+      logger.warn('User not found:', { userId: req.user.id });
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
-    } else {
-      logger.warn('User not found:', { email: req.user_email });
-      res.status(404).json({ success: false, message: "User not found" });
     }
+
+    logger.debug('Retrieved secured user info:', { userId: req.user.id });
+    res.json({
+      success: true,
+      data: userInfo[0]
+    });
   } catch (err) {
-    logger.error('Error retrieving user information:', { 
-      userId: req.user_id,
+    logger.error('Failed to get secured info:', { 
+      userId: req.user.id,
       error: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-    res
-      .status(500)
-      .json({ success: false, message: "Error retrieving user information" });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
   }
 };
