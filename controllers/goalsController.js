@@ -145,8 +145,8 @@ exports.addContribution = async (req, res) => {
 
     // Add contribution
     const [result] = await connection.execute(
-      'INSERT INTO goal_contributions (goal_id, amount, notes) VALUES (?, ?, ?)',
-      [goal_id, amount, notes || null]
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
+      [goal_id, userId, amount, notes || null]
     );
 
     await connection.commit();
@@ -211,8 +211,8 @@ exports.updateGoal = async (req, res) => {
     await connection.beginTransaction();
 
     await connection.execute(
-      'UPDATE goals SET title = ?, target_amount = ?, target_date = ?, description = ? WHERE goal_id = ?',
-      [title, target_amount, target_date, description, goal_id]
+      'UPDATE goals SET title = ?, target_amount = ?, target_date = ?, description = ? WHERE goal_id = ? AND user_id = ?',
+      [title, target_amount, target_date, description, goal_id, userId]
     );
 
     await connection.commit();
@@ -271,7 +271,7 @@ exports.deleteGoal = async (req, res) => {
 
     await connection.beginTransaction();
 
-    await connection.execute('DELETE FROM goals WHERE goal_id = ?', [goal_id]);
+    await connection.execute('DELETE FROM goals WHERE goal_id = ? AND user_id = ?', [goal_id, userId]);
 
     await connection.commit();
 
