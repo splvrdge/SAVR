@@ -6,10 +6,30 @@ exports.createGoal = async (req, res) => {
     const { title, target_amount, target_date, description } = req.body;
     const userId = req.user.user_id;
 
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    logger.info('Creating goal:', {
+      userId,
+      title,
+      target_amount,
+      target_date,
+      description
+    });
+
     const [result] = await db.execute(
       'INSERT INTO goals (user_id, title, target_amount, target_date, description) VALUES (?, ?, ?, ?, ?)',
       [userId, title, target_amount, target_date, description]
     );
+
+    logger.info('Goal created:', {
+      goalId: result.insertId
+    });
 
     res.status(201).json({
       success: true,
@@ -21,7 +41,9 @@ exports.createGoal = async (req, res) => {
   } catch (error) {
     logger.error('Failed to create goal:', {
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      body: req.body,
+      userId: req.user?.user_id
     });
     res.status(500).json({
       success: false,
@@ -33,6 +55,14 @@ exports.createGoal = async (req, res) => {
 exports.getGoals = async (req, res) => {
   try {
     const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
 
     const [goals] = await db.execute(`
       SELECT 
@@ -65,7 +95,8 @@ exports.getGoals = async (req, res) => {
   } catch (error) {
     logger.error('Failed to get goals:', {
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
     res.status(500).json({
       success: false,
@@ -78,6 +109,14 @@ exports.addContribution = async (req, res) => {
   try {
     const { goal_id, amount, notes } = req.body;
     const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
 
     // Verify goal belongs to user
     const [goal] = await db.execute(
@@ -107,7 +146,8 @@ exports.addContribution = async (req, res) => {
   } catch (error) {
     logger.error('Failed to add contribution:', {
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
     res.status(500).json({
       success: false,
@@ -121,6 +161,14 @@ exports.updateGoal = async (req, res) => {
     const { goal_id } = req.params;
     const { title, target_amount, target_date, description } = req.body;
     const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
 
     const [goal] = await db.execute(
       'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
@@ -146,7 +194,8 @@ exports.updateGoal = async (req, res) => {
   } catch (error) {
     logger.error('Failed to update goal:', {
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
     res.status(500).json({
       success: false,
@@ -159,6 +208,14 @@ exports.deleteGoal = async (req, res) => {
   try {
     const { goal_id } = req.params;
     const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
 
     const [goal] = await db.execute(
       'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
@@ -181,7 +238,8 @@ exports.deleteGoal = async (req, res) => {
   } catch (error) {
     logger.error('Failed to delete goal:', {
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
     res.status(500).json({
       success: false,

@@ -30,14 +30,27 @@ const validateToken = async (req, res, next) => {
     }
 
     try {
+      logger.info('Verifying token:', {
+        token: token.substring(0, 20) + '...',
+        secretKey: secretKey ? 'present' : 'missing'
+      });
+      
       const decoded = jwt.verify(token, secretKey);
+      logger.info('Token verified successfully:', {
+        decoded: {
+          user_id: decoded.user_id,
+          user_email: decoded.user_email
+        }
+      });
+      
       req.user = decoded;
       next();
     } catch (error) {
       logger.warn(`Authentication failed: Invalid token`, {
         requestId: req.requestId,
         error: error.message,
-        path: req.path
+        path: req.path,
+        token: token.substring(0, 20) + '...'
       });
       return res.status(401).json({
         success: false,
