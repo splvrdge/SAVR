@@ -449,97 +449,80 @@ export default function Goals() {
         transparent={true}
         onRequestClose={() => setShowModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View className="flex-1 justify-end">
-              <View className="bg-white rounded-t-3xl p-6 h-3/4">
-                <View className="flex-row justify-between items-center mb-6">
-                  <Text className="text-xl font-semibold">
-                    {editingGoal ? 'Edit Goal' : 'Add New Goal'}
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView className="flex-1">
-                  <View className="space-y-4">
-                    <View className="mb-4">
-                      <Text className="text-gray-600 mb-2">Title*</Text>
-                      <TextInput
-                        className="border border-gray-300 rounded-lg p-3"
-                        value={formData.title}
-                        onChangeText={(text) => setFormData({ ...formData, title: text })}
-                        placeholder="Enter goal title"
-                      />
-                    </View>
-
-                    <View className="mb-4">
-                      <Text className="text-gray-600 mb-2">Target Amount*</Text>
-                      <TextInput
-                        className="border border-gray-300 rounded-lg p-3"
-                        value={formData.target_amount}
-                        onChangeText={(text) => {
-                          const formatted = formatAmount(text);
-                          setFormData({ ...formData, target_amount: formatted });
-                        }}
-                        placeholder="Enter target amount"
-                        keyboardType="numeric"
-                      />
-                    </View>
-
-                    <View className='mb-4'>
-                      <Text className="text-gray-600 mb-2">Target Date*</Text>
-                      <TextInput
-                        className="border border-gray-300 rounded-lg p-3"
-                        value={formData.target_date}
-                        onChangeText={(text) => {
-                          const formatted = formatDateInput(text);
-                          setFormData({ ...formData, target_date: formatted });
-                        }}
-                        placeholder="MM-DD-YYYY"
-                        keyboardType="numeric"
-                        maxLength={10}
-                      />
-                    </View>
-                  </View>
-                </ScrollView>
-
-                <View className="flex-row justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowModal(false);
-                      setEditingGoal(null);
-                      setFormData({ title: '', target_amount: '', target_date: '' });
-                    }}
-                    className="px-4 py-2 rounded-lg bg-gray-100"
-                  >
-                    <Text className="text-gray-600">Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                    className={`px-4 py-2 rounded-lg ${
-                      isSubmitting ? 'bg-blue-300' : 'bg-blue-500'
-                    }`}
-                    style={{ marginLeft: 8 }} 
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white">
-                        {editingGoal ? 'Update' : 'Add'} Goal
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
+        <View className="flex-1 justify-end bg-black/30">
+          <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
+            <View className="flex-row justify-between items-center mb-6">
+              <Text className="text-2xl font-bold text-gray-800">
+                {editingGoal ? 'Edit Goal' : 'Add New Goal'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowModal(false)} className="p-2">
+                <MaterialCommunityIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
             </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
+
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              <View className="space-y-6">
+                {/* Title Input */}
+                <View className="mb-4">
+                  <Text className="text-gray-600 mb-2">Title</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    value={formData.title}
+                    onChangeText={(text) => setFormData({ ...formData, title: text })}
+                    placeholder="Enter goal title"
+                  />
+                </View>
+
+                {/* Target Amount Input */}
+                <View className="mb-4">
+                  <Text className="text-gray-600 mb-2">Target Amount</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    value={formData.target_amount}
+                    onChangeText={(text) => {
+                      const formatted = formatAmount(text);
+                      setFormData({ ...formData, target_amount: formatted });
+                    }}
+                    placeholder="Enter target amount"
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                {/* Target Date Input */}
+                <View className="mb-4">
+                  <Text className="text-gray-600 mb-2">Target Date</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    value={formData.target_date}
+                    onChangeText={(text) => {
+                      const formatted = formatDateInput(text);
+                      setFormData({ ...formData, target_date: formatted });
+                    }}
+                    placeholder="MM-DD-YYYY"
+                    keyboardType="numeric"
+                    maxLength={10}
+                  />
+                </View>
+
+                {/* Submit Button */}
+                <TouchableOpacity
+                  onPress={handleSubmit}
+                  disabled={isSubmitting}
+                  className={`bg-blue-500 p-4 rounded-xl mt-6`}
+                  style={{ marginTop: 20 }}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-white text-center font-semibold text-lg">
+                      {editingGoal ? 'Update Goal' : 'Add Goal'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       {/* Add Money Modal */}
