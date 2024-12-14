@@ -30,82 +30,27 @@ const validateToken = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Check if token exists in database and is not expired
-      const [tokens] = await db.execute(
-        'SELECT * FROM tokens WHERE token = ? AND expires_at > NOW() AND is_revoked = 0',
-        [token]
-      );
-
-      if (tokens.length === 0) {
-        logger.warn(`Authentication failed: Token not found or expired`, {
-          requestId: req.requestId,
-          userId: decoded.id,
-          path: req.path
-        });
-        return res.status(401).json({
-          success: false,
-          message: 'Access denied. Token expired or invalid.'
-        });
-      }
-
-      // Check if user exists and is active
-      const [users] = await db.execute(
-        'SELECT id, email, is_active FROM users WHERE id = ?',
-        [decoded.id]
-      );
-
-      if (users.length === 0 || !users[0].is_active) {
-        logger.warn(`Authentication failed: User not found or inactive`, {
-          requestId: req.requestId,
-          userId: decoded.id,
-          path: req.path
-        });
-        return res.status(401).json({
-          success: false,
-          message: 'Access denied. User not found or inactive.'
-        });
-      }
-
-      req.user = users[0];
-      logger.debug(`Authentication successful`, {
-        requestId: req.requestId,
-        userId: users[0].id,
-        email: users[0].email,
-        path: req.path
-      });
+      req.user = decoded;
       next();
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
-        logger.warn(`Authentication failed: Token expired`, {
-          requestId: req.requestId,
-          path: req.path
-        });
-        return res.status(401).json({
-          success: false,
-          message: 'Access denied. Token expired.'
-        });
-      }
-      if (error.name === 'JsonWebTokenError') {
-        logger.warn(`Authentication failed: Invalid token`, {
-          requestId: req.requestId,
-          path: req.path
-        });
-        return res.status(401).json({
-          success: false,
-          message: 'Access denied. Invalid token.'
-        });
-      }
-      throw error;
+      logger.warn(`Authentication failed: Invalid token`, {
+        requestId: req.requestId,
+        error: error.message,
+        path: req.path
+      });
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Invalid token.'
+      });
     }
   } catch (error) {
-    logger.error(`Authentication error: ${error.message}`, {
+    logger.error(`Authentication error`, {
       requestId: req.requestId,
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       path: req.path
     });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error during authentication.'
     });
