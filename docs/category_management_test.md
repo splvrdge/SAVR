@@ -1,224 +1,127 @@
 # Category Management API Test Results
 
-Base URL: `https://savr-backend.onrender.com`
-
-## Authentication
-All endpoints require a valid JWT token in the Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
+## Test Environment
+- **Base URL**: `https://savr-backend.onrender.com/api`
+- **Date Tested**: December 14, 2024
+- **Authentication**: JWT Bearer Token
 
 ## Test Results
 
-### 1. Get All Categories
-**Endpoint:** `GET /api/categories`
-
-**Test Case 1: Get all categories without filter**
-```http
-GET /api/categories
-```
-**Expected Response:**
+### 1. Create Category (POST /categories)
+✅ **Success**
+- Request:
 ```json
 {
-    "success": true,
-    "data": [
-        {
-            "id": 1,
-            "name": "Food",
-            "type": "expense",
-            "icon": "restaurant",
-            "color": "#FF5733",
-            "description": "Food and dining expenses"
-        },
-        // ... other categories
-    ]
+  "name": "Subscriptions",
+  "type": "expense",
+  "icon": "subscriptions",
+  "color": "#9C27B0",
+  "description": "Monthly subscription services"
 }
 ```
-
-**Test Case 2: Get categories filtered by type**
-```http
-GET /api/categories?type=expense
-```
-**Expected Response:**
+- Response (201):
 ```json
 {
-    "success": true,
-    "data": [
-        // Only expense categories
-    ]
-}
-```
-
-### 2. Create New Category
-**Endpoint:** `POST /api/categories`
-
-**Test Case 1: Create valid category**
-```http
-POST /api/categories
-Content-Type: application/json
-
-{
+  "success": true,
+  "message": "Category created successfully",
+  "data": {
+    "id": 69,
     "name": "Subscriptions",
     "type": "expense",
     "icon": "subscriptions",
     "color": "#9C27B0",
-    "description": "Monthly subscription services"
+    "description": "Monthly subscription services",
+    "created_at": "2024-12-14T15:01:45.000Z",
+    "updated_at": "2024-12-14T15:01:45.000Z"
+  }
 }
 ```
-**Expected Response:**
+
+### 2. Get All Categories (GET /categories)
+✅ **Success**
+- Response (200): Returns an array of all categories
+- Successfully returns both expense and income categories
+- Categories are sorted alphabetically by name
+
+### 3. Get Categories by Type (GET /categories?type=expense)
+✅ **Success**
+- Response (200): Returns only expense categories
+- Successfully filters out income categories
+- Maintains alphabetical sorting
+
+### 4. Get Category by ID (GET /categories/:id)
+✅ **Success**
+- Response (200): Returns the requested category
+- Returns 404 for non-existent categories
+
+### 5. Update Category (PUT /categories/:id)
+✅ **Success**
+- Request:
 ```json
 {
-    "success": true,
-    "message": "Category created successfully",
-    "data": {
-        "id": 18,
-        "name": "Subscriptions",
-        "type": "expense",
-        "icon": "subscriptions",
-        "color": "#9C27B0",
-        "description": "Monthly subscription services"
-    }
+  "name": "Digital Subscriptions",
+  "description": "Digital and streaming service subscriptions"
 }
 ```
-
-**Test Case 2: Create category with invalid type**
-```http
-POST /api/categories
-Content-Type: application/json
-
-{
-    "name": "Test",
-    "type": "invalid",
-    "icon": "test",
-    "color": "#000000"
-}
-```
-**Expected Response:**
+- Response (200):
 ```json
 {
-    "success": false,
-    "message": "Invalid category type. Must be either 'expense' or 'income'",
-    "errors": [
-        {
-            "field": "type",
-            "message": "Invalid category type"
-        }
-    ]
-}
-```
-
-### 3. Update Category
-**Endpoint:** `PUT /api/categories/:id`
-
-**Test Case 1: Update existing category**
-```http
-PUT /api/categories/18
-Content-Type: application/json
-
-{
+  "success": true,
+  "message": "Category updated successfully",
+  "data": {
+    "id": 69,
     "name": "Digital Subscriptions",
-    "icon": "cloud_subscription",
-    "color": "#673AB7",
-    "description": "Digital and cloud subscription services"
+    "type": "expense",
+    "icon": "subscriptions",
+    "color": "#9C27B0",
+    "description": "Digital and streaming service subscriptions",
+    "created_at": "2024-12-14T15:01:45.000Z",
+    "updated_at": "2024-12-14T15:02:47.000Z"
+  }
 }
 ```
-**Expected Response:**
+
+### 6. Delete Category (DELETE /categories/:id)
+✅ **Success**
+- Response (200):
 ```json
 {
-    "success": true,
-    "message": "Category updated successfully",
-    "data": {
-        "id": 18,
-        "name": "Digital Subscriptions",
-        "type": "expense",
-        "icon": "cloud_subscription",
-        "color": "#673AB7",
-        "description": "Digital and cloud subscription services"
-    }
+  "success": true,
+  "message": "Category deleted successfully"
 }
 ```
+- Verification: GET request returns 404 for deleted category
 
-### 4. Delete Category
-**Endpoint:** `DELETE /api/categories/:id`
+## Validation Tests
 
-**Test Case 1: Delete existing category**
-```http
-DELETE /api/categories/18
-```
-**Expected Response:**
-```json
-{
-    "success": true,
-    "message": "Category deleted successfully"
-}
-```
-
-**Test Case 2: Delete non-existent category**
-```http
-DELETE /api/categories/999
-```
-**Expected Response:**
-```json
-{
-    "success": false,
-    "message": "Category not found"
-}
-```
-
-## Validation Rules
-
-1. Category Name:
-   - Required
-   - String
-   - Length: 2-50 characters
-   - Must be unique within the same type (expense/income)
-
-2. Category Type:
-   - Required
-   - Must be either 'expense' or 'income'
-
-3. Icon:
-   - Optional
-   - String
-   - Length: 1-50 characters
-
-4. Color:
-   - Optional
-   - String
-   - Must be a valid hex color code (e.g., '#FF5733')
-   - Length: 7 characters
-
-5. Description:
-   - Optional
-   - String
-   - Maximum length: 255 characters
+1. ✅ Duplicate category names within the same type are not allowed
+2. ✅ Required fields (name, type) are properly validated
+3. ✅ Category types are restricted to "expense" or "income"
+4. ✅ Authentication is required for all endpoints
+5. ✅ Categories used in transactions cannot be deleted
 
 ## Error Handling
 
-All endpoints return appropriate HTTP status codes:
-- 200: Success
-- 201: Created
-- 400: Bad Request (validation errors)
-- 401: Unauthorized
-- 403: Forbidden
-- 404: Not Found
-- 500: Internal Server Error
-
-Error responses include:
-```json
-{
-    "success": false,
-    "message": "Error description",
-    "errors": [
-        {
-            "field": "fieldName",
-            "message": "Specific error message"
-        }
-    ]
-}
-```
+All endpoints properly handle:
+- ✅ Invalid authentication
+- ✅ Invalid request parameters
+- ✅ Non-existent resources
+- ✅ Database constraints
+- ✅ Validation errors
 
 ## Notes
-- Categories cannot be deleted if they are being used by any expense or income records
-- The type of a category cannot be changed after creation
-- Default categories are created during migration and cannot be deleted
+
+1. The API successfully maintains data integrity by:
+   - Preventing duplicate categories
+   - Enforcing data validation
+   - Protecting categories in use
+
+2. Performance is satisfactory with:
+   - Quick response times
+   - Proper error handling
+   - Consistent behavior
+
+3. Security measures are properly implemented:
+   - JWT authentication
+   - Input validation
+   - Error message sanitization
