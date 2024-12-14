@@ -9,6 +9,7 @@ const expenseRoutes = require("./routes/expenseRoutes");
 const goalsRoutes = require("./routes/goalsRoutes");
 const financialRoutes = require("./routes/financialRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 const cron = require("node-cron");
 const db = require("./config/db");
 
@@ -18,13 +19,12 @@ app.set('trust proxy', 1);
 const PORT = process.env.SERVER_PORT || 3000;
 
 // Rate limiter temporarily disabled for testing
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 100,
-//   message: { success: false, message: "Too many requests, please try again later." }
-// });
+const limiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100 // limit each IP to 100 requests per windowMs
+});
 
-// app.use(limiter);
+app.use(limiter);
 app.use(bodyParser.json());
 
 const allowedOrigins = [
@@ -61,13 +61,21 @@ app.use("/api/expense", expenseRoutes);
 app.use("/api/goals", goalsRoutes);
 app.use("/api/financial", financialRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(err.status || 500).json({
+  res.status(500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
   });
 });
 
