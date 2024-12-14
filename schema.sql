@@ -102,6 +102,7 @@ CREATE TABLE goals (
     goal_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
+    description TEXT,
     target_amount DECIMAL(10, 2) NOT NULL,
     current_amount DECIMAL(10, 2) DEFAULT 0.00,
     target_date DATE NOT NULL,

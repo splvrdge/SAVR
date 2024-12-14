@@ -17,6 +17,4 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Remove the automatic connection check here since we'll handle it in index.js
-
 module.exports = pool;

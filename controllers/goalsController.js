@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 exports.createGoal = async (req, res) => {
   try {
     const { title, target_amount, target_date, description } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const [result] = await db.execute(
       'INSERT INTO goals (user_id, title, target_amount, target_date, description) VALUES (?, ?, ?, ?, ?)',
@@ -37,10 +37,10 @@ exports.getGoals = async (req, res) => {
     const [goals] = await db.execute(`
       SELECT 
         g.*,
-        COALESCE(SUM(c.amount), 0) as current_amount,
-        COALESCE(COUNT(c.contribution_id), 0) as contribution_count
+        COALESCE(SUM(gc.amount), 0) as current_amount,
+        COALESCE(COUNT(gc.contribution_id), 0) as contribution_count
       FROM goals g
-      LEFT JOIN contributions c ON g.goal_id = c.goal_id
+      LEFT JOIN goal_contributions gc ON g.goal_id = gc.goal_id
       WHERE g.user_id = ?
       GROUP BY g.goal_id
       ORDER BY g.created_at DESC
@@ -77,7 +77,7 @@ exports.getGoals = async (req, res) => {
 exports.addContribution = async (req, res) => {
   try {
     const { goal_id, amount, notes } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     // Verify goal belongs to user
     const [goal] = await db.execute(
@@ -93,8 +93,8 @@ exports.addContribution = async (req, res) => {
     }
 
     const [result] = await db.execute(
-      'INSERT INTO contributions (goal_id, amount, notes) VALUES (?, ?, ?)',
-      [goal_id, amount, notes]
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
+      [goal_id, userId, amount, notes]
     );
 
     res.status(201).json({
@@ -120,7 +120,7 @@ exports.updateGoal = async (req, res) => {
   try {
     const { goal_id } = req.params;
     const { title, target_amount, target_date, description } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const [goal] = await db.execute(
       'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
@@ -158,7 +158,7 @@ exports.updateGoal = async (req, res) => {
 exports.deleteGoal = async (req, res) => {
   try {
     const { goal_id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
     const [goal] = await db.execute(
       'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
