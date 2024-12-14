@@ -1,4 +1,4 @@
-const db = require('../config/database');
+const db = require('../config/db');
 const logger = require('../utils/logger');
 
 exports.createGoal = async (req, res) => {
