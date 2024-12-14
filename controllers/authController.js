@@ -29,75 +29,82 @@ function generateRefreshToken(user) {
 
 exports.login = async (req, res) => {
   const { user_email, user_password } = req.body;
-  const query = `SELECT * FROM users WHERE user_email = ?`;
 
   try {
-    const [results] = await db.execute(query, [user_email]);
+    // Find user by email
+    const [users] = await db.execute(
+      'SELECT * FROM users WHERE user_email = ?',
+      [user_email]
+    );
 
-    if (results.length === 1) {
-      const user = results[0];
-      const hashedPassword = user.user_password;
-      const isPasswordMatch = await bcrypt.compare(
-        user_password,
-        hashedPassword
-      );
+    if (users.length === 0) {
+      logger.warn(`Login failed: User not found for email ${user_email}`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
 
-      if (isPasswordMatch) {
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
+    const user = users[0];
 
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+    // Compare password
+    const validPassword = await bcrypt.compare(user_password, user.user_password);
+    if (!validPassword) {
+      logger.warn(`Login failed: Invalid password for user ${user_email}`);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid email or password'
+      });
+    }
 
-        const connection = await db.getConnection();
-        try {
-          await connection.beginTransaction();
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
 
-          const revokeOldTokensQuery = `
-            UPDATE tokens 
-            SET is_revoked = TRUE 
-            WHERE user_id = ? AND is_revoked = FALSE
-          `;
-          await connection.execute(revokeOldTokensQuery, [user.user_id]);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
 
-          const insertTokenQuery = `
-            INSERT INTO tokens (user_id, refresh_token, expires_at)
-            VALUES (?, ?, ?)
-          `;
-          await connection.execute(insertTokenQuery, [
-            user.user_id,
-            refreshToken,
-            expiresAt
-          ]);
+    const connection = await db.getConnection();
+    try {
+      await connection.beginTransaction();
 
-          await connection.commit();
+      const revokeOldTokensQuery = `
+        UPDATE tokens 
+        SET is_revoked = TRUE 
+        WHERE user_id = ? AND is_revoked = FALSE
+      `;
+      await connection.execute(revokeOldTokensQuery, [user.user_id]);
 
-          logger.info('User logged in successfully:', { userId: user.user_id, email: user.user_email });
-          res.json({
-            success: true,
-            message: "Login successful",
-            accessToken,
-            refreshToken,
-            user_name: user.user_name,
-            user_id: user.user_id
-          });
-        } catch (error) {
-          await connection.rollback();
-          logger.error('Login failed:', { 
-            email: user.user_email,
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-          });
-          throw error;
-        } finally {
-          connection.release();
-        }
-      } else {
-        logger.warn('Login attempt with invalid password:', { email: user_email });
-        res.status(401).json({ success: false, message: "Invalid email or password" });
-      }
-    } else {
-      logger.warn('Login attempt with non-existent email:', { email: user_email });
-      res.status(401).json({ success: false, message: "Invalid email or password" });
+      const insertTokenQuery = `
+        INSERT INTO tokens (user_id, refresh_token, expires_at)
+        VALUES (?, ?, ?)
+      `;
+      await connection.execute(insertTokenQuery, [
+        user.user_id,
+        refreshToken,
+        expiresAt
+      ]);
+
+      await connection.commit();
+
+      logger.info('User logged in successfully:', { userId: user.user_id, email: user.user_email });
+      res.json({
+        success: true,
+        message: "Login successful",
+        accessToken,
+        refreshToken,
+        user_name: user.user_name,
+        user_id: user.user_id
+      });
+    } catch (error) {
+      await connection.rollback();
+      logger.error('Login failed:', { 
+        email: user_email,
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+      throw error;
+    } finally {
+      connection.release();
     }
   } catch (err) {
     logger.error('Error in login:', { 
