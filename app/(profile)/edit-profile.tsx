@@ -77,67 +77,47 @@ const EditProfile = () => {
       if (responseData.success) {
         await AsyncStorage.setItem("userName", name);
         
-        if (responseData.requireRelogin) {
-          // Store new tokens before redirecting
-          if (responseData.accessToken && responseData.refreshToken) {
-            await AsyncStorage.multiSet([
-              ["token", responseData.accessToken],
-              ["refreshToken", responseData.refreshToken],
-              ["userName", name],
-              ["userEmail", email],
-              ["userId", responseData.user_id.toString()]
-            ]);
-          }
+        if (email !== user.email) { 
+          // Clear all existing tokens and user data
+          await AsyncStorage.multiRemove([
+            "token",
+            "refreshToken",
+            "userName",
+            "userEmail",
+            "userId"
+          ]);
 
           Alert.alert(
             "Email Updated",
-            "Your email has been updated successfully. You'll be redirected to the home screen.",
+            "Your email has been updated. Please sign in again with your new email.",
             [
               {
                 text: "OK",
                 onPress: () => {
-                  router.replace("/(tabs)/home");
+                  router.replace("/(auth)/sign-in");
                 },
               },
             ]
           );
         } else {
-          Alert.alert(
-            "Success",
-            "Profile updated successfully!",
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  router.push("/(profile)/profile");
-                },
+          // If only name was updated
+          await AsyncStorage.setItem("userName", name);
+          Alert.alert("Success", "Profile updated successfully", [
+            {
+              text: "OK",
+              onPress: () => {
+                router.back();
               },
-            ]
-          );
+            },
+          ]);
         }
-      } else {
-        Alert.alert(
-          "Error",
-          responseData.message || "Failed to update profile."
-        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating profile:", error);
-      if (error.message.includes("Email already in use")) {
-        Alert.alert("Error", "This email is already registered with another account.");
-      } else if (
-        error.message.includes("Unauthorized") ||
-        error.message.includes("401")
-      ) {
-        Alert.alert("Session Expired", "Please log in again.");
-        await AsyncStorage.multiRemove(["token", "refreshToken", "userName", "userEmail", "userId"]);
-        router.push("/(auth)/sign-in");
-      } else {
-        Alert.alert(
-          "Error",
-          error.message || "An unexpected error occurred. Please try again later."
-        );
-      }
+      Alert.alert(
+        "Error",
+        error.message || "Failed to update profile. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
