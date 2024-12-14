@@ -92,21 +92,9 @@ exports.getGoals = async (req, res) => {
       ORDER BY g.created_at DESC
     `, [userId]);
 
-    if (goals.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No goals found'
-      });
-    }
-
     res.json({
       success: true,
-      data: goals.map(goal => ({
-        ...goal,
-        target_amount: parseFloat(goal.target_amount),
-        current_amount: parseFloat(goal.current_amount),
-        progress: (goal.current_amount / goal.target_amount) * 100
-      }))
+      data: goals || []
     });
   } catch (error) {
     logger.error('Failed to get goals:', {
@@ -139,26 +127,26 @@ exports.addContribution = async (req, res) => {
       });
     }
 
-    // Verify goal belongs to user
     connection = await db.getConnection();
+    await connection.beginTransaction();
 
-    const [goal] = await connection.execute(
+    // Verify goal ownership
+    const [goals] = await connection.execute(
       'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
       [goal_id, userId]
     );
 
-    if (goal.length === 0) {
+    if (goals.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found or unauthorized'
       });
     }
 
-    await connection.beginTransaction();
-
+    // Add contribution
     const [result] = await connection.execute(
-      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
-      [goal_id, userId, amount, notes]
+      'INSERT INTO goal_contributions (goal_id, amount, notes) VALUES (?, ?, ?)',
+      [goal_id, amount, notes || null]
     );
 
     await connection.commit();
@@ -177,6 +165,7 @@ exports.addContribution = async (req, res) => {
     logger.error('Failed to add contribution:', {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      body: req.body,
       userId: req.user?.user_id
     });
     res.status(500).json({

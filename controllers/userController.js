@@ -26,14 +26,14 @@ function generateRefreshToken(user) {
 exports.updateProfile = async (req, res) => {
   try {
     const { name, email, currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
-    const [user] = await db.execute(
-      'SELECT * FROM users WHERE id = ?',
+    const [users] = await db.execute(
+      'SELECT * FROM users WHERE user_id = ?',
       [userId]
     );
 
-    if (!user[0]) {
+    if (!users[0]) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -50,28 +50,22 @@ exports.updateProfile = async (req, res) => {
       updates.name = name;
     }
 
-    if (email && email !== user[0].user_email) {
-      // Check if email is already taken
-      const [existingUser] = await db.execute(
-        'SELECT user_id FROM users WHERE user_email = ? AND user_id != ?',
-        [email, userId]
-      );
-
-      if (existingUser.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email is already in use'
-        });
-      }
-
+    if (email) {
       setStatements.push('user_email = ?');
       params.push(email);
       updates.email = email;
     }
 
-    if (newPassword && currentPassword) {
-      const isValidPassword = await bcrypt.compare(currentPassword, user[0].password);
-      if (!isValidPassword) {
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is required to set new password'
+        });
+      }
+
+      const validPassword = await bcrypt.compare(currentPassword, users[0].user_password);
+      if (!validPassword) {
         return res.status(401).json({
           success: false,
           message: 'Current password is incorrect'
@@ -79,8 +73,9 @@ exports.updateProfile = async (req, res) => {
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      setStatements.push('password = ?');
+      setStatements.push('user_password = ?');
       params.push(hashedPassword);
+      updates.password = '********';
     }
 
     if (setStatements.length === 0) {
@@ -93,7 +88,7 @@ exports.updateProfile = async (req, res) => {
     params.push(userId);
     const updateQuery = `
       UPDATE users 
-      SET ${setStatements.join(', ')}
+      SET ${setStatements.join(', ')} 
       WHERE user_id = ?
     `;
 
@@ -102,15 +97,13 @@ exports.updateProfile = async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: {
-        name: updates.name || user[0].user_name,
-        email: updates.email || user[0].user_email
-      }
+      data: updates
     });
   } catch (error) {
-    logger.error('Error updating profile:', {
+    logger.error('Error updating profile:', { 
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id 
     });
     res.status(500).json({
       success: false,
@@ -122,64 +115,33 @@ exports.updateProfile = async (req, res) => {
 // Get secured user information
 exports.getSecuredInfo = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
 
-    const [user] = await db.execute(
+    const [users] = await db.execute(
       'SELECT user_id, user_name, user_email, created_at FROM users WHERE user_id = ?',
       [userId]
     );
 
-    if (!user[0]) {
+    if (!users[0]) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    const [financialSummary] = await db.execute(`
-      SELECT 
-        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
-        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses,
-        COUNT(DISTINCT CASE WHEN type = 'income' THEN id END) as income_count,
-        COUNT(DISTINCT CASE WHEN type = 'expense' THEN id END) as expense_count
-      FROM user_financial_data
-      WHERE user_id = ?
-    `, [userId]);
-
-    const [goals] = await db.execute(
-      'SELECT COUNT(*) as goal_count FROM goals WHERE user_id = ?',
-      [userId]
-    );
-
     res.json({
       success: true,
-      data: {
-        user: {
-          id: user[0].user_id,
-          name: user[0].user_name,
-          email: user[0].user_email,
-          created_at: user[0].created_at
-        },
-        financial_summary: {
-          total_income: parseFloat(financialSummary[0].total_income),
-          total_expenses: parseFloat(financialSummary[0].total_expenses),
-          net_worth: parseFloat(financialSummary[0].total_income - financialSummary[0].total_expenses),
-          income_count: financialSummary[0].income_count,
-          expense_count: financialSummary[0].expense_count
-        },
-        goals: {
-          total_count: goals[0].goal_count
-        }
-      }
+      data: users[0]
     });
   } catch (error) {
-    logger.error('Error fetching secured info:', {
+    logger.error('Error getting user info:', { 
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id 
     });
     res.status(500).json({
       success: false,
-      message: 'Error retrieving user information'
+      message: 'Error getting user information'
     });
   }
 };
