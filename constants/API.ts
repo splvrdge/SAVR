@@ -33,16 +33,23 @@ export const API_ENDPOINTS = {
     GET_HISTORY: '/api/financial/history/:user_id',
   },
 
-  // User endpoints
-  USER: {
-    UPDATE_PROFILE: '/api/users/:userId',
-    GET_PROFILE: '/api/users/:userId',
+  // Goals endpoints
+  GOALS: {
+    ADD: '/api/goals/add',
+    GET_ALL: '/api/goals/:user_id',
+    UPDATE: '/api/goals/update/:goal_id',
+    DELETE: '/api/goals/delete/:goal_id',
+    ADD_CONTRIBUTION: '/api/goals/contribution/add',
+    GET_CONTRIBUTIONS: '/api/goals/contributions/:goal_id',
+    DELETE_CONTRIBUTION: '/api/goals/contribution/:contribution_id',
   },
-};
 
-// API Headers
-export const DEFAULT_HEADERS = {
-  'Content-Type': 'application/json',
+  // Analytics endpoints
+  ANALYTICS: {
+    EXPENSES: '/api/analytics/expenses/:user_id',
+    INCOME: '/api/analytics/income/:user_id',
+    TRENDS: '/api/analytics/trends/:user_id',
+  },
 };
 
 // API Response Types
@@ -58,5 +65,6 @@ export const API_ERRORS = {
   NETWORK_ERROR: 'Network error. Please check your internet connection.',
   UNAUTHORIZED: 'Unauthorized. Please log in again.',
   SERVER_ERROR: 'Server error. Please try again later.',
+  INVALID_CREDENTIALS: 'Invalid email or password.',
   VALIDATION_ERROR: 'Please check your input and try again.',
 };

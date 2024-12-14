@@ -40,6 +40,32 @@ export default function Home() {
   const [userName, setUserName] = useState<string>('');
   const router = useRouter();
 
+  // Income Categories
+  const incomeCategories = {
+    salary: { name: 'Salary', icon: 'cash-multiple' },
+    business: { name: 'Business', icon: 'store-outline' },
+    investment: { name: 'Investment', icon: 'trending-up' },
+    freelance: { name: 'Freelance', icon: 'laptop-outline' },
+    gift: { name: 'Gift', icon: 'gift-outline' },
+    other: { name: 'Other', icon: 'dots-horizontal' }
+  };
+
+  // Expense Categories
+  const expenseCategories = {
+    food: { name: 'Food & Dining', icon: 'food-fork-drink' },
+    transport: { name: 'Transportation', icon: 'car-outline' },
+    utilities: { name: 'Utilities', icon: 'lightning-bolt-outline' },
+    shopping: { name: 'Shopping', icon: 'shopping-outline' },
+    entertainment: { name: 'Entertainment', icon: 'gamepad-variant-outline' },
+    health: { name: 'Healthcare', icon: 'hospital-box-outline' },
+    other: { name: 'Other', icon: 'dots-horizontal' }
+  };
+
+  const getCategoryIcon = (category: string, type: 'income' | 'expense') => {
+    const categories = type === 'income' ? incomeCategories : expenseCategories;
+    return categories[category]?.icon || 'help-circle-outline';
+  };
+
   const fetchFinancialData = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -74,17 +100,17 @@ export default function Home() {
           });
         }
       } catch (error) {
-        console.error('Error fetching financial summary:', error);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
+        console.log('No financial data yet, setting default values');
         setFinancialSummary({
           current_balance: 0,
           net_savings: 0,
           total_expenses: 0
         });
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
+          return;
+        }
       }
 
       // Fetch all transactions
@@ -138,46 +164,6 @@ export default function Home() {
     }
   };
 
-  const getCategoryIcon = (category: string, type: string) => {
-    if (type === 'income') {
-      switch (category.toLowerCase()) {
-        case 'salary':
-          return 'cash';
-        case 'business':
-          return 'store';
-        case 'investment':
-          return 'chart-line';
-        case 'freelance':
-          return 'laptop';
-        case 'other':
-          return 'dots-horizontal';
-        default:
-          return 'cash';
-      }
-    } else {
-      switch (category.toLowerCase()) {
-        case 'food':
-          return 'food';
-        case 'transportation':
-          return 'car';
-        case 'utilities':
-          return 'lightning-bolt';
-        case 'shopping':
-          return 'shopping';
-        case 'entertainment':
-          return 'movie';
-        case 'health':
-          return 'medical-bag';
-        case 'education':
-          return 'school';
-        case 'other':
-          return 'dots-horizontal';
-        default:
-          return 'cash';
-      }
-    }
-  };
-
   const capitalizeFirstLetter = (string: string) => {
     return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   };
@@ -214,8 +200,8 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <StatusBar style="light" />
+    <SafeAreaView className="flex-1 bg-customGreen" edges={['top']}>
+      <StatusBar backgroundColor="transparent" style="light" />
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -223,7 +209,7 @@ export default function Home() {
         className="flex-1"
       >
         {/* Header Section */}
-        <View className="px-6 pt-4 bg-customGreen pb-12 rounded-b-[40px]">
+        <View className="px-6 pt-4 pb-12">
           <View className="flex-row justify-between items-center mb-8">
             <View>
               <Text className="text-white text-lg opacity-90">Welcome back,</Text>
@@ -271,52 +257,102 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View className="px-6 mt-8">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            Quick Actions
-          </Text>
-          <View className="flex-row justify-between">
-            <TouchableOpacity 
-              className="bg-blue-50 p-4 rounded-xl flex-1 mr-4 items-center"
-              onPress={() => router.push('/(tabs)/income')}
-            >
-              <MaterialCommunityIcons name="cash-plus" size={30} color="#2E8B57" />
-              <Text className="text-customGreen mt-2 font-medium">View Income</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-red-50 p-4 rounded-xl flex-1 items-center"
-              onPress={() => router.push('/(tabs)/expenses')}
-            >
-              <MaterialCommunityIcons name="cash-minus" size={30} color="#DC2626" />
-              <Text className="text-red-600 mt-2 font-medium">View Expenses</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Main Content */}
+        <View className="flex-1 bg-white rounded-t-[20px] pt-6">
+          {/* Quick Actions */}
+          <View className="px-6">
+            <Text className="text-xl font-bold text-gray-800 mb-4">
+              Quick Actions
+            </Text>
+            <View className="flex-row justify-between">
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/income')}
+                className="bg-green-50 p-4 rounded-xl flex-1 mr-4"
+              >
+                <View className="items-center">
+                  <View className="w-12 h-12 bg-green-100 rounded-full items-center justify-center mb-2">
+                    <MaterialCommunityIcons
+                      name="cash-plus"
+                      size={24}
+                      color="#16a34a"
+                    />
+                  </View>
+                  <Text className="text-green-600 font-semibold text-base">Add Income</Text>
+                </View>
+              </TouchableOpacity>
 
-        {/* Latest Transactions */}
-        <View className="px-6 py-4">
-          <Text className="text-lg font-semibold mb-4">Latest Transactions</Text>
-          
-          {latestTransactions.length > 0 ? (
-            latestTransactions.map((transaction, index) => (
-              <View key={transaction.id} className="bg-gray-50 p-4 rounded-lg mb-3">
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-row items-center">
-                    {/* Transaction Type Indicator */}
-                    <View className={`w-8 h-8 rounded-full ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'} items-center justify-center mr-2`}>
-                      <MaterialCommunityIcons
-                        name={transaction.type === 'income' ? 'arrow-up' : 'arrow-down'}
-                        size={20}
-                        color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
-                      />
-                    </View>
-                    {/* Category Icon */}
-                    <View className="w-8 h-8 rounded-full bg-gray-200 items-center justify-center mr-3">
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/expenses')}
+                className="bg-red-50 p-4 rounded-xl flex-1"
+              >
+                <View className="items-center">
+                  <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-2">
+                    <MaterialCommunityIcons
+                      name="cash-minus"
+                      size={24}
+                      color="#dc2626"
+                    />
+                  </View>
+                  <Text className="text-red-600 font-semibold text-base">Add Expense</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View className="flex-row justify-between mt-4">
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/goals')}
+                className="bg-blue-50 p-4 rounded-xl flex-1 mr-4"
+              >
+                <View className="items-center">
+                  <View className="w-12 h-12 bg-blue-100 rounded-full items-center justify-center mb-2">
+                    <MaterialCommunityIcons
+                      name="flag-outline"
+                      size={24}
+                      color="#2563eb"
+                    />
+                  </View>
+                  <Text className="text-blue-600 font-semibold text-base">Set Goals</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => router.push('/profile')}
+                className="bg-purple-50 p-4 rounded-xl flex-1"
+              >
+                <View className="items-center">
+                  <View className="w-12 h-12 bg-purple-100 rounded-full items-center justify-center mb-2">
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={24}
+                      color="#7c3aed"
+                    />
+                  </View>
+                  <Text className="text-purple-600 font-semibold text-base">Profile</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Recent Transactions */}
+          <View className="px-6 mt-8">
+            <Text className="text-lg font-semibold mb-4">Latest Transactions</Text>
+            
+            {latestTransactions.length > 0 ? (
+              latestTransactions.map((transaction, index) => (
+                <View 
+                  key={`transaction-${transaction.id}-${index}`} 
+                  className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-xl"
+                >
+                  <View className="flex-row items-center flex-1">
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+                        transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                      }`}
+                    >
                       <MaterialCommunityIcons
                         name={getCategoryIcon(transaction.category, transaction.type)}
                         size={20}
-                        color="#4b5563"
+                        color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
                       />
                     </View>
                     <View>
@@ -334,49 +370,35 @@ export default function Home() {
                     {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                   </Text>
                 </View>
+              ))
+            ) : (
+              <View className="bg-gray-50 p-4 rounded-lg">
+                <Text className="text-gray-500 text-center">No transactions yet</Text>
               </View>
-            ))
-          ) : (
-            <View className="bg-gray-50 p-4 rounded-lg">
-              <Text className="text-gray-500 text-center">No transactions yet</Text>
-            </View>
-          )}
-        </View>
+            )}
+          </View>
 
-        {/* Additional Features */}
-        <View className="px-6 mt-8 mb-6">
-          <Text className="text-lg font-semibold text-gray-800 mb-4">
-            More Features
-          </Text>
-          <View className="flex-row flex-wrap justify-between">
-            <TouchableOpacity 
-              className="bg-purple-50 p-4 rounded-xl w-[48%] items-center mb-4"
-              onPress={() => router.push('/(tabs)/analytics')}
-            >
-              <MaterialCommunityIcons name="chart-line" size={30} color="#7C3AED" />
-              <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-orange-50 p-4 rounded-xl w-[48%] items-center mb-4"
-              onPress={() => router.push('/(tabs)/budget')}
-            >
-              <MaterialCommunityIcons name="wallet" size={30} color="#EA580C" />
-              <Text className="text-orange-600 mt-2 font-medium">Budget</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-cyan-50 p-4 rounded-xl w-[48%] items-center"
-              onPress={() => router.push('/(tabs)/goals')}
-            >
-              <MaterialCommunityIcons name="flag" size={30} color="#0891B2" />
-              <Text className="text-cyan-600 mt-2 font-medium">Goals</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              className="bg-pink-50 p-4 rounded-xl w-[48%] items-center"
-              onPress={() => router.push('/(tabs)/reports')}
-            >
-              <MaterialCommunityIcons name="file-document" size={30} color="#DB2777" />
-              <Text className="text-pink-600 mt-2 font-medium">Reports</Text>
-            </TouchableOpacity>
+          {/* Additional Features */}
+          <View className="px-6 mt-8 mb-6">
+            <Text className="text-lg font-semibold text-gray-800 mb-4">
+              More Features
+            </Text>
+            <View className="flex-row flex-wrap justify-between">
+              <TouchableOpacity 
+                className="bg-purple-50 p-4 rounded-xl w-[48%] items-center mb-4"
+                onPress={() => router.push('/(tabs)/analytics')}
+              >
+                <MaterialCommunityIcons name="chart-line" size={30} color="#7C3AED" />
+                <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                className="bg-cyan-50 p-4 rounded-xl w-[48%] items-center mb-4"
+                onPress={() => router.push('/(tabs)/goals')}
+              >
+                <MaterialCommunityIcons name="flag" size={30} color="#0891B2" />
+                <Text className="text-cyan-600 mt-2 font-medium">Goals</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
