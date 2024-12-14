@@ -42,7 +42,7 @@ const categories: Category[] = [
   { id: 'salary', name: 'Salary', icon: 'cash-multiple' },
   { id: 'business', name: 'Business', icon: 'store-outline' },
   { id: 'investment', name: 'Investment', icon: 'trending-up' },
-  { id: 'freelance', name: 'Freelance', icon: 'laptop-outline' },
+  { id: 'freelance', name: 'Freelance', icon: 'laptop' },
   { id: 'gift', name: 'Gift', icon: 'gift-outline' },
   { id: 'other', name: 'Other', icon: 'dots-horizontal' },
 ];
