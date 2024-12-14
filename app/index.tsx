@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Animated,
+  Alert,
 } from "react-native";
 import NetInfo from "@react-native-community/netinfo";
 import { StatusBar } from "expo-status-bar";
@@ -37,7 +38,7 @@ const setItem = async (key: string, value: string): Promise<void> => {
   try {
     await AsyncStorage.setItem(key, value);
   } catch (error) {
-    console.log("Error storing value: ", error);
+    Alert.alert('Error', 'Failed to save value');
   }
 };
 
@@ -46,7 +47,7 @@ const getItem = async (key: string): Promise<string | null> => {
     const value = await AsyncStorage.getItem(key);
     return value;
   } catch (error) {
-    console.log("Error retrieving value: ", error);
+    Alert.alert('Error', 'Failed to retrieve value');
     return null;
   }
 };
@@ -107,7 +108,7 @@ export default function App() {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error("Error checking status:", error);
+      Alert.alert('Error', 'Failed to check onboarding status');
       setIsLoading(false);
     }
   };
@@ -129,7 +130,11 @@ export default function App() {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
     } else {
-      await setItem("hasOnboarded", "true");
+      try {
+        await setItem("hasOnboarded", "true");
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save onboarding status');
+      }
       router.push("/sign-up");
     }
   };
@@ -221,7 +226,11 @@ export default function App() {
           {currentIndex < slides.length - 1 && (
             <TouchableOpacity
               onPress={async () => {
-                await setItem("hasOnboarded", "true");
+                try {
+                  await setItem("hasOnboarded", "true");
+                } catch (error) {
+                  Alert.alert('Error', 'Failed to save onboarding status');
+                }
                 router.push("/sign-up");
               }}
             >
