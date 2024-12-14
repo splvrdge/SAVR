@@ -65,82 +65,65 @@ exports.getTransactionHistory = async (req, res) => {
   const { start_date, end_date, type, category, limit = 50, offset = 0 } = req.query;
 
   try {
-    let query = `
+    // Get incomes
+    const incomeQuery = `
       SELECT 
-        CASE 
-          WHEN type = 'income' THEN income_id 
-          ELSE expense_id 
-        END as id,
-        type,
+        income_id as id,
+        'income' as type,
         amount,
         description,
         category,
         timestamp,
         created_at,
         updated_at
-      FROM (
-        SELECT 
-          income_id,
-          NULL as expense_id,
-          'income' as type,
-          amount,
-          description,
-          category,
-          timestamp,
-          created_at,
-          updated_at
-        FROM incomes
-        WHERE user_id = ?
-        UNION ALL
-        SELECT 
-          NULL as income_id,
-          expense_id,
-          'expense' as type,
-          amount,
-          description,
-          category,
-          timestamp,
-          created_at,
-          updated_at
-        FROM expenses
-        WHERE user_id = ?
-      ) as transactions
-      WHERE 1=1
+      FROM incomes
+      WHERE user_id = ?
     `;
-    const queryParams = [user_id, user_id];
 
+    // Get expenses
+    const expenseQuery = `
+      SELECT 
+        expense_id as id,
+        'expense' as type,
+        amount,
+        description,
+        category,
+        timestamp,
+        created_at,
+        updated_at
+      FROM expenses
+      WHERE user_id = ?
+    `;
+
+    // Execute both queries
+    const [incomes] = await db.execute(incomeQuery, [user_id]);
+    const [expenses] = await db.execute(expenseQuery, [user_id]);
+
+    // Combine and sort results
+    let transactions = [...incomes, ...expenses];
+    transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Apply filters
     if (start_date) {
-      query += " AND timestamp >= ?";
-      queryParams.push(start_date);
+      transactions = transactions.filter(tx => new Date(tx.timestamp) >= new Date(start_date));
     }
     if (end_date) {
-      query += " AND timestamp <= ?";
-      queryParams.push(end_date);
+      transactions = transactions.filter(tx => new Date(tx.timestamp) <= new Date(end_date));
     }
     if (type) {
-      query += " AND type = ?";
-      queryParams.push(type);
+      transactions = transactions.filter(tx => tx.type === type);
     }
     if (category) {
-      query += " AND category = ?";
-      queryParams.push(category);
+      transactions = transactions.filter(tx => tx.category === category);
     }
 
     // Get total count
-    const countQuery = query.replace(
-      /SELECT.*?FROM/s,
-      "SELECT COUNT(*) as total FROM"
-    );
-    const [countResults] = await db.execute(countQuery, queryParams);
-    const totalCount = countResults[0].total;
+    const totalCount = transactions.length;
 
-    // Add pagination
-    query += " ORDER BY timestamp DESC LIMIT ? OFFSET ?";
-    queryParams.push(parseInt(limit), parseInt(offset));
+    // Apply pagination
+    const paginatedTransactions = transactions.slice(offset, offset + limit);
 
-    const [results] = await db.execute(query, queryParams);
-
-    if (results.length === 0) {
+    if (paginatedTransactions.length === 0) {
       logger.debug("No transaction history found:", { userId: user_id });
       return res.status(404).json({
         success: false,
@@ -148,7 +131,8 @@ exports.getTransactionHistory = async (req, res) => {
       });
     }
 
-    const transactions = results.map(tx => ({
+    // Format transactions
+    const formattedTransactions = paginatedTransactions.map(tx => ({
       id: tx.id,
       type: tx.type,
       amount: parseFloat(tx.amount),
@@ -171,14 +155,14 @@ exports.getTransactionHistory = async (req, res) => {
         limit,
         offset,
         total: totalCount,
-        returned: transactions.length
+        returned: formattedTransactions.length
       }
     });
 
     res.json({
       success: true,
       data: {
-        transactions,
+        transactions: formattedTransactions,
         pagination: {
           total: totalCount,
           limit: parseInt(limit),
