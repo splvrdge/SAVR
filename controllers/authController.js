@@ -126,27 +126,40 @@ exports.signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(user_password, 10);
-    const query = `INSERT INTO users (user_name, user_email, user_password) VALUES (?, ?, ?)`;
-    const [results] = await db.execute(query, [
-      user_name,
-      user_email,
-      hashedPassword,
-    ]);
-
-    const user = {
-      user_id: results.insertId,
-      user_name,
-      user_email,
-    };
-
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
-
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
-
     const connection = await db.getConnection();
+
     try {
       await connection.beginTransaction();
+
+      // Create user
+      const createUserQuery = `INSERT INTO users (user_name, user_email, user_password) VALUES (?, ?, ?)`;
+      const [userResults] = await connection.execute(createUserQuery, [
+        user_name,
+        user_email,
+        hashedPassword,
+      ]);
+
+      const user = {
+        user_id: userResults.insertId,
+        user_name,
+        user_email,
+      };
+
+      // Initialize financial summary
+      const initFinancialQuery = `
+        INSERT INTO user_financial_summary (
+          user_id,
+          current_balance,
+          total_income,
+          total_expenses
+        ) VALUES (?, 0, 0, 0)
+      `;
+      await connection.execute(initFinancialQuery, [user.user_id]);
+
+      // Create tokens
+      const accessToken = generateAccessToken(user);
+      const refreshToken = generateRefreshToken(user);
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
 
       const insertTokenQuery = `
         INSERT INTO tokens (user_id, refresh_token, expires_at)
@@ -172,7 +185,7 @@ exports.signup = async (req, res) => {
     } catch (error) {
       await connection.rollback();
       logger.error('Registration failed:', { 
-        email: user.user_email,
+        email: user_email,
         error: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });

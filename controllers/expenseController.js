@@ -3,6 +3,19 @@ const logger = require("../utils/logger");
 
 exports.addExpense = async (req, res) => {
   const { user_id, amount, description, category } = req.body;
+
+  // Check if requesting user matches the user_id
+  if (req.user.user_id != user_id) {
+    logger.warn('Unauthorized access attempt:', { 
+      requestingUserId: req.user.user_id, 
+      targetUserId: user_id 
+    });
+    return res.status(403).json({ 
+      success: false, 
+      message: "You are not authorized to add expenses for this user" 
+    });
+  }
+
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   const connection = await db.getConnection();
@@ -77,6 +90,19 @@ exports.addExpense = async (req, res) => {
 
 exports.getExpenses = async (req, res) => {
   const { user_id } = req.params;
+
+  // Check if requesting user matches the user_id
+  if (req.user.user_id != user_id) {
+    logger.warn('Unauthorized access attempt:', { 
+      requestingUserId: req.user.user_id, 
+      targetUserId: user_id 
+    });
+    return res.status(403).json({ 
+      success: false, 
+      message: "You are not authorized to view these expenses" 
+    });
+  }
+
   const query = `
     SELECT 
       e.expense_id as id,
