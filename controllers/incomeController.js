@@ -5,7 +5,7 @@ exports.addIncome = async (req, res) => {
   const { user_id, amount, description, category } = req.body;
   
   // Check if requesting user matches the user_id
-  if (req.user.user_id != user_id) {
+  if (parseInt(req.user.user_id) !== parseInt(user_id)) {
     logger.warn('Unauthorized access attempt:', { 
       requestingUserId: req.user.user_id, 
       targetUserId: user_id 
@@ -92,7 +92,7 @@ exports.getIncomes = async (req, res) => {
   const { user_id } = req.params;
   
   // Check if requesting user matches the user_id
-  if (req.user.user_id != user_id) {
+  if (parseInt(req.user.user_id) !== parseInt(user_id)) {
     logger.warn('Unauthorized access attempt:', { 
       requestingUserId: req.user.user_id, 
       targetUserId: user_id 

@@ -67,7 +67,7 @@ exports.getTransactionHistory = async (req, res) => {
   try {
     let query = `
       SELECT 
-        id,
+        COALESCE(income_id, expense_id) as id,
         type,
         amount,
         description,
@@ -98,7 +98,10 @@ exports.getTransactionHistory = async (req, res) => {
     }
 
     // Get total count
-    const countQuery = query.replace("SELECT id, type, amount, description, category, timestamp, created_at, updated_at", "SELECT COUNT(*) as total");
+    const countQuery = query.replace(
+      "SELECT COALESCE(income_id, expense_id) as id, type, amount, description, category, timestamp, created_at, updated_at",
+      "SELECT COUNT(*) as total"
+    );
     const [countResults] = await db.execute(countQuery, queryParams);
     const totalCount = countResults[0].total;
 
@@ -107,6 +110,14 @@ exports.getTransactionHistory = async (req, res) => {
     queryParams.push(parseInt(limit), parseInt(offset));
 
     const [results] = await db.execute(query, queryParams);
+
+    if (results.length === 0) {
+      logger.debug("No transaction history found:", { userId: user_id });
+      return res.status(404).json({
+        success: false,
+        message: "No financial data found"
+      });
+    }
 
     const transactions = results.map(tx => ({
       id: tx.id,
@@ -149,7 +160,6 @@ exports.getTransactionHistory = async (req, res) => {
   } catch (error) {
     logger.error("Failed to get transaction history:", {
       userId: user_id,
-      filters: { start_date, end_date, type, category },
       error: error.message,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
