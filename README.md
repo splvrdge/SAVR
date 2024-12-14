@@ -104,7 +104,11 @@ After starting the development server, you can:
 
 ## 👥 Authors
 
+<<<<<<< HEAD
 - **Francis James A. Lagang** - _Lead Developer_ - [GitHub](https://github.com/splvrdge)
+=======
+- **Francis James A. Lagang** - _Developer_ - [GitHub](https://github.com/splvrdge)
+>>>>>>> origin/main
 - **Margaret Grace Docdoc** - _Developer_ - [GitHub](https://github.com/dushaaaa)
 
 ## 📄 License

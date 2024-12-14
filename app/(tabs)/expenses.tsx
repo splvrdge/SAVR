@@ -320,6 +320,7 @@ export default function Expenses() {
   }
 
   return (
+<<<<<<< HEAD
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <StatusBar style="auto" />
       
@@ -335,6 +336,64 @@ export default function Expenses() {
         onSortChange={setSortBy}
         onSortOrderChange={toggleSortOrder}
       />
+=======
+    <SafeAreaView className="flex-1 bg-red-600" edges={['top']}>
+      <StatusBar style="light" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1 bg-white"
+        style={{ position: 'relative' }}
+      >
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          className="flex-1"
+        >
+          {/* Header and Sorting */}
+          <View className="p-4 border-b border-gray-100">
+            <Text className="text-2xl font-bold text-gray-800 mb-4">
+              Expenses
+            </Text>
+            
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row space-x-2">
+                <TouchableOpacity
+                  onPress={() => setSortBy('date')}
+                  className={`px-4 py-2 rounded-full border ${
+                    sortBy === 'date' ? 'bg-red-100 border-red-200' : 'border-gray-200'
+                  }`}
+                  style={{ marginRight: 6 }}
+                >
+                  <Text className={sortBy === 'date' ? 'text-red-600' : 'text-gray-600'}>
+                    Date
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setSortBy('category')}
+                  className={`px-4 py-2 rounded-full border ${
+                    sortBy === 'category' ? 'bg-red-100 border-red-200' : 'border-gray-200'
+                  }`}
+                >
+                  <Text className={sortBy === 'category' ? 'text-red-600' : 'text-gray-600'}>
+                    Category
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <TouchableOpacity
+                onPress={toggleSortOrder}
+                className="p-2"
+              >
+                <MaterialCommunityIcons
+                  name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'}
+                  size={24}
+                  color="#666"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+>>>>>>> origin/main
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center bg-white">
@@ -586,6 +645,79 @@ export default function Expenses() {
                   </View>
                 )}
               </View>
+<<<<<<< HEAD
+=======
+
+              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+                <View className="space-y-6">
+                  {/* Description Input */}
+                  <View className="mb-4">
+                    <Text className="text-gray-600 mb-2">Description</Text>
+                    <TextInput
+                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                      placeholder="Enter description"
+                      value={description}
+                      onChangeText={setDescription}
+                    />
+                  </View>
+
+                  {/* Amount Input */}
+                  <View className="mb-4">
+                    <Text className="text-gray-600 mb-2">Amount</Text>
+                    <TextInput
+                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                      placeholder="Enter amount"
+                      keyboardType="numeric"
+                      value={amount}
+                      onChangeText={setAmount}
+                    />
+                  </View>
+
+                  {/* Category Input */}
+                  <View className="mb-4">
+                    <Text className="text-gray-600 mb-2">Category</Text>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false} 
+                      className="flex-row space-x-2"
+                    >
+                      {categories.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          onPress={() => setSelectedCategory(cat.id)}
+                          className={`p-4 rounded-xl flex-row items-center space-x-2 ${
+                            selectedCategory === cat.id ? 'bg-red-100 border border-red-200' : 'bg-gray-50'
+                          }`}
+                          style={{ marginRight: 10 }}
+                        >
+                          <MaterialCommunityIcons
+                            name={getCategoryIcon(cat.id)}
+                            size={24}
+                            color={selectedCategory === cat.id ? '#dc2626' : '#666'}
+                          />
+                          <Text 
+                            className={selectedCategory === cat.id ? 'text-red-600' : 'text-gray-600'}
+                            style={{ marginLeft: 8 }} 
+                          >
+                            {cat.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    className="bg-red-600 p-4 rounded-xl mt-6"
+                  >
+                    <Text className="text-white text-center font-semibold text-lg">
+                      {isEditing ? 'Update Expense' : 'Add Expense'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+>>>>>>> origin/main
             </View>
           </Modal>
         </>
