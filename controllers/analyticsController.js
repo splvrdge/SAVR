@@ -309,38 +309,56 @@ exports.getIncomeByDate = async (req, res) => {
 
 exports.getBudget = async (req, res) => {
   const { user_id } = req.params;
+  let connection;
 
   try {
+    connection = await db.getConnection();
+    
+    // First check if user exists
+    const [userExists] = await connection.execute(
+      'SELECT 1 FROM users WHERE user_id = ?',
+      [user_id]
+    );
+
+    if (userExists.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
     const query = `
       SELECT 
-        category,
-        budget_limit,
-        (
-          SELECT COALESCE(SUM(amount), 0)
-          FROM expenses e2
-          WHERE e2.category = b.category
-          AND e2.user_id = b.user_id
-          AND MONTH(e2.timestamp) = MONTH(CURRENT_DATE())
-          AND YEAR(e2.timestamp) = YEAR(CURRENT_DATE())
-        ) as current_spending
+        b.category,
+        b.budget_limit,
+        COALESCE(SUM(e.amount), 0) as current_spending
       FROM budgets b
-      WHERE user_id = ?`;
+      LEFT JOIN expenses e ON 
+        b.category = e.category 
+        AND b.user_id = e.user_id
+        AND MONTH(e.timestamp) = MONTH(CURRENT_DATE())
+        AND YEAR(e.timestamp) = YEAR(CURRENT_DATE())
+      WHERE b.user_id = ?
+      GROUP BY b.category, b.budget_limit
+      ORDER BY b.category`;
 
-    const [results] = await db.query(query, [user_id]);
+    const [results] = await connection.execute(query, [user_id]);
 
     logger.debug('Retrieved budget:', {
       userId: user_id,
       categories: results.length
     });
 
+    const formattedData = results.map(r => ({
+      category: r.category,
+      budget_limit: parseFloat(r.budget_limit) || 0,
+      current_spending: parseFloat(r.current_spending) || 0,
+      remaining: parseFloat(r.budget_limit || 0) - parseFloat(r.current_spending || 0)
+    }));
+
     res.status(200).json({
       success: true,
-      data: results.map(r => ({
-        category: r.category,
-        budget_limit: parseFloat(r.budget_limit),
-        current_spending: parseFloat(r.current_spending),
-        remaining: parseFloat(r.budget_limit) - parseFloat(r.current_spending)
-      }))
+      data: formattedData
     });
   } catch (error) {
     logger.error('Error fetching budget:', {
@@ -350,8 +368,12 @@ exports.getBudget = async (req, res) => {
     });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch budget information'
+      error: 'Error retrieving budget information'
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 

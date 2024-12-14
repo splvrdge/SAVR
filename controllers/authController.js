@@ -303,10 +303,12 @@ exports.logout = async (req, res) => {
 
 exports.checkEmail = async (req, res) => {
   const { user_email } = req.body;
+  let connection;
 
   try {
+    connection = await db.getConnection();
     const query = `SELECT * FROM users WHERE user_email = ?`;
-    const [results] = await db.execute(query, [user_email]);
+    const [results] = await connection.execute(query, [user_email]);
 
     if (results.length > 0) {
       logger.warn('Email check attempt with existing email:', { email: user_email });
@@ -319,12 +321,16 @@ exports.checkEmail = async (req, res) => {
       error: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-    console.error("Error checking email:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Error checking email availability" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
 exports.refreshTokenController = async (req, res) => {
+  let connection;
   try {
     const { refreshToken } = req.body;
     
@@ -336,13 +342,30 @@ exports.refreshTokenController = async (req, res) => {
       });
     }
 
+    connection = await db.getConnection();
+    
+    // Check if token exists and is not revoked
+    const [tokenResults] = await connection.execute(
+      "SELECT * FROM tokens WHERE refresh_token = ? AND is_revoked = FALSE",
+      [refreshToken]
+    );
+
+    if (tokenResults.length === 0) {
+      logger.warn('Refresh token not found or revoked');
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token"
+      });
+    }
+
     const decoded = jwt.verify(refreshToken, refreshTokenSecret);
-    const user = await db.execute(
-      "SELECT * FROM users WHERE user_id = ?",
+    
+    const [users] = await connection.execute(
+      "SELECT user_id, user_email, user_name FROM users WHERE user_id = ?",
       [decoded.user_id]
     );
 
-    if (user.length === 0) {
+    if (users.length === 0) {
       logger.warn('Refresh token attempt with non-existent user', { userId: decoded.user_id });
       return res.status(404).json({
         success: false,
@@ -350,39 +373,60 @@ exports.refreshTokenController = async (req, res) => {
       });
     }
 
-    const accessToken = jwt.sign(
-      { user_id: user[0].user_id },
-      secretKey,
-      { expiresIn: '15m' }
+    const user = users[0];
+    const accessToken = generateAccessToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    await connection.beginTransaction();
+
+    // Revoke old refresh token
+    await connection.execute(
+      "UPDATE tokens SET is_revoked = TRUE WHERE refresh_token = ?",
+      [refreshToken]
     );
 
-    const newRefreshToken = jwt.sign(
-      { user_id: user[0].user_id },
-      refreshTokenSecret,
-      { expiresIn: '7d' }
+    // Insert new refresh token
+    await connection.execute(
+      "INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)",
+      [user.user_id, newRefreshToken, expiresAt]
     );
 
-    logger.info('Refresh token generated successfully:', { userId: user[0].user_id });
+    await connection.commit();
+
+    logger.info('Refresh token generated successfully:', { userId: user.user_id });
     res.json({
       success: true,
       accessToken,
-      refreshToken: newRefreshToken
+      refreshToken: newRefreshToken,
+      user_name: user.user_name,
+      user_id: user.user_id
     });
   } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    
     logger.error('Refresh token generation failed:', { 
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+    
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
         message: "Invalid or expired refresh token"
       });
     }
+    
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Error refreshing access token"
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
