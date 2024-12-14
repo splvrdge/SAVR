@@ -8,16 +8,16 @@ const getAllCategories = async (req, res) => {
         const params = [];
 
         if (type) {
-            query += ' WHERE type = $1';
+            query += ' WHERE type = ?';
             params.push(type);
         }
 
         query += ' ORDER BY name ASC';
         
-        const result = await pool.query(query, params);
+        const [rows] = await pool.execute(query, params);
         res.json({
             success: true,
-            data: result.rows
+            data: rows
         });
     } catch (error) {
         console.error('Error in getAllCategories:', error);
@@ -32,12 +32,12 @@ const getAllCategories = async (req, res) => {
 const getCategoryById = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query(
-            'SELECT * FROM categories WHERE id = $1',
+        const [rows] = await pool.execute(
+            'SELECT * FROM categories WHERE id = ?',
             [id]
         );
 
-        if (result.rows.length === 0) {
+        if (rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
@@ -46,7 +46,7 @@ const getCategoryById = async (req, res) => {
 
         res.json({
             success: true,
-            data: result.rows[0]
+            data: rows[0]
         });
     } catch (error) {
         console.error('Error in getCategoryById:', error);
@@ -61,26 +61,36 @@ const getCategoryById = async (req, res) => {
 const createCategory = async (req, res) => {
     try {
         const { name, type, icon, color, description } = req.body;
-
-        const result = await pool.query(
-            `INSERT INTO categories (name, type, icon, color, description)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING *`,
-            [name, type, icon, color, description]
+        
+        // Check if category with same name and type exists
+        const [existing] = await pool.execute(
+            'SELECT * FROM categories WHERE name = ? AND type = ?',
+            [name, type]
         );
 
-        res.status(201).json({
-            success: true,
-            message: 'Category created successfully',
-            data: result.rows[0]
-        });
-    } catch (error) {
-        if (error.code === '23505') { // Unique violation
+        if (existing.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Category with this name and type already exists'
             });
         }
+
+        const [result] = await pool.execute(
+            'INSERT INTO categories (name, type, icon, color, description) VALUES (?, ?, ?, ?, ?)',
+            [name, type, icon, color, description]
+        );
+
+        const [newCategory] = await pool.execute(
+            'SELECT * FROM categories WHERE id = ?',
+            [result.insertId]
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Category created successfully',
+            data: newCategory[0]
+        });
+    } catch (error) {
         console.error('Error in createCategory:', error);
         res.status(500).json({
             success: false,
@@ -95,36 +105,72 @@ const updateCategory = async (req, res) => {
         const { id } = req.params;
         const { name, icon, color, description } = req.body;
 
-        const result = await pool.query(
-            `UPDATE categories 
-             SET name = COALESCE($1, name),
-                 icon = COALESCE($2, icon),
-                 color = COALESCE($3, color),
-                 description = COALESCE($4, description)
-             WHERE id = $5
-             RETURNING *`,
-            [name, icon, color, description, id]
+        // Check if category exists
+        const [existing] = await pool.execute(
+            'SELECT * FROM categories WHERE id = ?',
+            [id]
         );
 
-        if (result.rows.length === 0) {
+        if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
             });
         }
 
+        // Check if new name would create a duplicate
+        if (name) {
+            const [duplicate] = await pool.execute(
+                'SELECT * FROM categories WHERE name = ? AND type = ? AND id != ?',
+                [name, existing[0].type, id]
+            );
+
+            if (duplicate.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Category with this name and type already exists'
+                });
+            }
+        }
+
+        const updates = [];
+        const values = [];
+
+        if (name) {
+            updates.push('name = ?');
+            values.push(name);
+        }
+        if (icon) {
+            updates.push('icon = ?');
+            values.push(icon);
+        }
+        if (color) {
+            updates.push('color = ?');
+            values.push(color);
+        }
+        if (description) {
+            updates.push('description = ?');
+            values.push(description);
+        }
+
+        values.push(id);
+
+        await pool.execute(
+            `UPDATE categories SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        const [updated] = await pool.execute(
+            'SELECT * FROM categories WHERE id = ?',
+            [id]
+        );
+
         res.json({
             success: true,
             message: 'Category updated successfully',
-            data: result.rows[0]
+            data: updated[0]
         });
     } catch (error) {
-        if (error.code === '23505') {
-            return res.status(400).json({
-                success: false,
-                message: 'Category with this name and type already exists'
-            });
-        }
         console.error('Error in updateCategory:', error);
         res.status(500).json({
             success: false,
@@ -138,36 +184,42 @@ const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Check if category is being used
-        const usageCheck = await pool.query(
-            `SELECT EXISTS(SELECT 1 FROM expenses WHERE category_id = $1)
-             OR EXISTS(SELECT 1 FROM income WHERE category_id = $1)`,
+        // Check if category exists
+        const [existing] = await pool.execute(
+            'SELECT * FROM categories WHERE id = ?',
             [id]
         );
 
-        if (usageCheck.rows[0].exists) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete category as it is being used by expenses or income'
-            });
-        }
-
-        const result = await pool.query(
-            'DELETE FROM categories WHERE id = $1 RETURNING *',
-            [id]
-        );
-
-        if (result.rows.length === 0) {
+        if (existing.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
             });
         }
 
+        // Check if category is being used
+        const [expenses] = await pool.execute(
+            'SELECT COUNT(*) as count FROM expenses WHERE category_id = ?',
+            [id]
+        );
+
+        const [incomes] = await pool.execute(
+            'SELECT COUNT(*) as count FROM incomes WHERE category_id = ?',
+            [id]
+        );
+
+        if (expenses[0].count > 0 || incomes[0].count > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete category that is being used by transactions'
+            });
+        }
+
+        await pool.execute('DELETE FROM categories WHERE id = ?', [id]);
+
         res.json({
             success: true,
-            message: 'Category deleted successfully',
-            data: result.rows[0]
+            message: 'Category deleted successfully'
         });
     } catch (error) {
         console.error('Error in deleteCategory:', error);
