@@ -113,6 +113,18 @@ exports.signup = async (req, res) => {
   const { user_name, user_email, user_password } = req.body;
 
   try {
+    // Check if user already exists
+    const checkUserQuery = `SELECT * FROM users WHERE user_email = ?`;
+    const [existingUsers] = await db.execute(checkUserQuery, [user_email]);
+
+    if (existingUsers.length > 0) {
+      logger.warn('Registration attempt with existing email:', { email: user_email });
+      return res.status(409).json({
+        success: false,
+        message: "Email already registered"
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(user_password, 10);
     const query = `INSERT INTO users (user_name, user_email, user_password) VALUES (?, ?, ?)`;
     const [results] = await db.execute(query, [
