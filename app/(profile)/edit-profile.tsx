@@ -14,6 +14,8 @@ import { StatusBar } from "expo-status-bar";
 import GradientText from "@/constants/GradientText";
 import FormField from "@/components/FormField";
 import CustomButton from "@/components/CustomButton";
+import axiosInstance from "@/utils/axiosConfig";
+import { API_ENDPOINTS } from "@/constants/API";
 
 const EditProfile = () => {
   const router = useRouter();
@@ -47,34 +49,19 @@ const EditProfile = () => {
   }, []);
 
   const handleUpdateProfile = async () => {
+    if (!name.trim()) {
+      Alert.alert("Error", "Name cannot be empty");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
+      const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
+        name: name.trim(),
+        email: email.trim(),
+      });
 
-      const response = await fetch(
-        "https://savr-backend.onrender.com/api/user/profile",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: name,
-            email: email,
-          }),
-        }
-      );
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || `HTTP error! Status: ${response.status}`);
-      }
-
-      if (responseData.success) {
+      if (response.data.success) {
         await AsyncStorage.setItem("userName", name);
         
         if (email !== user.email) { 
@@ -100,24 +87,18 @@ const EditProfile = () => {
             ]
           );
         } else {
-          // If only name was updated
-          await AsyncStorage.setItem("userName", name);
           Alert.alert("Success", "Profile updated successfully", [
             {
               text: "OK",
-              onPress: () => {
-                router.back();
-              },
+              onPress: () => router.back(),
             },
           ]);
         }
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      Alert.alert(
-        "Error",
-        error.message || "Failed to update profile. Please try again."
-      );
+      const errorMessage = error.response?.data?.message || "Failed to update profile. Please try again.";
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }

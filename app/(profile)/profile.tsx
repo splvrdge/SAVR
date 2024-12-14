@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import WhiteHeader from "@/constants/WhiteHeader";
 import { StatusBar } from "expo-status-bar";
 import NetInfo from "@react-native-community/netinfo";
 import { MaterialCommunityIcons, Ionicons, Feather } from "@expo/vector-icons";
@@ -23,8 +22,6 @@ interface User {
   name: string | null;
   email: string | null;
 }
-
-const { width } = Dimensions.get('window');
 
 const Profile = () => {
   const router = useRouter();
@@ -157,7 +154,7 @@ const Profile = () => {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-customGreen">
       <StatusBar style="light" />
       <SafeAreaView className="flex-1">
         <ScrollView

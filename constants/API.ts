@@ -50,6 +50,12 @@ export const API_ENDPOINTS = {
     INCOME: '/api/analytics/income/:user_id',
     TRENDS: '/api/analytics/trends/:user_id',
   },
+
+  // User endpoints
+  USER: {
+    UPDATE_PROFILE: '/api/user/profile',
+    GET_PROFILE: '/api/user/profile',
+  },
 };
 
 // API Response Types
