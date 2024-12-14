@@ -69,79 +69,57 @@ const routes = [
   { path: "/api/categories", router: categoryRoutes, description: "Transaction categories" }
 ];
 
-// Initialize routes with documentation
-const initializeRoutes = () => {
-  // Mount all API routes
-  routes.forEach(({ path, router, description }) => {
-    app.use(path, router);
-  });
+// Mount all API routes
+routes.forEach(({ path, router }) => {
+  app.use(path, router);
+});
 
-  // API documentation endpoint
-  app.get("/api", (req, res) => {
-    const apiDocs = routes.map(({ path, description }) => ({
-      path,
-      description,
-      endpoints: router.stack
-        .filter(r => r.route)
-        .map(r => ({
-          path: path + r.route.path,
-          method: Object.keys(r.route.methods)[0].toUpperCase(),
-        }))
-    }));
+// API documentation endpoint
+app.get("/api", (req, res) => {
+  const apiDocs = routes.map(({ path, description }) => ({
+    path,
+    description
+  }));
 
-    res.json({
-      name: "Savr-FinTracker API",
-      version: "1.0.0",
-      description: "Financial tracking and management API",
-      routes: apiDocs
-    });
+  res.json({
+    name: "Savr-FinTracker API",
+    version: "1.0.0",
+    description: "Financial tracking and management API",
+    routes: apiDocs
   });
+});
 
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.json({ 
-      status: "ok", 
-      timestamp: new Date().toISOString(),
-      version: "1.0.0"
-    });
-  });
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy" });
+});
 
-  // Handle 404
-  app.use((req, res) => {
-    res.status(404).json({ 
-      success: false, 
-      message: "Route not found" 
-    });
+// Handle 404 errors
+app.use((req, res) => {
+  logger.warn('Route not found:', { 
+    method: req.method,
+    url: req.url,
+    ip: req.ip
   });
-};
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
+});
 
 // Global error handler
 app.use((err, req, res, next) => {
   logger.error("Unhandled error:", {
     error: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    method: req.method,
+    url: req.url,
+    ip: req.ip
   });
-
-  if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token"
-    });
-  }
-
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: "Validation error",
-      errors: err.errors
-    });
-  }
 
   res.status(500).json({
     success: false,
-    message: "Internal server error"
+    message: process.env.NODE_ENV === 'development' ? err.message : "Internal server error"
   });
 });
 
@@ -156,7 +134,7 @@ async function initializeDatabase() {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
-    process.exit(1);
+    throw error;
   }
 }
 
@@ -166,6 +144,7 @@ async function startServer() {
     await initializeDatabase();
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV}`);
     });
   } catch (error) {
     logger.error('Failed to start server:', {
@@ -176,27 +155,38 @@ async function startServer() {
   }
 }
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', {
+    error: error.message,
+    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+  });
+  process.exit(1);
+});
+
+// Handle unhandled rejections
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection:', {
+    error: reason.message,
+    stack: process.env.NODE_ENV === 'development' ? reason.stack : undefined
+  });
+  process.exit(1);
+});
+
 // Schedule token cleanup
 cron.schedule("0 0 * * *", async () => {
   try {
-    const query = `DELETE FROM tokens WHERE expires_at <= NOW()`;
-    await db.execute(query);
-    logger.info("✓ Expired tokens cleaned up");
+    const connection = await db.getConnection();
+    await connection.execute('DELETE FROM tokens WHERE expires_at <= NOW()');
+    logger.info('Expired tokens cleaned up successfully');
+    connection.release();
   } catch (error) {
-    logger.error("Token cleanup failed:", error);
+    logger.error('Failed to clean up expired tokens:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
+// Start the server
 startServer();
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
-});
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection:', reason);
-  process.exit(1);
-});
