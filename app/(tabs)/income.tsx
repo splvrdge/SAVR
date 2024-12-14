@@ -389,7 +389,7 @@ export default function IncomeScreen() {
 
       {/* Income List */}
       <ScrollView
-        className="flex-1 px-4 pb-20"
+        className="flex-1 px-4 pb-20 mt-4"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
@@ -469,7 +469,7 @@ export default function IncomeScreen() {
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
               <View className="space-y-6">
                 {/* Description Input */}
-                <View>
+                <View className="mb-4">
                   <Text className="text-gray-600 mb-2">Description</Text>
                   <TextInput
                     className="bg-gray-50 p-4 rounded-xl text-gray-800"
@@ -480,7 +480,7 @@ export default function IncomeScreen() {
                 </View>
 
                 {/* Amount Input */}
-                <View>
+                <View className="mb-4">
                   <Text className="text-gray-600 mb-2">Amount</Text>
                   <TextInput
                     className="bg-gray-50 p-4 rounded-xl text-gray-800"
@@ -492,7 +492,7 @@ export default function IncomeScreen() {
                 </View>
 
                 {/* Category Input */}
-                <View>
+                <View className="mb-4">
                   <Text className="text-gray-600 mb-2">Category</Text>
                   <ScrollView 
                     horizontal 
@@ -506,13 +506,16 @@ export default function IncomeScreen() {
                         className={`p-4 rounded-xl flex-row items-center space-x-2 ${
                           selectedCategory === cat.id ? 'bg-green-100 border border-green-200' : 'bg-gray-50'
                         }`}
+                        style={{ marginRight: 10 }}
                       >
                         <MaterialCommunityIcons
                           name={cat.icon}
                           size={24}
                           color={selectedCategory === cat.id ? '#16a34a' : '#666'}
                         />
-                        <Text className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}>
+                        <Text className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}
+                          style={{ marginLeft: 8 }}
+                        >
                           {cat.name}
                         </Text>
                       </TouchableOpacity>
