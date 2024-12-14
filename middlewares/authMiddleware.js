@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const logger = require('../utils/logger');
+const { secretKey } = require('../config/auth');
 
 const validateToken = async (req, res, next) => {
   try {
@@ -29,7 +30,7 @@ const validateToken = async (req, res, next) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, secretKey);
       req.user = decoded;
       next();
     } catch (error) {
