@@ -96,14 +96,14 @@ const validateCategory = [
 
 // Registration validation
 const validateRegistration = [
-  body('email')
+  body('user_email')
     .trim()
     .isEmail()
     .withMessage('Please enter a valid email address'),
-  body('password')
+  body('user_password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters long'),
-  body('name')
+  body('user_name')
     .trim()
     .notEmpty()
     .withMessage('Name is required')
@@ -113,11 +113,11 @@ const validateRegistration = [
 
 // Login validation
 const validateLogin = [
-  body('email')
+  body('user_email')
     .trim()
     .isEmail()
     .withMessage('Please enter a valid email address'),
-  body('password')
+  body('user_password')
     .notEmpty()
     .withMessage('Password is required')
 ];
