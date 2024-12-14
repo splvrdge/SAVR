@@ -173,15 +173,19 @@ export default function IncomeScreen() {
       console.log('Submit response:', response.data);
 
       if (response.data.success) {
-        Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
-        setShowModal(false);
-        fetchIncomes(); // Refresh the list
-        // Reset form
+        // Reset form before closing modal and fetching
         setAmount('');
         setDescription('');
         setSelectedCategory(categories[0].id);
         setSelectedIncome(null);
         setIsEditing(false);
+        setShowModal(false);
+        
+        // Slight delay before fetching to ensure modal is closed
+        setTimeout(() => {
+          fetchIncomes();
+          Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
+        }, 100);
       } else {
         Alert.alert('Error', response.data.message || 'Something went wrong');
       }
@@ -241,28 +245,38 @@ export default function IncomeScreen() {
   };
 
   const handleEdit = (income: Income) => {
-    setSelectedIncome(income);
-    setAmount(income.amount.toString());
-    setDescription(income.description);
-    setSelectedCategory(income.category);
-    setIsEditing(true);
-    setShowModal(true);
+    try {
+      setSelectedIncome(income);
+      setAmount(income.amount.toString());
+      setDescription(income.description);
+      setSelectedCategory(income.category);
+      setIsEditing(true);
+      setShowModal(true);
+    } catch (error) {
+      console.error('Error in handleEdit:', error);
+      Alert.alert('Error', 'Failed to open edit modal');
+    }
+  };
+
+  const handleEditPress = () => {
+    try {
+      if (selectedIncome) {
+        setAmount(selectedIncome.amount.toString());
+        setDescription(selectedIncome.description);
+        setSelectedCategory(selectedIncome.category);
+        setIsEditing(true);
+        setShowViewModal(false);
+        setTimeout(() => setShowModal(true), 100); // Add slight delay for modal transition
+      }
+    } catch (error) {
+      console.error('Error in handleEditPress:', error);
+      Alert.alert('Error', 'Failed to open edit modal');
+    }
   };
 
   const handleIncomePress = (income: Income) => {
     setSelectedIncome(income);
     setShowViewModal(true);
-  };
-
-  const handleEditPress = () => {
-    if (selectedIncome) {
-      setAmount(selectedIncome.amount.toString());
-      setDescription(selectedIncome.description);
-      setSelectedCategory(selectedIncome.category);
-      setIsEditing(true);
-      setShowViewModal(false);
-      setShowModal(true);
-    }
   };
 
   const formatDate = (dateString: string) => {
