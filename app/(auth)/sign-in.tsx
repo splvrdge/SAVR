@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from '@/utils/axiosConfig';
-import tokenManager from '@/utils/tokenManager';
+import { AsyncStorage } from 'react-native';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -40,12 +40,15 @@ export default function SignIn() {
       });
 
       if (response.data.success) {
-        const { accessToken, refreshToken, user_id, user_name } = response.data;
+        const { accessToken, refreshToken, user_id, user_name, user_email } = response.data;
         
-        // Store tokens and user info using TokenManager
-        await Promise.all([
-          tokenManager.setTokens(accessToken, refreshToken),
-          tokenManager.setUserInfo(user_id.toString(), user_name)
+        // Store all user data and tokens
+        await AsyncStorage.multiSet([
+          ['token', accessToken],
+          ['refreshToken', refreshToken],
+          ['userId', user_id.toString()],
+          ['userName', user_name],
+          ['userEmail', user_email]
         ]);
 
         router.replace('/(tabs)/home');

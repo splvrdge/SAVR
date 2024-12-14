@@ -173,15 +173,19 @@ export default function IncomeScreen() {
       console.log('Submit response:', response.data);
 
       if (response.data.success) {
-        Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
-        setShowModal(false);
-        fetchIncomes(); // Refresh the list
-        // Reset form
+        // Reset form before closing modal and fetching
         setAmount('');
         setDescription('');
         setSelectedCategory(categories[0].id);
         setSelectedIncome(null);
         setIsEditing(false);
+        setShowModal(false);
+        
+        // Slight delay before fetching to ensure modal is closed
+        setTimeout(() => {
+          fetchIncomes();
+          Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
+        }, 100);
       } else {
         Alert.alert('Error', response.data.message || 'Something went wrong');
       }
@@ -241,28 +245,38 @@ export default function IncomeScreen() {
   };
 
   const handleEdit = (income: Income) => {
-    setSelectedIncome(income);
-    setAmount(income.amount.toString());
-    setDescription(income.description);
-    setSelectedCategory(income.category);
-    setIsEditing(true);
-    setShowModal(true);
+    try {
+      setSelectedIncome(income);
+      setAmount(income.amount.toString());
+      setDescription(income.description);
+      setSelectedCategory(income.category);
+      setIsEditing(true);
+      setShowModal(true);
+    } catch (error) {
+      console.error('Error in handleEdit:', error);
+      Alert.alert('Error', 'Failed to open edit modal');
+    }
+  };
+
+  const handleEditPress = () => {
+    try {
+      if (selectedIncome) {
+        setAmount(selectedIncome.amount.toString());
+        setDescription(selectedIncome.description);
+        setSelectedCategory(selectedIncome.category);
+        setIsEditing(true);
+        setShowViewModal(false);
+        setTimeout(() => setShowModal(true), 100); // Add slight delay for modal transition
+      }
+    } catch (error) {
+      console.error('Error in handleEditPress:', error);
+      Alert.alert('Error', 'Failed to open edit modal');
+    }
   };
 
   const handleIncomePress = (income: Income) => {
     setSelectedIncome(income);
     setShowViewModal(true);
-  };
-
-  const handleEditPress = () => {
-    if (selectedIncome) {
-      setAmount(selectedIncome.amount.toString());
-      setDescription(selectedIncome.description);
-      setSelectedCategory(selectedIncome.category);
-      setIsEditing(true);
-      setShowViewModal(false);
-      setShowModal(true);
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -377,7 +391,6 @@ export default function IncomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-<<<<<<< HEAD
         {isLoading ? (
           <ActivityIndicator size="large" className="mt-20" color="#3B82F6" />
         ) : sortedIncomes.length > 0 ? (
@@ -411,31 +424,6 @@ export default function IncomeScreen() {
                 <View className="flex-row items-center">
                   <Text className="text-green-600 font-semibold mr-2">
                     {formatCurrency(income.amount)}
-=======
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          className="flex-1"
-        >
-          {/* Header and Sorting */}
-          <View className="p-4 border-b border-gray-100">
-            <Text className="text-2xl font-bold text-gray-800 mb-4">
-              Income
-            </Text>
-            
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row space-x-2">
-                <TouchableOpacity
-                  onPress={() => setSortBy('date')}
-                  className={`px-4 py-2 rounded-full border ${
-                    sortBy === 'date' ? 'bg-green-100 border-green-200' : 'border-gray-200'
-                  }`}
-                  style={{ marginRight: 6 }}
-                >
-                  <Text className={sortBy === 'date' ? 'text-green-600' : 'text-gray-600'}>
-                    Date
->>>>>>> origin/main
                   </Text>
                   <TouchableOpacity
                     onPress={() => handleDelete(income.id)}
@@ -544,7 +532,6 @@ export default function IncomeScreen() {
         </View>
       </Modal>
 
-<<<<<<< HEAD
       {/* View Modal */}
       <Modal
         animationType="slide"
@@ -574,18 +561,6 @@ export default function IncomeScreen() {
                       name={getCategoryIcon(selectedIncome.category)}
                       size={32}
                       color="#16a34a"
-=======
-              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                <View className="space-y-6">
-                  {/* Description Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-600 mb-2">Description</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter description"
-                      value={description}
-                      onChangeText={setDescription}
->>>>>>> origin/main
                     />
                   </View>
                   <Text className="text-3xl font-bold text-green-600">
@@ -593,7 +568,6 @@ export default function IncomeScreen() {
                   </Text>
                 </View>
 
-<<<<<<< HEAD
                 <View className="space-y-4">
                   <View>
                     <Text className="text-gray-500 text-sm mb-1">Description</Text>
@@ -607,51 +581,6 @@ export default function IncomeScreen() {
                     <Text className="text-gray-800 text-lg">
                       {selectedIncome.category}
                     </Text>
-=======
-                  {/* Amount Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-600 mb-2">Amount</Text>
-                    <TextInput
-                      className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                      placeholder="Enter amount"
-                      keyboardType="numeric"
-                      value={amount}
-                      onChangeText={setAmount}
-                    />
-                  </View>
-
-                  {/* Category Input */}
-                  <View className="mb-4">
-                    <Text className="text-gray-600 mb-2">Category</Text>
-                    <ScrollView 
-                      horizontal 
-                      showsHorizontalScrollIndicator={false} 
-                      className="flex-row space-x-2"
-                    >
-                      {categories.map((cat) => (
-                        <TouchableOpacity
-                          key={cat.id}
-                          onPress={() => setSelectedCategory(cat.id)}
-                          className={`p-4 rounded-xl flex-row items-center space-x-2 ${
-                            selectedCategory === cat.id ? 'bg-green-100 border border-green-200' : 'bg-gray-50'
-                          }`}
-                          style={{ marginRight: 10 }}
-                        >
-                          <MaterialCommunityIcons
-                            name={cat.icon}
-                            size={24}
-                            color={selectedCategory === cat.id ? '#16a34a' : '#666'}
-                          />
-                          <Text 
-                            className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}
-                            style={{ marginLeft: 8 }} 
-                          >
-                            {cat.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
->>>>>>> origin/main
                   </View>
 
                   <View>
