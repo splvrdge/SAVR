@@ -73,11 +73,11 @@ const validateUser = async (req, res, next) => {
       });
     }
 
-    if (req.user.id !== parseInt(user_id)) {
+    if (req.user.user_id !== parseInt(user_id)) {
       logger.warn(`User validation failed: Unauthorized access attempt`, {
         requestId: req.requestId,
         requestedUserId: user_id,
-        authenticatedUserId: req.user.id,
+        authenticatedUserId: req.user.user_id,
         path: req.path
       });
       return res.status(403).json({
@@ -99,7 +99,7 @@ const validateUser = async (req, res, next) => {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       path: req.path
     });
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error during user validation.'
     });
