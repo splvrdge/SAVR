@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import axios from 'axios';
+import axiosInstance from '@/utils/axiosConfig'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
 import { StatusBar } from 'expo-status-bar';
@@ -110,7 +110,7 @@ export default function Expenses() {
         'Content-Type': 'application/json'
       };
 
-      const response = await axios.get(
+      const response = await axiosInstance.get(
         `${API_URL}${API_ENDPOINTS.EXPENSE.GET_ALL.replace(':user_id', userId)}`,
         { headers }
       );
@@ -122,7 +122,7 @@ export default function Expenses() {
       }
     } catch (error) {
       console.error('Error fetching expenses:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
         await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
         return;
@@ -148,7 +148,7 @@ export default function Expenses() {
         await fetchExpenses();
       } catch (error) {
         console.error('Authentication error:', error);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
           await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
           router.replace('/(auth)/sign-in');
         }
@@ -212,7 +212,7 @@ export default function Expenses() {
         ? API_ENDPOINTS.EXPENSE.UPDATE
         : API_ENDPOINTS.EXPENSE.ADD;
       
-      const response = await axios({
+      const response = await axiosInstance({
         method: isEditing ? 'PUT' : 'POST',
         url: endpoint,
         data: {
@@ -268,7 +268,7 @@ export default function Expenses() {
         return;
       }
 
-      const response = await axios.delete(`${API_URL}/expenses/delete/${expenseId}`, {
+      const response = await axiosInstance.delete(`${API_URL}/expenses/delete/${expenseId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -283,7 +283,7 @@ export default function Expenses() {
       }
     } catch (error) {
       console.error('Error:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
         await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
         return;

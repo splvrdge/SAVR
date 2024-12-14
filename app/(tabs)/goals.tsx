@@ -128,13 +128,8 @@ export default function Goals() {
         return;
       }
 
-      console.log('Fetching goals for user:', userId);
-      console.log('API URL:', API_ENDPOINTS.GOALS.GET_ALL.replace(':user_id', userId));
-
       const response = await axiosInstance.get(API_ENDPOINTS.GOALS.GET_ALL.replace(':user_id', userId));
       
-      console.log('Goals response:', response.data);
-
       if (response.data.success) {
         const formattedGoals = response.data.data.map((goal: Goal) => ({
           ...goal,
@@ -148,18 +143,7 @@ export default function Goals() {
         Alert.alert('Error', response.data.message || 'Failed to fetch goals');
       }
     } catch (error: any) {
-      console.error('Error fetching goals:', error);
-      console.error('Error details:', error.response?.data);
-      
-      if (error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'refreshToken', 'userId']);
-        router.replace('/(auth)/sign-in');
-      } else {
-        Alert.alert(
-          'Error',
-          error.response?.data?.message || 'Failed to fetch goals. Please try again.'
-        );
-      }
+      Alert.alert('Error', 'Failed to fetch goals');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -217,8 +201,7 @@ export default function Goals() {
         Alert.alert('Success', 'Goal added successfully');
       }
     } catch (error: any) {
-      console.error('Error adding goal:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add goal');
+      Alert.alert('Error', 'Failed to add goal');
     }
   };
 
@@ -238,8 +221,7 @@ export default function Goals() {
         Alert.alert('Success', 'Goal updated successfully');
       }
     } catch (error: any) {
-      console.error('Error updating goal:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update goal');
+      Alert.alert('Error', 'Failed to update goal');
     }
   };
 
@@ -273,8 +255,7 @@ export default function Goals() {
                 Alert.alert('Success', 'Goal deleted successfully');
               }
             } catch (error: any) {
-              console.error('Error deleting goal:', error);
-              Alert.alert('Error', error.response?.data?.message || 'Failed to delete goal');
+              Alert.alert('Error', 'Failed to delete goal');
             }
           }
         }
@@ -308,8 +289,7 @@ export default function Goals() {
         Alert.alert('Success', 'Contribution added successfully');
       }
     } catch (error: any) {
-      console.error('Error adding contribution:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add contribution');
+      Alert.alert('Error', 'Failed to add contribution');
     }
   };
 

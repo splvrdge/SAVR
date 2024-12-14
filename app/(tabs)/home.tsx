@@ -45,7 +45,7 @@ export default function Home() {
     salary: { name: 'Salary', icon: 'cash-multiple' },
     business: { name: 'Business', icon: 'store-outline' },
     investment: { name: 'Investment', icon: 'trending-up' },
-    freelance: { name: 'Freelance', icon: 'laptop-outline' },
+    freelance: { name: 'Freelance', icon: 'laptop' },
     gift: { name: 'Gift', icon: 'gift-outline' },
     other: { name: 'Other', icon: 'dots-horizontal' }
   };
@@ -100,7 +100,6 @@ export default function Home() {
           });
         }
       } catch (error) {
-        console.log('No financial data yet, setting default values');
         setFinancialSummary({
           current_balance: 0,
           net_savings: 0,
@@ -137,22 +136,15 @@ export default function Home() {
 
         setLatestTransactions(sortedTransactions);
       } catch (error) {
-        console.error('Error fetching transactions:', error);
+        setLatestTransactions([]);
         if (axios.isAxiosError(error) && error.response?.status === 401) {
           await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
           router.replace('/(auth)/sign-in');
           return;
         }
-        setLatestTransactions([]);
       }
 
     } catch (error) {
-      console.error('Error in fetchFinancialData:', error);
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-        router.replace('/(auth)/sign-in');
-        return;
-      }
       setFinancialSummary({
         current_balance: 0,
         net_savings: 0,
