@@ -14,6 +14,7 @@ interface TabHeaderProps {
   sortOrder?: 'asc' | 'desc';
   onSortChange?: (sortId: string) => void;
   onSortOrderChange?: () => void;
+  themeColor?: string; // New prop for customizing the theme color
 }
 
 export default function TabHeader({
@@ -23,15 +24,16 @@ export default function TabHeader({
   sortOrder = 'desc',
   onSortChange = () => {},
   onSortOrderChange = () => {},
+  themeColor = '#0066FF', // Default color is blue
 }: TabHeaderProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
-      
+
       {sortOptions.length > 0 && (
         <View style={styles.sortContainer}>
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.sortOptionsContainer}
           >
@@ -41,13 +43,13 @@ export default function TabHeader({
                 onPress={() => onSortChange(option.id)}
                 style={[
                   styles.sortOption,
-                  selectedSort === option.id && styles.selectedSortOption,
+                  selectedSort === option.id && { backgroundColor: themeColor },
                 ]}
               >
                 <Text
                   style={[
                     styles.sortOptionText,
-                    selectedSort === option.id && styles.selectedSortOptionText,
+                    selectedSort === option.id && { color: '#FFFFFF' },
                   ]}
                 >
                   {option.label}
@@ -55,15 +57,15 @@ export default function TabHeader({
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             onPress={onSortOrderChange}
             style={styles.sortOrderButton}
           >
             <MaterialCommunityIcons
               name={sortOrder === 'asc' ? 'sort-ascending' : 'sort-descending'}
               size={24}
-              color="#0066FF"
+              color={themeColor}
             />
           </TouchableOpacity>
         </View>
@@ -101,16 +103,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     marginRight: 8,
   },
-  selectedSortOption: {
-    backgroundColor: '#0066FF',
-  },
   sortOptionText: {
     fontSize: 14,
     color: '#666666',
     fontWeight: '500',
-  },
-  selectedSortOptionText: {
-    color: '#FFFFFF',
   },
   sortOrderButton: {
     padding: 8,

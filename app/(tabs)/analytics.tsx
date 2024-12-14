@@ -40,7 +40,7 @@ export default function Analytics() {
           >
             <TouchableOpacity
               style={{
-                backgroundColor: selectedTab === tab ? '#007AFF' : '#F0F0F0',
+                backgroundColor: selectedTab === tab ? '#7C3AED' : '#F0F0F0',
                 padding: 10,
                 borderRadius: 8,
                 alignItems: 'center',

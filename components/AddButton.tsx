@@ -4,12 +4,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface AddButtonProps {
   onPress: () => void;
+  themeColor?: string; 
 }
 
-export default function AddButton({ onPress }: AddButtonProps) {
+export default function AddButton({ onPress, themeColor = '#0066FF' }: AddButtonProps) {
   return (
     <TouchableOpacity
-      style={styles.addButton}
+      style={[styles.addButton, { backgroundColor: themeColor }]}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -26,7 +27,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#0066FF',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
