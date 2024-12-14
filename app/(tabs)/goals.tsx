@@ -467,7 +467,7 @@ export default function Goals() {
 
                 <ScrollView className="flex-1">
                   <View className="space-y-4">
-                    <View>
+                    <View className="mb-4">
                       <Text className="text-gray-600 mb-2">Title*</Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-3"
@@ -477,7 +477,7 @@ export default function Goals() {
                       />
                     </View>
 
-                    <View>
+                    <View className="mb-4">
                       <Text className="text-gray-600 mb-2">Target Amount*</Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-3"
@@ -491,7 +491,7 @@ export default function Goals() {
                       />
                     </View>
 
-                    <View>
+                    <View className='mb-4'>
                       <Text className="text-gray-600 mb-2">Target Date*</Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-3"
@@ -525,6 +525,7 @@ export default function Goals() {
                     className={`px-4 py-2 rounded-lg ${
                       isSubmitting ? 'bg-blue-300' : 'bg-blue-500'
                     }`}
+                    style={{ marginLeft: 8 }} 
                   >
                     {isSubmitting ? (
                       <ActivityIndicator color="white" />
