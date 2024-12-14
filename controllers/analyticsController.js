@@ -270,7 +270,7 @@ exports.getIncomeByDate = async (req, res) => {
       SELECT 
         DATE(timestamp) as date,
         SUM(amount) as total_amount
-      FROM income
+      FROM incomes
       WHERE user_id = ?
         AND timestamp BETWEEN ? AND ?
       GROUP BY DATE(timestamp)
@@ -285,9 +285,12 @@ exports.getIncomeByDate = async (req, res) => {
       dates: results.length
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        date: r.date,
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
     logger.error('Error fetching income by date:', {
@@ -313,7 +316,7 @@ exports.getBudget = async (req, res) => {
         category,
         budget_limit,
         (
-          SELECT SUM(amount)
+          SELECT COALESCE(SUM(amount), 0)
           FROM expenses e2
           WHERE e2.category = b.category
           AND e2.user_id = b.user_id
@@ -330,9 +333,14 @@ exports.getBudget = async (req, res) => {
       categories: results.length
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        category: r.category,
+        budget_limit: parseFloat(r.budget_limit),
+        current_spending: parseFloat(r.current_spending),
+        remaining: parseFloat(r.budget_limit) - parseFloat(r.current_spending)
+      }))
     });
   } catch (error) {
     logger.error('Error fetching budget:', {
@@ -361,11 +369,13 @@ exports.getSavings = async (req, res) => {
 
     const query = `
       SELECT 
-        (SELECT COALESCE(SUM(amount), 0) FROM income WHERE user_id = ? ${dateFilter}) as total_income,
+        (SELECT COALESCE(SUM(amount), 0) FROM incomes WHERE user_id = ? ${dateFilter}) as total_income,
         (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = ? ${dateFilter}) as total_expenses`;
 
     const [results] = await db.query(query, [user_id, user_id]);
-    const savings = results[0].total_income - results[0].total_expenses;
+    const total_income = parseFloat(results[0].total_income);
+    const total_expenses = parseFloat(results[0].total_expenses);
+    const savings = total_income - total_expenses;
 
     logger.debug('Calculated savings:', {
       userId: user_id,
@@ -373,12 +383,13 @@ exports.getSavings = async (req, res) => {
       savings
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: {
-        total_income: results[0].total_income,
-        total_expenses: results[0].total_expenses,
-        savings: savings
+        total_income,
+        total_expenses,
+        savings,
+        savings_rate: total_income > 0 ? (savings / total_income) * 100 : 0
       }
     });
   } catch (error) {
@@ -401,13 +412,12 @@ exports.getExpensesByTag = async (req, res) => {
   try {
     const query = `
       SELECT 
-        et.tag_name,
+        e.category as tag_name,
         COUNT(*) as transaction_count,
         SUM(e.amount) as total_amount
       FROM expenses e
-      JOIN expense_tags et ON e.id = et.expense_id
       WHERE e.user_id = ?
-      GROUP BY et.tag_name
+      GROUP BY e.category
       ORDER BY total_amount DESC`;
 
     const [results] = await db.query(query, [user_id]);
@@ -417,9 +427,13 @@ exports.getExpensesByTag = async (req, res) => {
       tags: results.length
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        tag_name: r.tag_name,
+        transaction_count: parseInt(r.transaction_count),
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
     logger.error('Error fetching expenses by tag:', {
@@ -440,13 +454,12 @@ exports.getIncomeByTag = async (req, res) => {
   try {
     const query = `
       SELECT 
-        it.tag_name,
+        i.category as tag_name,
         COUNT(*) as transaction_count,
         SUM(i.amount) as total_amount
-      FROM income i
-      JOIN income_tags it ON i.id = it.income_id
+      FROM incomes i
       WHERE i.user_id = ?
-      GROUP BY it.tag_name
+      GROUP BY i.category
       ORDER BY total_amount DESC`;
 
     const [results] = await db.query(query, [user_id]);
@@ -456,9 +469,13 @@ exports.getIncomeByTag = async (req, res) => {
       tags: results.length
     });
 
-    res.json({
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        tag_name: r.tag_name,
+        transaction_count: parseInt(r.transaction_count),
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
     logger.error('Error fetching income by tag:', {

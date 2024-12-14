@@ -183,21 +183,32 @@ exports.addContribution = async (req, res) => {
 
       // Add contribution
       const [result] = await connection.execute(
-        'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
+        'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
         [goal_id, userId, amount, notes || null]
+      );
+
+      // Update goal progress
+      await connection.execute(
+        'UPDATE goals SET current_amount = COALESCE(current_amount, 0) + ? WHERE goal_id = ?',
+        [amount, goal_id]
       );
 
       await connection.commit();
 
       logger.info('Contribution added:', {
-        contributionId: result.insertId
+        contributionId: result.insertId,
+        goalId: goal_id,
+        amount: amount
       });
 
       res.status(201).json({
         success: true,
         message: 'Contribution added successfully',
         data: {
-          contribution_id: result.insertId
+          contribution_id: result.insertId,
+          amount: amount,
+          notes: notes || null,
+          created_at: new Date()
         }
       });
     } catch (error) {

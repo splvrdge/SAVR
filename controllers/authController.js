@@ -219,18 +219,6 @@ exports.refreshToken = async (req, res) => {
   }
 
   try {
-    const [tokens] = await db.execute(
-      `SELECT * FROM tokens WHERE refresh_token = ? AND is_revoked = FALSE AND expires_at > NOW()`,
-      [refresh_token]
-    );
-
-    if (tokens.length === 0) {
-      logger.warn('Refresh token attempt with invalid token');
-      return res.status(401).json({ success: false, message: "Invalid refresh token" });
-    }
-
-    const token = tokens[0];
-
     const decoded = jwt.verify(refresh_token, refreshTokenSecret);
     const user_id = decoded.user_id;
 
@@ -245,18 +233,12 @@ exports.refreshToken = async (req, res) => {
     }
 
     const user = users[0];
-
     const accessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
-
-      await connection.execute(
-        `UPDATE tokens SET is_revoked = TRUE WHERE token_id = ?`,
-        [token.token_id]
-      );
 
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
       await connection.execute(
@@ -267,7 +249,7 @@ exports.refreshToken = async (req, res) => {
       await connection.commit();
 
       logger.info('Refresh token generated successfully:', { userId: user_id });
-      res.json({
+      res.status(200).json({
         success: true,
         accessToken,
         refreshToken: newRefreshToken
@@ -328,9 +310,9 @@ exports.checkEmail = async (req, res) => {
 
     if (results.length > 0) {
       logger.warn('Email check attempt with existing email:', { email: user_email });
-      res.json({ available: false, message: "Email is already taken" });
+      res.status(200).json({ available: false, message: "Email is already taken" });
     } else {
-      res.json({ available: true, message: "Email is available" });
+      res.status(200).json({ available: true, message: "Email is available" });
     }
   } catch (err) {
     logger.error('Error checking email:', { 
@@ -338,9 +320,7 @@ exports.checkEmail = async (req, res) => {
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
     console.error("Error checking email:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
