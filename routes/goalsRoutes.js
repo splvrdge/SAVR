@@ -70,21 +70,28 @@ const validateContributionId = [
 ];
 
 router.post(
-  "/add", 
+  "/create",
   validateToken,
   validateGoal,
-  goalController.addGoal
+  goalController.createGoal
 );
 
 router.get(
-  "/:user_id", 
+  "/:user_id",
   validateToken,
   validateUserId,
   goalController.getGoals
 );
 
+router.post(
+  "/contribute",
+  validateToken,
+  validateContribution,
+  goalController.addContribution
+);
+
 router.put(
-  "/update/:goal_id", 
+  "/update/:goal_id",
   validateToken,
   validateGoalId,
   validateGoal,
@@ -92,31 +99,10 @@ router.put(
 );
 
 router.delete(
-  "/delete/:goal_id", 
+  "/delete/:goal_id",
   validateToken,
   validateGoalId,
   goalController.deleteGoal
-);
-
-router.post(
-  "/contribution/add", 
-  validateToken,
-  validateContribution,
-  goalController.addContribution
-);
-
-router.get(
-  "/contributions/:goal_id", 
-  validateToken,
-  validateGoalId,
-  goalController.getContributions
-);
-
-router.delete(
-  "/contribution/:contribution_id", 
-  validateToken,
-  validateContributionId,
-  goalController.deleteContribution
 );
 
 module.exports = router;

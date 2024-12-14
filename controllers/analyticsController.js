@@ -153,56 +153,67 @@ exports.getIncomeByCategory = async (req, res) => {
 
 exports.getMonthlyTrends = async (req, res) => {
   const { user_id } = req.params;
-  const { year } = req.query;
 
   try {
-    const currentYear = year || new Date().getFullYear();
-    
     const query = `
       SELECT 
         DATE_FORMAT(timestamp, '%Y-%m') as month,
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
         SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses,
-        COUNT(DISTINCT CASE WHEN type = 'income' THEN id END) as income_count,
-        COUNT(DISTINCT CASE WHEN type = 'expense' THEN id END) as expense_count
-      FROM user_financial_data
-      WHERE user_id = ? 
-      AND YEAR(timestamp) = ?
+        COUNT(CASE WHEN type = 'income' THEN 1 END) as income_count,
+        COUNT(CASE WHEN type = 'expense' THEN 1 END) as expense_count,
+        AVG(CASE WHEN type = 'income' THEN amount END) as avg_income,
+        AVG(CASE WHEN type = 'expense' THEN amount END) as avg_expense
+      FROM (
+        SELECT 'income' as type, amount, timestamp FROM incomes WHERE user_id = ?
+        UNION ALL
+        SELECT 'expense' as type, amount, timestamp FROM expenses WHERE user_id = ?
+      ) as transactions
       GROUP BY DATE_FORMAT(timestamp, '%Y-%m')
-      ORDER BY month ASC
-    `;
+      ORDER BY month DESC
+      LIMIT 12`;
 
-    const [results] = await db.execute(query, [user_id, currentYear]);
-    
-    const formattedData = results.map(item => ({
-      month: item.month,
-      total_income: parseFloat(item.total_income) || 0,
-      total_expenses: parseFloat(item.total_expenses) || 0,
-      income_count: parseInt(item.income_count) || 0,
-      expense_count: parseInt(item.expense_count) || 0,
-      net: parseFloat(item.total_income - item.total_expenses) || 0
+    const [results] = await db.execute(query, [user_id, user_id]);
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No trends data found"
+      });
+    }
+
+    const trends = results.map(row => ({
+      month: row.month,
+      total_income: parseFloat(row.total_income || 0),
+      total_expenses: parseFloat(row.total_expenses || 0),
+      net_savings: parseFloat((row.total_income || 0) - (row.total_expenses || 0)),
+      income_count: row.income_count || 0,
+      expense_count: row.expense_count || 0,
+      avg_income: parseFloat(row.avg_income || 0),
+      avg_expense: parseFloat(row.avg_expense || 0)
     }));
-
-    logger.debug('Retrieved monthly trends:', {
-      userId: user_id,
-      year: currentYear,
-      months: formattedData.length
-    });
 
     res.json({
       success: true,
-      data: formattedData
+      data: {
+        trends,
+        summary: {
+          total_months: trends.length,
+          average_monthly_savings: trends.reduce((acc, curr) => acc + curr.net_savings, 0) / trends.length,
+          highest_saving_month: trends.reduce((max, curr) => curr.net_savings > max.net_savings ? curr : max, trends[0]),
+          lowest_saving_month: trends.reduce((min, curr) => curr.net_savings < min.net_savings ? curr : min, trends[0])
+        }
+      }
     });
   } catch (error) {
-    logger.error('Error fetching monthly trends:', {
+    logger.error("Failed to get monthly trends:", {
       userId: user_id,
-      year,
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch monthly trends'
+      message: "Error retrieving monthly trends"
     });
   }
 };

@@ -24,182 +24,162 @@ function generateRefreshToken(user) {
 
 // Update user profile
 exports.updateProfile = async (req, res) => {
-  const { name, email } = req.body;
-  const currentUserMail = req.user.email;
-
-  if (!name || !email) {
-    logger.warn('Missing required fields for profile update:', {
-      userId: req.user.id,
-      providedFields: { name: !!name, email: !!email }
-    });
-    return res.status(400).json({ 
-      success: false, 
-      message: "Missing required fields" 
-    });
-  }
-
-  const connection = await db.getConnection();
   try {
-    await connection.beginTransaction();
+    const { name, email, currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
 
-    // First check if email already exists (if changing email)
-    if (email !== currentUserMail) {
-      const [existingUsers] = await connection.execute(
-        'SELECT user_id FROM users WHERE user_email = ? AND user_email != ?',
-        [email, currentUserMail]
-      );
-      
-      if (existingUsers.length > 0) {
-        await connection.rollback();
-        logger.warn('Email already in use:', { 
-          userId: req.user.id,
-          attemptedEmail: email 
-        });
-        return res.status(400).json({
-          success: false,
-          message: "Email already in use"
-        });
-      }
-    }
-
-    // Update user profile
-    const [results] = await connection.execute(
-      `UPDATE users SET user_name = ?, user_email = ? WHERE user_email = ?`,
-      [name, email, currentUserMail]
+    const [user] = await db.execute(
+      'SELECT * FROM users WHERE id = ?',
+      [userId]
     );
 
-    if (results.affectedRows === 0) {
-      await connection.rollback();
-      logger.warn('User not found:', { 
-        userId: req.user.id,
-        email: currentUserMail 
-      });
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+    if (!user[0]) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
-    // If email was changed, revoke all tokens and generate new ones
-    if (email !== currentUserMail) {
-      // Get user information for new tokens
-      const [userInfo] = await connection.execute(
-        'SELECT user_id, user_name, user_email FROM users WHERE user_email = ?',
-        [email]
+    let updates = {};
+    let params = [];
+    let setStatements = [];
+
+    if (name) {
+      setStatements.push('user_name = ?');
+      params.push(name);
+      updates.name = name;
+    }
+
+    if (email && email !== user[0].user_email) {
+      // Check if email is already taken
+      const [existingUser] = await db.execute(
+        'SELECT user_id FROM users WHERE user_email = ? AND user_id != ?',
+        [email, userId]
       );
-      
-      if (userInfo.length === 0) {
-        await connection.rollback();
-        logger.warn('User not found after update:', { 
-          userId: req.user.id,
-          email 
-        });
-        return res.status(404).json({ 
-          success: false, 
-          message: "User not found after update" 
+
+      if (existingUser.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already in use'
         });
       }
 
-      const user = userInfo[0];
+      setStatements.push('user_email = ?');
+      params.push(email);
+      updates.email = email;
+    }
 
-      // Revoke old tokens
-      await connection.execute(
-        `UPDATE tokens SET is_revoked = TRUE WHERE user_id = ?`,
-        [user.user_id]
-      );
+    if (newPassword && currentPassword) {
+      const isValidPassword = await bcrypt.compare(currentPassword, user[0].password);
+      if (!isValidPassword) {
+        return res.status(401).json({
+          success: false,
+          message: 'Current password is incorrect'
+        });
+      }
 
-      // Generate new tokens
-      const accessToken = generateAccessToken(user);
-      const refreshToken = generateRefreshToken(user);
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      setStatements.push('password = ?');
+      params.push(hashedPassword);
+    }
 
-      // Store new refresh token
-      await connection.execute(
-        `INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)`,
-        [user.user_id, refreshToken, expiresAt]
-      );
-
-      await connection.commit();
-      
-      logger.info('Profile updated successfully with new tokens:', { 
-        userId: user.user_id,
-        fieldsUpdated: {
-          name: true,
-          email: true
-        }
-      });
-      return res.json({ 
-        success: true, 
-        message: "Profile updated successfully",
-        requireRelogin: true,
-        accessToken,
-        refreshToken,
-        user_name: user.user_name,
-        user_id: user.user_id
+    if (setStatements.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No updates provided'
       });
     }
 
-    await connection.commit();
-    
-    logger.info('Profile updated successfully:', { 
-      userId: req.user.id,
-      fieldsUpdated: {
-        name: true,
-        email: false
+    params.push(userId);
+    const updateQuery = `
+      UPDATE users 
+      SET ${setStatements.join(', ')}
+      WHERE user_id = ?
+    `;
+
+    await db.execute(updateQuery, params);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        name: updates.name || user[0].user_name,
+        email: updates.email || user[0].user_email
       }
     });
-    res.json({ 
-      success: true, 
-      message: "Profile updated successfully",
-      requireRelogin: false
+  } catch (error) {
+    logger.error('Error updating profile:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
-
-  } catch (err) {
-    await connection.rollback();
-    logger.error('Failed to update profile:', { 
-      userId: req.user.id,
-      error: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile'
     });
-    res.status(500).json({ 
-      success: false, 
-      message: "Internal server error" 
-    });
-  } finally {
-    connection.release();
   }
 };
 
 // Get secured user information
 exports.getSecuredInfo = async (req, res) => {
   try {
-    const [userInfo] = await db.execute(
+    const userId = req.user.id;
+
+    const [user] = await db.execute(
       'SELECT user_id, user_name, user_email, created_at FROM users WHERE user_id = ?',
-      [req.user.id]
+      [userId]
     );
 
-    if (userInfo.length === 0) {
-      logger.warn('User not found:', { userId: req.user.id });
+    if (!user[0]) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: 'User not found'
       });
     }
 
-    logger.debug('Retrieved secured user info:', { userId: req.user.id });
+    const [financialSummary] = await db.execute(`
+      SELECT 
+        COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) as total_income,
+        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) as total_expenses,
+        COUNT(DISTINCT CASE WHEN type = 'income' THEN id END) as income_count,
+        COUNT(DISTINCT CASE WHEN type = 'expense' THEN id END) as expense_count
+      FROM user_financial_data
+      WHERE user_id = ?
+    `, [userId]);
+
+    const [goals] = await db.execute(
+      'SELECT COUNT(*) as goal_count FROM goals WHERE user_id = ?',
+      [userId]
+    );
+
     res.json({
       success: true,
-      data: userInfo[0]
+      data: {
+        user: {
+          id: user[0].user_id,
+          name: user[0].user_name,
+          email: user[0].user_email,
+          created_at: user[0].created_at
+        },
+        financial_summary: {
+          total_income: parseFloat(financialSummary[0].total_income),
+          total_expenses: parseFloat(financialSummary[0].total_expenses),
+          net_worth: parseFloat(financialSummary[0].total_income - financialSummary[0].total_expenses),
+          income_count: financialSummary[0].income_count,
+          expense_count: financialSummary[0].expense_count
+        },
+        goals: {
+          total_count: goals[0].goal_count
+        }
+      }
     });
-  } catch (err) {
-    logger.error('Failed to get secured info:', { 
-      userId: req.user.id,
-      error: err.message,
-      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  } catch (error) {
+    logger.error('Error fetching secured info:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
     res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: 'Error retrieving user information'
     });
   }
 };
