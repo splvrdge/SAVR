@@ -146,17 +146,35 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize database connection
-const initializeDatabase = async () => {
+async function initializeDatabase() {
   try {
     const connection = await db.getConnection();
+    logger.info('Database connected successfully');
     connection.release();
-    logger.info("✓ Database connection established");
-    return true;
   } catch (error) {
-    logger.error("Database connection failed:", error);
-    return false;
+    logger.error('Database connection failed:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+    process.exit(1);
   }
-};
+}
+
+// Start server
+async function startServer() {
+  try {
+    await initializeDatabase();
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+    process.exit(1);
+  }
+}
 
 // Schedule token cleanup
 cron.schedule("0 0 * * *", async () => {
@@ -169,34 +187,7 @@ cron.schedule("0 0 * * *", async () => {
   }
 });
 
-// Start server
-const startServer = async () => {
-  // First initialize database
-  const dbConnected = await initializeDatabase();
-  if (!dbConnected) {
-    process.exit(1);
-  }
-
-  // Then start the server
-  app.listen(PORT, () => {
-    logger.info("╔═══════════════════════════════════════╗");
-    logger.info("║        Savr-FinTracker Backend        ║");
-    logger.info("╚═══════════════════════════════════════╝");
-    logger.info(`✓ Environment: ${process.env.NODE_ENV}`);
-    logger.info(`✓ Server running on port ${PORT}`);
-    logger.info("═══════════════════════════════════════════");
-
-    // Initialize routes after server starts
-    initializeRoutes();
-
-    // Log available routes
-    logger.info("Available Routes:");
-    routes.forEach(({ path, description }) => {
-      logger.info(`✓ ${path.padEnd(20)} - ${description}`);
-    });
-    logger.info("═══════════════════════════════════════════");
-  });
-};
+startServer();
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
@@ -209,6 +200,3 @@ process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection:', reason);
   process.exit(1);
 });
-
-// Start the server
-startServer();
