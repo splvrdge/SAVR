@@ -128,8 +128,8 @@ exports.getTransactionHistory = async (req, res) => {
 
     // Get total count
     const countQuery = query.replace(
-      "SELECT CASE WHEN type = 'income' THEN income_id ELSE expense_id END as id, type, amount, description, category, timestamp, created_at, updated_at",
-      "SELECT COUNT(*) as total"
+      /SELECT.*?FROM/s,
+      "SELECT COUNT(*) as total FROM"
     );
     const [countResults] = await db.execute(countQuery, queryParams);
     const totalCount = countResults[0].total;
