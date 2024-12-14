@@ -1,9 +1,9 @@
 const crypto = require("crypto");
 
 const secretKey =
-  process.env.SECRET_KEY || "savr_development_secret_key";
+  process.env.SECRET_KEY;
 const refreshTokenSecret =
-  process.env.REFRESH_TOKEN_SECRET || "savr_development_refresh_secret_key";
+  process.env.REFRESH_TOKEN_SECRET;
 
 const tokenExpiration = "15m";
 const refreshTokenExpiration = "7d";

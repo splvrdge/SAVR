@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const financialController = require("../controllers/financialController");
-const { validateToken } = require("../middlewares/authMiddleware");
+const { validateToken, validateUser } = require("../middlewares/authMiddleware");
 const { param } = require("express-validator");
 const { handleValidationErrors } = require("../middlewares/validationMiddleware");
 
@@ -17,6 +17,7 @@ router.get(
   "/summary/:user_id",
   validateToken,
   validateUserId,
+  validateUser,
   financialController.getFinancialSummary
 );
 
@@ -24,6 +25,7 @@ router.get(
   "/history/:user_id",
   validateToken,
   validateUserId,
+  validateUser,
   financialController.getTransactionHistory
 );
 
