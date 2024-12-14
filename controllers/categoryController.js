@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const logger = require('../utils/logger');
 
 // Get all categories
 const getAllCategories = async (req, res) => {
@@ -15,12 +16,13 @@ const getAllCategories = async (req, res) => {
         query += ' ORDER BY name ASC';
         
         const [rows] = await pool.execute(query, params);
+        logger.debug(`Retrieved ${rows.length} categories${type ? ` of type ${type}` : ''}`);
         res.json({
             success: true,
             data: rows
         });
     } catch (error) {
-        console.error('Error in getAllCategories:', error);
+        logger.error('Failed to retrieve categories:', { error: error.message, type: req.query.type });
         res.status(500).json({
             success: false,
             message: 'Error retrieving categories'
@@ -38,18 +40,20 @@ const getCategoryById = async (req, res) => {
         );
 
         if (rows.length === 0) {
+            logger.warn(`Category not found: ${id}`);
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
             });
         }
 
+        logger.debug(`Retrieved category: ${id}`);
         res.json({
             success: true,
             data: rows[0]
         });
     } catch (error) {
-        console.error('Error in getCategoryById:', error);
+        logger.error('Failed to retrieve category:', { categoryId: req.params.id, error: error.message });
         res.status(500).json({
             success: false,
             message: 'Error retrieving category'
@@ -69,6 +73,7 @@ const createCategory = async (req, res) => {
         );
 
         if (existing.length > 0) {
+            logger.warn('Duplicate category creation attempt:', { name, type });
             return res.status(400).json({
                 success: false,
                 message: 'Category with this name and type already exists'
@@ -85,13 +90,18 @@ const createCategory = async (req, res) => {
             [result.insertId]
         );
 
+        logger.info(`Category created successfully: ${name} (${type})`);
         res.status(201).json({
             success: true,
             message: 'Category created successfully',
             data: newCategory[0]
         });
     } catch (error) {
-        console.error('Error in createCategory:', error);
+        logger.error('Failed to create category:', { 
+            name: req.body.name, 
+            type: req.body.type, 
+            error: error.message 
+        });
         res.status(500).json({
             success: false,
             message: 'Error creating category'
@@ -112,6 +122,7 @@ const updateCategory = async (req, res) => {
         );
 
         if (existing.length === 0) {
+            logger.warn(`Update attempted on non-existent category: ${id}`);
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
@@ -126,6 +137,11 @@ const updateCategory = async (req, res) => {
             );
 
             if (duplicate.length > 0) {
+                logger.warn('Duplicate category update attempt:', { 
+                    id, 
+                    name, 
+                    type: existing[0].type 
+                });
                 return res.status(400).json({
                     success: false,
                     message: 'Category with this name and type already exists'
@@ -165,13 +181,17 @@ const updateCategory = async (req, res) => {
             [id]
         );
 
+        logger.info(`Category updated successfully: ${id}`);
         res.json({
             success: true,
             message: 'Category updated successfully',
             data: updated[0]
         });
     } catch (error) {
-        console.error('Error in updateCategory:', error);
+        logger.error('Failed to update category:', { 
+            categoryId: req.params.id, 
+            error: error.message 
+        });
         res.status(500).json({
             success: false,
             message: 'Error updating category'
@@ -191,6 +211,7 @@ const deleteCategory = async (req, res) => {
         );
 
         if (existing.length === 0) {
+            logger.warn(`Delete attempted on non-existent category: ${id}`);
             return res.status(404).json({
                 success: false,
                 message: 'Category not found'
@@ -209,6 +230,10 @@ const deleteCategory = async (req, res) => {
         );
 
         if (expenses[0].count > 0 || incomes[0].count > 0) {
+            logger.warn(`Attempted to delete category in use: ${id}`, {
+                expenseCount: expenses[0].count,
+                incomeCount: incomes[0].count
+            });
             return res.status(400).json({
                 success: false,
                 message: 'Cannot delete category that is being used by transactions'
@@ -217,12 +242,16 @@ const deleteCategory = async (req, res) => {
 
         await pool.execute('DELETE FROM categories WHERE id = ?', [id]);
 
+        logger.info(`Category deleted successfully: ${id}`);
         res.json({
             success: true,
             message: 'Category deleted successfully'
         });
     } catch (error) {
-        console.error('Error in deleteCategory:', error);
+        logger.error('Failed to delete category:', { 
+            categoryId: req.params.id, 
+            error: error.message 
+        });
         res.status(500).json({
             success: false,
             message: 'Error deleting category'

@@ -1,5 +1,7 @@
+const bcrypt = require('bcrypt');
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
+const logger = require('../utils/logger');
 const { secretKey, tokenExpiration, refreshTokenSecret, refreshTokenExpiration } = require("../config/auth");
 
 function generateAccessToken(user) {
@@ -44,6 +46,7 @@ exports.updateProfile = async (req, res) => {
       
       if (existingUsers.length > 0) {
         await connection.rollback();
+        logger.warn('Email already in use:', { email });
         return res.status(400).json({
           success: false,
           message: "Email already in use"
@@ -59,6 +62,7 @@ exports.updateProfile = async (req, res) => {
 
     if (results.affectedRows === 0) {
       await connection.rollback();
+      logger.warn('User not found:', { email: currentUserMail });
       return res.status(404).json({ 
         success: false, 
         message: "User not found" 
@@ -75,6 +79,7 @@ exports.updateProfile = async (req, res) => {
       
       if (userInfo.length === 0) {
         await connection.rollback();
+        logger.warn('User not found after update:', { email });
         return res.status(404).json({ 
           success: false, 
           message: "User not found after update" 
@@ -102,6 +107,13 @@ exports.updateProfile = async (req, res) => {
 
       await connection.commit();
       
+      logger.info('Profile updated successfully:', { 
+        userId: user.user_id,
+        fieldsUpdated: {
+          name: true,
+          email: true
+        }
+      });
       return res.json({ 
         success: true, 
         message: "Profile updated successfully",
@@ -115,6 +127,13 @@ exports.updateProfile = async (req, res) => {
 
     await connection.commit();
     
+    logger.info('Profile updated successfully:', { 
+      userId: req.user_id,
+      fieldsUpdated: {
+        name: true,
+        email: false
+      }
+    });
     res.json({ 
       success: true, 
       message: "Profile updated successfully",
@@ -123,7 +142,11 @@ exports.updateProfile = async (req, res) => {
 
   } catch (err) {
     await connection.rollback();
-    console.error("Error updating profile:", err);
+    logger.error('Failed to update profile:', { 
+      userId: req.user_id,
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     res.status(500).json({ 
       success: false, 
       message: "Failed to update profile" 
@@ -141,16 +164,22 @@ exports.getSecuredInfo = async (req, res) => {
 
     if (results.length === 1) {
       const user = results[0];
+      logger.debug('User authenticated:', { userId: req.user_id });
       res.json({
         success: true,
         message: "User authenticated",
         user_name: user.user_name,
       });
     } else {
+      logger.warn('User not found:', { email: req.user_email });
       res.status(404).json({ success: false, message: "User not found" });
     }
   } catch (err) {
-    console.error("Error retrieving user information:", err);
+    logger.error('Error retrieving user information:', { 
+      userId: req.user_id,
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     res
       .status(500)
       .json({ success: false, message: "Error retrieving user information" });

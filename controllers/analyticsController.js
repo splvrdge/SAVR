@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const logger = require("../utils/logger");
 
 exports.getExpensesByCategory = async (req, res) => {
   const { user_id } = req.params;
@@ -47,12 +48,27 @@ exports.getExpensesByCategory = async (req, res) => {
       percentage: parseFloat(item.percentage) || 0
     }));
 
+    logger.debug('Retrieved expenses by category:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      categories: formattedData.length
+    });
+
     res.json({
       success: true,
       data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching expense analytics:', error);
+    logger.error('Error fetching expense analytics:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expense analytics'
@@ -107,12 +123,27 @@ exports.getIncomeByCategory = async (req, res) => {
       percentage: parseFloat(item.percentage) || 0
     }));
 
+    logger.debug('Retrieved income by category:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      categories: formattedData.length
+    });
+
     res.json({
       success: true,
       data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching income analytics:', error);
+    logger.error('Error fetching income analytics:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income analytics'
@@ -152,12 +183,23 @@ exports.getMonthlyTrends = async (req, res) => {
       net: parseFloat(item.total_income - item.total_expenses) || 0
     }));
 
+    logger.debug('Retrieved monthly trends:', {
+      userId: user_id,
+      year: currentYear,
+      months: formattedData.length
+    });
+
     res.json({
       success: true,
       data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching monthly trends:', error);
+    logger.error('Error fetching monthly trends:', {
+      userId: user_id,
+      year,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch monthly trends'
@@ -182,12 +224,25 @@ exports.getExpensesByDate = async (req, res) => {
 
     const [results] = await db.query(query, [user_id, start_date || new Date(Date.now() - 30*24*60*60*1000), end_date || new Date()]);
 
+    logger.debug('Retrieved expenses by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      dates: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching expenses by date:', error);
+    logger.error('Error fetching expenses by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expenses by date'
@@ -212,12 +267,25 @@ exports.getIncomeByDate = async (req, res) => {
 
     const [results] = await db.query(query, [user_id, start_date || new Date(Date.now() - 30*24*60*60*1000), end_date || new Date()]);
 
+    logger.debug('Retrieved income by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      dates: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching income by date:', error);
+    logger.error('Error fetching income by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income by date'
@@ -246,12 +314,21 @@ exports.getBudget = async (req, res) => {
 
     const [results] = await db.query(query, [user_id]);
 
+    logger.debug('Retrieved budget:', {
+      userId: user_id,
+      categories: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching budget:', error);
+    logger.error('Error fetching budget:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch budget information'
@@ -279,6 +356,12 @@ exports.getSavings = async (req, res) => {
     const [results] = await db.query(query, [user_id, user_id]);
     const savings = results[0].total_income - results[0].total_expenses;
 
+    logger.debug('Calculated savings:', {
+      userId: user_id,
+      timeframe,
+      savings
+    });
+
     res.json({
       success: true,
       data: {
@@ -288,7 +371,12 @@ exports.getSavings = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error calculating savings:', error);
+    logger.error('Error calculating savings:', {
+      userId: user_id,
+      timeframe,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to calculate savings'
@@ -313,12 +401,21 @@ exports.getExpensesByTag = async (req, res) => {
 
     const [results] = await db.query(query, [user_id]);
 
+    logger.debug('Retrieved expenses by tag:', {
+      userId: user_id,
+      tags: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching expenses by tag:', error);
+    logger.error('Error fetching expenses by tag:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expenses by tag'
@@ -343,12 +440,21 @@ exports.getIncomeByTag = async (req, res) => {
 
     const [results] = await db.query(query, [user_id]);
 
+    logger.debug('Retrieved income by tag:', {
+      userId: user_id,
+      tags: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching income by tag:', error);
+    logger.error('Error fetching income by tag:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income by tag'

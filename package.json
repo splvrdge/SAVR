@@ -23,7 +23,8 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.11.5",
     "node-cron": "^3.0.3",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
+const logger = require("../utils/logger");
 const {
   secretKey,
   tokenExpiration,
@@ -70,6 +71,7 @@ exports.login = async (req, res) => {
 
           await connection.commit();
 
+          logger.info('User logged in successfully:', { userId: user.user_id, email: user.user_email });
           res.json({
             success: true,
             message: "Login successful",
@@ -80,17 +82,28 @@ exports.login = async (req, res) => {
           });
         } catch (error) {
           await connection.rollback();
+          logger.error('Login failed:', { 
+            email: user.user_email,
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+          });
           throw error;
         } finally {
           connection.release();
         }
       } else {
+        logger.warn('Login attempt with invalid password:', { email: user_email });
         res.status(401).json({ success: false, message: "Invalid email or password" });
       }
     } else {
+      logger.warn('Login attempt with non-existent email:', { email: user_email });
       res.status(401).json({ success: false, message: "Invalid email or password" });
     }
   } catch (err) {
+    logger.error('Error in login:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     console.error("Error in login:", err);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
@@ -135,6 +148,7 @@ exports.signup = async (req, res) => {
 
       await connection.commit();
 
+      logger.info('User registered successfully:', { userId: user.user_id, email: user.user_email });
       res.json({
         success: true,
         message: "Signup successful",
@@ -145,11 +159,20 @@ exports.signup = async (req, res) => {
       });
     } catch (error) {
       await connection.rollback();
+      logger.error('Registration failed:', { 
+        email: user.user_email,
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
       throw error;
     } finally {
       connection.release();
     }
   } catch (err) {
+    logger.error('Error signing up:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     console.error("Error signing up:", err);
     res.status(500).json({ success: false, message: "Failed to create user" });
   }
@@ -159,6 +182,7 @@ exports.refreshToken = async (req, res) => {
   const { refresh_token } = req.body;
 
   if (!refresh_token) {
+    logger.warn('Refresh token attempt without token');
     return res.status(401).json({ success: false, message: "Refresh token required" });
   }
 
@@ -169,6 +193,7 @@ exports.refreshToken = async (req, res) => {
     );
 
     if (tokens.length === 0) {
+      logger.warn('Refresh token attempt with invalid token');
       return res.status(401).json({ success: false, message: "Invalid refresh token" });
     }
 
@@ -183,6 +208,7 @@ exports.refreshToken = async (req, res) => {
     );
 
     if (users.length === 0) {
+      logger.warn('Refresh token attempt with non-existent user', { userId: user_id });
       return res.status(401).json({ success: false, message: "User not found" });
     }
 
@@ -208,6 +234,7 @@ exports.refreshToken = async (req, res) => {
 
       await connection.commit();
 
+      logger.info('Refresh token generated successfully:', { userId: user_id });
       res.json({
         success: true,
         accessToken,
@@ -215,12 +242,19 @@ exports.refreshToken = async (req, res) => {
       });
     } catch (error) {
       await connection.rollback();
+      logger.error('Refresh token generation failed:', { 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
       throw error;
     } finally {
       connection.release();
     }
   } catch (err) {
-    console.error("Error in refresh token:", err);
+    logger.error('Error in refresh token:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
       return res.status(401).json({ success: false, message: "Invalid refresh token" });
     }
@@ -232,6 +266,7 @@ exports.logout = async (req, res) => {
   const { refresh_token } = req.body;
 
   if (!refresh_token) {
+    logger.warn('Logout attempt without token');
     return res.status(400).json({ success: false, message: "Refresh token required" });
   }
 
@@ -241,9 +276,13 @@ exports.logout = async (req, res) => {
       [refresh_token]
     );
 
+    logger.info('User logged out successfully');
     res.json({ success: true, message: "Logged out successfully" });
   } catch (err) {
-    console.error("Error in logout:", err);
+    logger.error('Error in logout:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -256,11 +295,16 @@ exports.checkEmail = async (req, res) => {
     const [results] = await db.execute(query, [user_email]);
 
     if (results.length > 0) {
+      logger.warn('Email check attempt with existing email:', { email: user_email });
       res.json({ available: false, message: "Email is already taken" });
     } else {
       res.json({ available: true, message: "Email is available" });
     }
   } catch (err) {
+    logger.error('Error checking email:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
     console.error("Error checking email:", err);
     res
       .status(500)
@@ -273,6 +317,7 @@ exports.refreshTokenController = async (req, res) => {
     const { refreshToken } = req.body;
     
     if (!refreshToken) {
+      logger.warn('Refresh token attempt without token');
       return res.status(400).json({
         success: false,
         message: "Refresh token is required"
@@ -286,6 +331,7 @@ exports.refreshTokenController = async (req, res) => {
     );
 
     if (user.length === 0) {
+      logger.warn('Refresh token attempt with non-existent user', { userId: decoded.user_id });
       return res.status(404).json({
         success: false,
         message: "User not found"
@@ -304,13 +350,17 @@ exports.refreshTokenController = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    logger.info('Refresh token generated successfully:', { userId: user[0].user_id });
     res.json({
       success: true,
       accessToken,
       refreshToken: newRefreshToken
     });
   } catch (error) {
-    console.error('Error in refreshToken:', error);
+    logger.error('Refresh token generation failed:', { 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
