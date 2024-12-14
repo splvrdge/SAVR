@@ -154,7 +154,7 @@ const Profile = () => {
   }
 
   return (
-    <View className="flex-1 bg-customGreen">
+    <View className="flex-1">
       <StatusBar style="light" />
       <SafeAreaView className="flex-1">
         <ScrollView

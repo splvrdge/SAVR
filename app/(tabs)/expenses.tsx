@@ -347,13 +347,15 @@ export default function Expenses() {
         sortOptions={[
           { id: 'date', label: 'Date' },
           { id: 'category', label: 'Category' },
-          { id: 'amount', label: 'Amount' }
+          { id: 'amount', label: 'Amount' },
         ]}
         selectedSort={sortBy}
         sortOrder={sortOrder}
         onSortChange={setSortBy}
         onSortOrderChange={toggleSortOrder}
+        themeColor="#DC2626" // custom color for this page
       />
+
 
       {isLoading ? (
         <View className="flex-1 justify-center items-center bg-white">
@@ -426,7 +428,10 @@ export default function Expenses() {
             )}
           </ScrollView>
 
-          <AddButton onPress={() => setShowModal(true)} />
+          <AddButton 
+            onPress={() => setShowModal(true)} 
+            themeColor="#FF5733" // Custom color for the button
+          />
           
           {/* Add/Edit Modal */}
           <Modal

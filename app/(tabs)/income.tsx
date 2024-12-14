@@ -366,12 +366,13 @@ export default function IncomeScreen() {
         sortOptions={[
           { id: 'date', label: 'Date' },
           { id: 'category', label: 'Category' },
-          { id: 'amount', label: 'Amount' }
+          { id: 'amount', label: 'Amount' },
         ]}
         selectedSort={sortBy}
         sortOrder={sortOrder}
         onSortChange={setSortBy}
         onSortOrderChange={toggleSortOrder}
+        themeColor="#2E8B57" // custom color for this page
       />
 
       {/* Add Income Button */}
@@ -382,7 +383,9 @@ export default function IncomeScreen() {
         setDescription('');
         setSelectedCategory(categories[0].id);
         setShowModal(true);
-      }} />
+      }}
+      themeColor="#2E8B57" // custom color for this page
+      />
 
       {/* Income List */}
       <ScrollView
