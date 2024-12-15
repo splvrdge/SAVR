@@ -175,7 +175,7 @@ exports.addContribution = async (req, res) => {
       `SELECT g.*, 
         COALESCE((SELECT SUM(amount) FROM goal_contributions WHERE goal_id = g.goal_id), 0) as current_amount
        FROM goals g 
-       WHERE g.goal_id = ? AND g.user_id = ? AND g.is_completed = FALSE`,
+       WHERE g.goal_id = ? AND g.user_id = ?`,
       [goal_id, userId]
     );
 
@@ -186,11 +186,22 @@ exports.addContribution = async (req, res) => {
       });
       return res.status(404).json({
         success: false,
-        message: 'Goal not found, unauthorized, or already completed'
+        message: 'Goal not found or unauthorized'
       });
     }
 
     const goal = goals[0];
+    if (goal.is_completed) {
+      logger.warn('Attempt to contribute to completed goal:', {
+        userId,
+        goal_id
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot contribute to a completed goal'
+      });
+    }
+
     const newAmount = parseFloat(goal.current_amount || 0) + parseFloat(amount);
 
     // Add contribution
