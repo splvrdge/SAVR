@@ -152,76 +152,78 @@ exports.addContribution = async (req, res) => {
       });
     }
 
+    if (!goal_id || !amount) {
+      logger.warn('Missing required fields:', { goal_id, amount });
+      return res.status(400).json({
+        success: false,
+        message: 'Goal ID and amount are required'
+      });
+    }
+
     logger.info('Adding contribution:', {
       userId,
       goal_id,
       amount,
-      notes,
-      body: req.body
+      notes
     });
 
     connection = await db.getConnection();
     await connection.beginTransaction();
 
-    try {
-      // Verify goal ownership
-      const [goals] = await connection.execute(
-        'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
-        [goal_id, userId]
-      );
+    // Verify goal ownership and status
+    const [goals] = await connection.execute(
+      'SELECT * FROM goals WHERE goal_id = ? AND user_id = ? AND is_completed = FALSE',
+      [goal_id, userId]
+    );
 
-      if (goals.length === 0) {
-        logger.warn('Goal not found or unauthorized:', {
-          userId,
-          goal_id
-        });
-        return res.status(404).json({
-          success: false,
-          message: 'Goal not found or unauthorized'
-        });
-      }
-
-      // Add contribution
-      const [result] = await connection.execute(
-        'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        [goal_id, userId, amount, notes || null]
-      );
-
-      // Update goal progress
-      await connection.execute(
-        'UPDATE goals SET current_amount = COALESCE(current_amount, 0) + ? WHERE goal_id = ?',
-        [amount, goal_id]
-      );
-
-      await connection.commit();
-
-      logger.info('Contribution added:', {
-        contributionId: result.insertId,
-        goalId: goal_id,
-        amount: amount
+    if (goals.length === 0) {
+      logger.warn('Goal not found or unauthorized:', {
+        userId,
+        goal_id
       });
-
-      res.status(201).json({
-        success: true,
-        message: 'Contribution added successfully',
-        data: {
-          contribution_id: result.insertId,
-          amount: amount,
-          notes: notes || null,
-          created_at: new Date()
-        }
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found, unauthorized, or already completed'
       });
-    } catch (error) {
-      logger.error('Database error during contribution:', {
-        error: error.message,
-        code: error.code,
-        sqlState: error.sqlState,
-        sqlMessage: error.sqlMessage,
-        sql: error.sql,
-        parameters: [goal_id, userId, amount, notes]
-      });
-      throw error;
     }
+
+    const goal = goals[0];
+    const newAmount = parseFloat(goal.current_amount || 0) + parseFloat(amount);
+
+    // Add contribution
+    const [result] = await connection.execute(
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      [goal_id, userId, amount, notes || null]
+    );
+
+    // Update goal progress
+    await connection.execute(
+      'UPDATE goals SET current_amount = ?, updated_at = NOW(), is_completed = ? WHERE goal_id = ?',
+      [newAmount, newAmount >= goal.target_amount, goal_id]
+    );
+
+    await connection.commit();
+
+    logger.info('Contribution added:', {
+      contributionId: result.insertId,
+      goalId: goal_id,
+      amount: amount,
+      newTotal: newAmount,
+      isCompleted: newAmount >= goal.target_amount
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Contribution added successfully',
+      data: {
+        contribution_id: result.insertId,
+        amount: amount,
+        notes: notes || null,
+        current_amount: newAmount,
+        is_completed: newAmount >= goal.target_amount,
+        created_at: new Date()
+      }
+    });
   } catch (error) {
     if (connection) {
       await connection.rollback();

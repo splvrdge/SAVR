@@ -21,7 +21,7 @@ router.post(
 
 router.post(
   "/check-email",
-  body("email")
+  body("user_email")
     .trim()
     .isEmail()
     .withMessage("Please enter a valid email address"),

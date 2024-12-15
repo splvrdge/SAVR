@@ -305,13 +305,20 @@ exports.checkEmail = async (req, res) => {
   const { user_email } = req.body;
   let connection;
 
+  if (!user_email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required'
+    });
+  }
+
   try {
     connection = await db.getConnection();
     const query = `SELECT * FROM users WHERE user_email = ?`;
     const [results] = await connection.execute(query, [user_email]);
 
     if (results.length > 0) {
-      logger.warn('Email check attempt with existing email:', { email: user_email });
+      logger.warn('Email check attempt with existing email:', { user_email });
       res.status(200).json({ available: false, message: "Email is already taken" });
     } else {
       res.status(200).json({ available: true, message: "Email is available" });
