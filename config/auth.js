@@ -1,9 +1,9 @@
 const crypto = require("crypto");
 
 const secretKey =
-  process.env.SECRET_KEY || crypto.randomBytes(32).toString("hex");
+  process.env.SECRET_KEY;
 const refreshTokenSecret =
-  process.env.REFRESH_TOKEN_SECRET || crypto.randomBytes(32).toString("hex");
+  process.env.REFRESH_TOKEN_SECRET;
 
 const tokenExpiration = "15m";
 const refreshTokenExpiration = "7d";

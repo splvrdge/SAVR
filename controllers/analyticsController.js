@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const logger = require("../utils/logger");
 
 exports.getExpensesByCategory = async (req, res) => {
   const { user_id } = req.params;
@@ -47,12 +48,27 @@ exports.getExpensesByCategory = async (req, res) => {
       percentage: parseFloat(item.percentage) || 0
     }));
 
+    logger.debug('Retrieved expenses by category:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      categories: formattedData.length
+    });
+
     res.json({
       success: true,
       data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching expense analytics:', error);
+    logger.error('Error fetching expense analytics:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expense analytics'
@@ -107,12 +123,27 @@ exports.getIncomeByCategory = async (req, res) => {
       percentage: parseFloat(item.percentage) || 0
     }));
 
+    logger.debug('Retrieved income by category:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      categories: formattedData.length
+    });
+
     res.json({
       success: true,
       data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching income analytics:', error);
+    logger.error('Error fetching income analytics:', {
+      userId: user_id,
+      timeframe,
+      date,
+      year,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income analytics'
@@ -122,45 +153,67 @@ exports.getIncomeByCategory = async (req, res) => {
 
 exports.getMonthlyTrends = async (req, res) => {
   const { user_id } = req.params;
-  const { year } = req.query;
 
   try {
-    const currentYear = year || new Date().getFullYear();
-    
     const query = `
       SELECT 
         DATE_FORMAT(timestamp, '%Y-%m') as month,
         SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
         SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses,
-        COUNT(DISTINCT CASE WHEN type = 'income' THEN id END) as income_count,
-        COUNT(DISTINCT CASE WHEN type = 'expense' THEN id END) as expense_count
-      FROM user_financial_data
-      WHERE user_id = ? 
-      AND YEAR(timestamp) = ?
+        COUNT(CASE WHEN type = 'income' THEN 1 END) as income_count,
+        COUNT(CASE WHEN type = 'expense' THEN 1 END) as expense_count,
+        AVG(CASE WHEN type = 'income' THEN amount END) as avg_income,
+        AVG(CASE WHEN type = 'expense' THEN amount END) as avg_expense
+      FROM (
+        SELECT 'income' as type, amount, timestamp FROM incomes WHERE user_id = ?
+        UNION ALL
+        SELECT 'expense' as type, amount, timestamp FROM expenses WHERE user_id = ?
+      ) as transactions
       GROUP BY DATE_FORMAT(timestamp, '%Y-%m')
-      ORDER BY month ASC
-    `;
+      ORDER BY month DESC
+      LIMIT 12`;
 
-    const [results] = await db.execute(query, [user_id, currentYear]);
-    
-    const formattedData = results.map(item => ({
-      month: item.month,
-      total_income: parseFloat(item.total_income) || 0,
-      total_expenses: parseFloat(item.total_expenses) || 0,
-      income_count: parseInt(item.income_count) || 0,
-      expense_count: parseInt(item.expense_count) || 0,
-      net: parseFloat(item.total_income - item.total_expenses) || 0
+    const [results] = await db.execute(query, [user_id, user_id]);
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No trends data found"
+      });
+    }
+
+    const trends = results.map(row => ({
+      month: row.month,
+      total_income: parseFloat(row.total_income || 0),
+      total_expenses: parseFloat(row.total_expenses || 0),
+      net_savings: parseFloat((row.total_income || 0) - (row.total_expenses || 0)),
+      income_count: row.income_count || 0,
+      expense_count: row.expense_count || 0,
+      avg_income: parseFloat(row.avg_income || 0),
+      avg_expense: parseFloat(row.avg_expense || 0)
     }));
 
     res.json({
       success: true,
-      data: formattedData
+      data: {
+        trends,
+        summary: {
+          total_months: trends.length,
+          average_monthly_savings: trends.reduce((acc, curr) => acc + curr.net_savings, 0) / trends.length,
+          highest_saving_month: trends.reduce((max, curr) => curr.net_savings > max.net_savings ? curr : max, trends[0]),
+          lowest_saving_month: trends.reduce((min, curr) => curr.net_savings < min.net_savings ? curr : min, trends[0])
+        }
+      }
     });
   } catch (error) {
-    console.error('Error fetching monthly trends:', error);
+    logger.error("Failed to get monthly trends:", {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch monthly trends'
+      message: "Error retrieving monthly trends"
     });
   }
 };
@@ -182,12 +235,25 @@ exports.getExpensesByDate = async (req, res) => {
 
     const [results] = await db.query(query, [user_id, start_date || new Date(Date.now() - 30*24*60*60*1000), end_date || new Date()]);
 
+    logger.debug('Retrieved expenses by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      dates: results.length
+    });
+
     res.json({
       success: true,
       data: results
     });
   } catch (error) {
-    console.error('Error fetching expenses by date:', error);
+    logger.error('Error fetching expenses by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expenses by date'
@@ -204,7 +270,7 @@ exports.getIncomeByDate = async (req, res) => {
       SELECT 
         DATE(timestamp) as date,
         SUM(amount) as total_amount
-      FROM income
+      FROM incomes
       WHERE user_id = ?
         AND timestamp BETWEEN ? AND ?
       GROUP BY DATE(timestamp)
@@ -212,12 +278,28 @@ exports.getIncomeByDate = async (req, res) => {
 
     const [results] = await db.query(query, [user_id, start_date || new Date(Date.now() - 30*24*60*60*1000), end_date || new Date()]);
 
-    res.json({
+    logger.debug('Retrieved income by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      dates: results.length
+    });
+
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        date: r.date,
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
-    console.error('Error fetching income by date:', error);
+    logger.error('Error fetching income by date:', {
+      userId: user_id,
+      startDate: start_date,
+      endDate: end_date,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income by date'
@@ -227,35 +309,71 @@ exports.getIncomeByDate = async (req, res) => {
 
 exports.getBudget = async (req, res) => {
   const { user_id } = req.params;
+  let connection;
 
   try {
+    connection = await db.getConnection();
+    
+    // First check if user exists
+    const [userExists] = await connection.execute(
+      'SELECT 1 FROM users WHERE user_id = ?',
+      [user_id]
+    );
+
+    if (userExists.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
     const query = `
       SELECT 
-        category,
-        budget_limit,
-        (
-          SELECT SUM(amount)
-          FROM expenses e2
-          WHERE e2.category = b.category
-          AND e2.user_id = b.user_id
-          AND MONTH(e2.timestamp) = MONTH(CURRENT_DATE())
-          AND YEAR(e2.timestamp) = YEAR(CURRENT_DATE())
-        ) as current_spending
+        b.category,
+        b.budget_limit,
+        COALESCE(SUM(e.amount), 0) as current_spending
       FROM budgets b
-      WHERE user_id = ?`;
+      LEFT JOIN expenses e ON 
+        b.category = e.category 
+        AND b.user_id = e.user_id
+        AND MONTH(e.timestamp) = MONTH(CURRENT_DATE())
+        AND YEAR(e.timestamp) = YEAR(CURRENT_DATE())
+      WHERE b.user_id = ?
+      GROUP BY b.category, b.budget_limit
+      ORDER BY b.category`;
 
-    const [results] = await db.query(query, [user_id]);
+    const [results] = await connection.execute(query, [user_id]);
 
-    res.json({
+    logger.debug('Retrieved budget:', {
+      userId: user_id,
+      categories: results.length
+    });
+
+    const formattedData = results.map(r => ({
+      category: r.category,
+      budget_limit: parseFloat(r.budget_limit) || 0,
+      current_spending: parseFloat(r.current_spending) || 0,
+      remaining: parseFloat(r.budget_limit || 0) - parseFloat(r.current_spending || 0)
+    }));
+
+    res.status(200).json({
       success: true,
-      data: results
+      data: formattedData
     });
   } catch (error) {
-    console.error('Error fetching budget:', error);
+    logger.error('Error fetching budget:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch budget information'
+      error: 'Error retrieving budget information'
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -273,22 +391,36 @@ exports.getSavings = async (req, res) => {
 
     const query = `
       SELECT 
-        (SELECT COALESCE(SUM(amount), 0) FROM income WHERE user_id = ? ${dateFilter}) as total_income,
+        (SELECT COALESCE(SUM(amount), 0) FROM incomes WHERE user_id = ? ${dateFilter}) as total_income,
         (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = ? ${dateFilter}) as total_expenses`;
 
     const [results] = await db.query(query, [user_id, user_id]);
-    const savings = results[0].total_income - results[0].total_expenses;
+    const total_income = parseFloat(results[0].total_income);
+    const total_expenses = parseFloat(results[0].total_expenses);
+    const savings = total_income - total_expenses;
 
-    res.json({
+    logger.debug('Calculated savings:', {
+      userId: user_id,
+      timeframe,
+      savings
+    });
+
+    res.status(200).json({
       success: true,
       data: {
-        total_income: results[0].total_income,
-        total_expenses: results[0].total_expenses,
-        savings: savings
+        total_income,
+        total_expenses,
+        savings,
+        savings_rate: total_income > 0 ? (savings / total_income) * 100 : 0
       }
     });
   } catch (error) {
-    console.error('Error calculating savings:', error);
+    logger.error('Error calculating savings:', {
+      userId: user_id,
+      timeframe,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to calculate savings'
@@ -302,23 +434,35 @@ exports.getExpensesByTag = async (req, res) => {
   try {
     const query = `
       SELECT 
-        et.tag_name,
+        e.category as tag_name,
         COUNT(*) as transaction_count,
         SUM(e.amount) as total_amount
       FROM expenses e
-      JOIN expense_tags et ON e.id = et.expense_id
       WHERE e.user_id = ?
-      GROUP BY et.tag_name
+      GROUP BY e.category
       ORDER BY total_amount DESC`;
 
     const [results] = await db.query(query, [user_id]);
 
-    res.json({
+    logger.debug('Retrieved expenses by tag:', {
+      userId: user_id,
+      tags: results.length
+    });
+
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        tag_name: r.tag_name,
+        transaction_count: parseInt(r.transaction_count),
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
-    console.error('Error fetching expenses by tag:', error);
+    logger.error('Error fetching expenses by tag:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch expenses by tag'
@@ -332,23 +476,35 @@ exports.getIncomeByTag = async (req, res) => {
   try {
     const query = `
       SELECT 
-        it.tag_name,
+        i.category as tag_name,
         COUNT(*) as transaction_count,
         SUM(i.amount) as total_amount
-      FROM income i
-      JOIN income_tags it ON i.id = it.income_id
+      FROM incomes i
       WHERE i.user_id = ?
-      GROUP BY it.tag_name
+      GROUP BY i.category
       ORDER BY total_amount DESC`;
 
     const [results] = await db.query(query, [user_id]);
 
-    res.json({
+    logger.debug('Retrieved income by tag:', {
+      userId: user_id,
+      tags: results.length
+    });
+
+    res.status(200).json({
       success: true,
-      data: results
+      data: results.map(r => ({
+        tag_name: r.tag_name,
+        transaction_count: parseInt(r.transaction_count),
+        total_amount: parseFloat(r.total_amount)
+      }))
     });
   } catch (error) {
-    console.error('Error fetching income by tag:', error);
+    logger.error('Error fetching income by tag:', {
+      userId: user_id,
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch income by tag'

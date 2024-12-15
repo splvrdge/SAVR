@@ -1,261 +1,424 @@
-const db = require("../config/db");
+const db = require('../config/db');
+const logger = require('../utils/logger');
 
-exports.addGoal = async (req, res) => {
-  const { user_id, title, target_amount, target_date } = req.body;
-  const query = `
-    INSERT INTO goals (
-      user_id, title, target_amount, target_date, current_amount
-    ) VALUES (?, ?, ?, ?, 0)
-  `;
-
+exports.createGoal = async (req, res) => {
+  let connection;
   try {
-    const [results] = await db.execute(query, [
-      user_id,
+    const { title, target_amount, target_date, description } = req.body;
+    const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    logger.info('Creating goal:', {
+      userId,
       title,
       target_amount,
       target_date,
-    ]);
-    res.status(201).json({ 
-      success: true, 
-      message: "Goal added successfully",
-      goal_id: results.insertId
+      description,
+      body: req.body
     });
-  } catch (err) {
-    console.error("Error adding goal:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to add goal",
-      error: err.message
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+      const [result] = await connection.execute(
+        'INSERT INTO goals (user_id, title, target_amount, target_date, description) VALUES (?, ?, ?, ?, ?)',
+        [userId, title, target_amount, target_date, description]
+      );
+
+      await connection.commit();
+
+      logger.info('Goal created:', {
+        goalId: result.insertId
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Goal created successfully',
+        data: {
+          goal_id: result.insertId
+        }
+      });
+    } catch (error) {
+      logger.error('Database error during goal creation:', {
+        error: error.message,
+        code: error.code,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        sql: error.sql,
+        parameters: [userId, title, target_amount, target_date, description]
+      });
+      throw error;
+    }
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    logger.error('Failed to create goal:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      body: req.body,
+      userId: req.user?.user_id
     });
+    res.status(500).json({
+      success: false,
+      message: 'Error creating goal'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
 exports.getGoals = async (req, res) => {
-  const { user_id } = req.params;
-  
-  if (!user_id) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "User ID is required" 
-    });
-  }
-
+  let connection;
   try {
-    const [userExists] = await db.execute(
-      "SELECT user_id FROM users WHERE user_id = ?",
-      [user_id]
-    );
+    const userId = req.user.user_id;
 
-    if (userExists.length === 0) {
-      return res.json({ 
-        success: true, 
-        data: [] 
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
       });
     }
 
-    const query = `
-      SELECT 
-        goal_id,
-        user_id,
-        title,
-        target_amount,
-        COALESCE(current_amount, 0) as current_amount,
-        target_date,
-        created_at,
-        updated_at,
-        DATEDIFF(target_date, CURDATE()) as days_remaining,
-        COALESCE(ROUND((current_amount / target_amount * 100), 2), 0) as progress_percentage
-      FROM goals
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-    `;
+    connection = await db.getConnection();
 
-    console.log('Goals Query:', query);
-    console.log('User ID:', user_id);
+    try {
+      const [goals] = await connection.execute(`
+        SELECT 
+          g.*,
+          COALESCE(SUM(gc.amount), 0) as current_amount,
+          COALESCE(COUNT(gc.contribution_id), 0) as contribution_count
+        FROM goals g
+        LEFT JOIN goal_contributions gc ON g.goal_id = gc.goal_id
+        WHERE g.user_id = ?
+        GROUP BY g.goal_id
+        ORDER BY g.created_at DESC
+      `, [userId]);
 
-    const [results] = await db.execute(query, [user_id]);
-    
-    const formattedGoals = results.map(goal => ({
-      ...goal,
-      target_amount: parseFloat(goal.target_amount),
-      current_amount: parseFloat(goal.current_amount),
-      progress_percentage: parseFloat(goal.progress_percentage)
-    }));
-
-    res.json({ 
-      success: true, 
-      data: formattedGoals
+      res.json({
+        success: true,
+        data: goals || []
+      });
+    } catch (error) {
+      logger.error('Database error during goal retrieval:', {
+        error: error.message,
+        code: error.code,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        sql: error.sql,
+        parameters: [userId]
+      });
+      throw error;
+    }
+  } catch (error) {
+    logger.error('Failed to get goals:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
-  } catch (err) {
-    console.error("Error fetching goals:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch goals",
-      error: err.message
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving goals'
     });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
+exports.addContribution = async (req, res) => {
+  let connection;
+  try {
+    const { goal_id, amount, notes } = req.body;
+    const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    if (!goal_id || !amount) {
+      logger.warn('Missing required fields:', { goal_id, amount });
+      return res.status(400).json({
+        success: false,
+        message: 'Goal ID and amount are required'
+      });
+    }
+
+    logger.info('Adding contribution:', {
+      userId,
+      goal_id,
+      amount,
+      notes
+    });
+
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    // Verify goal ownership and status
+    const [goals] = await connection.execute(
+      `SELECT g.*, 
+        COALESCE((SELECT SUM(amount) FROM goal_contributions WHERE goal_id = g.goal_id), 0) as current_amount
+       FROM goals g 
+       WHERE g.goal_id = ? AND g.user_id = ? AND g.is_completed = FALSE`,
+      [goal_id, userId]
+    );
+
+    if (goals.length === 0) {
+      logger.warn('Goal not found or unauthorized:', {
+        userId,
+        goal_id
+      });
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found, unauthorized, or already completed'
+      });
+    }
+
+    const goal = goals[0];
+    const newAmount = parseFloat(goal.current_amount || 0) + parseFloat(amount);
+
+    // Add contribution
+    const [result] = await connection.execute(
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      [goal_id, userId, amount, notes || null]
+    );
+
+    // Update goal progress
+    await connection.execute(
+      'UPDATE goals SET current_amount = ?, updated_at = NOW(), is_completed = ? WHERE goal_id = ?',
+      [newAmount, newAmount >= goal.target_amount, goal_id]
+    );
+
+    await connection.commit();
+
+    logger.info('Contribution added:', {
+      contributionId: result.insertId,
+      goalId: goal_id,
+      amount: amount,
+      newTotal: newAmount,
+      isCompleted: newAmount >= goal.target_amount
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Contribution added successfully',
+      data: {
+        contribution_id: result.insertId,
+        amount: amount,
+        notes: notes || null,
+        current_amount: newAmount,
+        is_completed: newAmount >= goal.target_amount,
+        created_at: new Date()
+      }
+    });
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    logger.error('Failed to add contribution:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      body: req.body,
+      userId: req.user?.user_id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error adding contribution'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
 exports.updateGoal = async (req, res) => {
-  const { goal_id } = req.params;
-  const { title, target_amount, target_date } = req.body;
-  const query = `
-    UPDATE goals 
-    SET title = ?, 
-        target_amount = ?, 
-        target_date = ?
-    WHERE goal_id = ?
-  `;
-
+  let connection;
   try {
-    await db.execute(query, [
+    const { goal_id } = req.params;
+    const { title, target_amount, target_date, description } = req.body;
+    const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    logger.info('Updating goal:', {
+      userId,
+      goal_id,
       title,
       target_amount,
       target_date,
-      goal_id
-    ]);
-    res.json({ success: true, message: "Goal updated successfully" });
-  } catch (err) {
-    console.error("Error updating goal:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to update goal",
-      error: err.message
+      description,
+      body: req.body
     });
+
+    connection = await db.getConnection();
+
+    try {
+      const [goal] = await connection.execute(
+        'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
+        [goal_id, userId]
+      );
+
+      if (goal.length === 0) {
+        logger.warn('Goal not found or unauthorized:', {
+          userId,
+          goal_id
+        });
+        return res.status(404).json({
+          success: false,
+          message: 'Goal not found or unauthorized'
+        });
+      }
+
+      await connection.beginTransaction();
+
+      await connection.execute(
+        'UPDATE goals SET title = ?, target_amount = ?, target_date = ?, description = ? WHERE goal_id = ? AND user_id = ?',
+        [title, target_amount, target_date, description, goal_id, userId]
+      );
+
+      await connection.commit();
+
+      logger.info('Goal updated:', {
+        goalId: goal_id
+      });
+
+      res.json({
+        success: true,
+        message: 'Goal updated successfully'
+      });
+    } catch (error) {
+      logger.error('Database error during goal update:', {
+        error: error.message,
+        code: error.code,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        sql: error.sql,
+        parameters: [title, target_amount, target_date, description, goal_id, userId]
+      });
+      throw error;
+    }
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    logger.error('Failed to update goal:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error updating goal'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
 exports.deleteGoal = async (req, res) => {
-  const { goal_id } = req.params;
-  const query = `DELETE FROM goals WHERE goal_id = ?`;
-
+  let connection;
   try {
-    await db.execute(query, [goal_id]);
-    res.json({ success: true, message: "Goal deleted successfully" });
-  } catch (err) {
-    console.error("Error deleting goal:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to delete goal",
-      error: err.message
-    });
-  }
-};
+    const { goal_id } = req.params;
+    const userId = req.user.user_id;
 
-// New contribution-related endpoints
-exports.addContribution = async (req, res) => {
-  const { goal_id, user_id, amount, notes } = req.body;
-  
-  // Validate input
-  if (!goal_id || !user_id || !amount) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Missing required fields: goal_id, user_id, and amount are required" 
-    });
-  }
-
-  if (isNaN(amount) || amount <= 0) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Amount must be a positive number" 
-    });
-  }
-
-  const connection = await db.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    // Check if goal exists and belongs to user
-    const [goals] = await connection.execute(
-      'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
-      [goal_id, user_id]
-    );
-
-    if (goals.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ 
-        success: false, 
-        message: "Goal not found or does not belong to user" 
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
       });
     }
 
-    // Add contribution
-    const [contribution] = await connection.execute(
-      `INSERT INTO goal_contributions (goal_id, user_id, amount, notes) 
-       VALUES (?, ?, ?, ?)`,
-      [goal_id, user_id, amount, notes || null]
-    );
-
-    await connection.commit();
-    
-    res.status(201).json({ 
-      success: true, 
-      message: "Contribution added successfully",
-      contribution_id: contribution.insertId
+    logger.info('Deleting goal:', {
+      userId,
+      goal_id
     });
-  } catch (err) {
-    await connection.rollback();
-    console.error("Error adding contribution:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to add contribution",
-      error: err.message
+
+    connection = await db.getConnection();
+
+    try {
+      const [goal] = await connection.execute(
+        'SELECT * FROM goals WHERE goal_id = ? AND user_id = ?',
+        [goal_id, userId]
+      );
+
+      if (goal.length === 0) {
+        logger.warn('Goal not found or unauthorized:', {
+          userId,
+          goal_id
+        });
+        return res.status(404).json({
+          success: false,
+          message: 'Goal not found or unauthorized'
+        });
+      }
+
+      await connection.beginTransaction();
+
+      await connection.execute('DELETE FROM goals WHERE goal_id = ? AND user_id = ?', [goal_id, userId]);
+
+      await connection.commit();
+
+      logger.info('Goal deleted:', {
+        goalId: goal_id
+      });
+
+      res.json({
+        success: true,
+        message: 'Goal deleted successfully'
+      });
+    } catch (error) {
+      logger.error('Database error during goal deletion:', {
+        error: error.message,
+        code: error.code,
+        sqlState: error.sqlState,
+        sqlMessage: error.sqlMessage,
+        sql: error.sql,
+        parameters: [goal_id, userId]
+      });
+      throw error;
+    }
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    logger.error('Failed to delete goal:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id
     });
-  } finally {
-    connection.release();
-  }
-};
-
-exports.getContributions = async (req, res) => {
-  const { goal_id } = req.params;
-  const query = `
-    SELECT 
-      gc.*,
-      DATE_FORMAT(gc.contribution_date, '%Y-%m-%d') as formatted_date
-    FROM goal_contributions gc
-    WHERE gc.goal_id = ?
-    ORDER BY gc.contribution_date DESC
-  `;
-
-  try {
-    const [results] = await db.execute(query, [goal_id]);
-    res.json({ success: true, data: results });
-  } catch (err) {
-    console.error("Error fetching contributions:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch contributions",
-      error: err.message
-    });
-  }
-};
-
-exports.deleteContribution = async (req, res) => {
-  const { contribution_id } = req.params;
-  
-  const connection = await db.getConnection();
-  try {
-    await connection.beginTransaction();
-
-    // Delete contribution
-    await connection.execute(
-      'DELETE FROM goal_contributions WHERE contribution_id = ?',
-      [contribution_id]
-    );
-
-    // The triggers will automatically update the goal's progress
-
-    await connection.commit();
-    res.json({ success: true, message: "Contribution deleted successfully" });
-  } catch (err) {
-    await connection.rollback();
-    console.error("Error deleting contribution:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to delete contribution",
-      error: err.message
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting goal'
     });
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 };

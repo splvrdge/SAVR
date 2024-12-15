@@ -1,5 +1,7 @@
+const bcrypt = require('bcrypt');
 const db = require("../config/db");
 const jwt = require("jsonwebtoken");
+const logger = require('../utils/logger');
 const { secretKey, tokenExpiration, refreshTokenSecret, refreshTokenExpiration } = require("../config/auth");
 
 function generateAccessToken(user) {
@@ -22,137 +24,124 @@ function generateRefreshToken(user) {
 
 // Update user profile
 exports.updateProfile = async (req, res) => {
-  const { name, email } = req.body;
-  const currentUserMail = req.user_email;
-
-  if (!name || !email) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Missing required fields" });
-  }
-
-  const connection = await db.getConnection();
   try {
-    await connection.beginTransaction();
+    const { name, email, currentPassword, newPassword } = req.body;
+    const userId = req.user.user_id;
 
-    // First check if email already exists (if changing email)
-    if (email !== currentUserMail) {
-      const [existingUsers] = await connection.execute(
-        'SELECT user_id FROM users WHERE user_email = ? AND user_email != ?',
-        [email, currentUserMail]
-      );
-      
-      if (existingUsers.length > 0) {
-        await connection.rollback();
-        return res.status(400).json({
-          success: false,
-          message: "Email already in use"
-        });
-      }
-    }
-
-    // Update user profile
-    const [results] = await connection.execute(
-      `UPDATE users SET user_name = ?, user_email = ? WHERE user_email = ?`,
-      [name, email, currentUserMail]
+    const [users] = await db.execute(
+      'SELECT * FROM users WHERE user_id = ?',
+      [userId]
     );
 
-    if (results.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+    if (!users[0]) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
-    // If email was changed, revoke all tokens and generate new ones
-    if (email !== currentUserMail) {
-      // Get user information for new tokens
-      const [userInfo] = await connection.execute(
-        'SELECT user_id, user_name, user_email FROM users WHERE user_email = ?',
-        [email]
-      );
-      
-      if (userInfo.length === 0) {
-        await connection.rollback();
-        return res.status(404).json({ 
-          success: false, 
-          message: "User not found after update" 
+    let updates = {};
+    let params = [];
+    let setStatements = [];
+
+    if (name) {
+      setStatements.push('user_name = ?');
+      params.push(name);
+      updates.name = name;
+    }
+
+    if (email) {
+      setStatements.push('user_email = ?');
+      params.push(email);
+      updates.email = email;
+    }
+
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Current password is required to set new password'
         });
       }
 
-      const user = userInfo[0];
+      const validPassword = await bcrypt.compare(currentPassword, users[0].user_password);
+      if (!validPassword) {
+        return res.status(401).json({
+          success: false,
+          message: 'Current password is incorrect'
+        });
+      }
 
-      // Revoke old tokens
-      await connection.execute(
-        `UPDATE tokens SET is_revoked = TRUE WHERE user_id = ?`,
-        [user.user_id]
-      );
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      setStatements.push('user_password = ?');
+      params.push(hashedPassword);
+      updates.password = '********';
+    }
 
-      // Generate new tokens
-      const accessToken = generateAccessToken(user);
-      const refreshToken = generateRefreshToken(user);
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-      // Store new refresh token
-      await connection.execute(
-        `INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)`,
-        [user.user_id, refreshToken, expiresAt]
-      );
-
-      await connection.commit();
-      
-      return res.json({ 
-        success: true, 
-        message: "Profile updated successfully",
-        requireRelogin: true,
-        accessToken,
-        refreshToken,
-        user_name: user.user_name,
-        user_id: user.user_id
+    if (setStatements.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No updates provided'
       });
     }
 
-    await connection.commit();
-    
-    res.json({ 
-      success: true, 
-      message: "Profile updated successfully",
-      requireRelogin: false
-    });
+    params.push(userId);
+    const updateQuery = `
+      UPDATE users 
+      SET ${setStatements.join(', ')} 
+      WHERE user_id = ?
+    `;
 
-  } catch (err) {
-    await connection.rollback();
-    console.error("Error updating profile:", err);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to update profile" 
+    await db.execute(updateQuery, params);
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updates
     });
-  } finally {
-    connection.release();
+  } catch (error) {
+    logger.error('Error updating profile:', { 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id 
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile'
+    });
   }
 };
 
 // Get secured user information
 exports.getSecuredInfo = async (req, res) => {
-  const query = `SELECT user_name FROM users WHERE user_email = ?`;
   try {
-    const [results] = await db.execute(query, [req.user_email]);
+    const userId = req.user.user_id;
 
-    if (results.length === 1) {
-      const user = results[0];
-      res.json({
-        success: true,
-        message: "User authenticated",
-        user_name: user.user_name,
+    const [users] = await db.execute(
+      'SELECT user_id, user_name, user_email, created_at FROM users WHERE user_id = ?',
+      [userId]
+    );
+
+    if (!users[0]) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
-    } else {
-      res.status(404).json({ success: false, message: "User not found" });
     }
-  } catch (err) {
-    console.error("Error retrieving user information:", err);
-    res
-      .status(500)
-      .json({ success: false, message: "Error retrieving user information" });
+
+    res.json({
+      success: true,
+      data: users[0]
+    });
+  } catch (error) {
+    logger.error('Error getting user info:', { 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id 
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error getting user information'
+    });
   }
 };

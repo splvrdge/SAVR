@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -9,18 +10,28 @@ const expenseRoutes = require("./routes/expenseRoutes");
 const goalsRoutes = require("./routes/goalsRoutes");
 const financialRoutes = require("./routes/financialRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
 const cron = require("node-cron");
 const db = require("./config/db");
+const logger = require("./utils/logger");
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.set('trust proxy', 1);
 
-const PORT = process.env.SERVER_PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir);
+}
+
+// Rate limiter
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { success: false, message: "Too many requests, please try again later." }
+  windowMs: 60 * 1000, // 1 minute
+  max: 100 // limit each IP to 100 requests per windowMs
 });
 
 app.use(limiter);
@@ -29,7 +40,7 @@ app.use(bodyParser.json());
 const allowedOrigins = [
   'https://savr-fintracker.vercel.app',
   'https://savr-backend.onrender.com',
-  'http://localhost:3000',
+  'http://localhost:8081',
   'http://localhost:5173'
 ];
 
@@ -46,40 +57,147 @@ app.use(cors({
   credentials: true
 }));
 
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  next();
+// Define routes with their descriptions
+const routes = [
+  { path: "/api/auth", router: authRoutes, description: "Authentication endpoints" },
+  { path: "/api/users", router: userRoutes, description: "User management" },
+  { path: "/api/income", router: incomeRoutes, description: "Income tracking" },
+  { path: "/api/expenses", router: expenseRoutes, description: "Expense tracking" },
+  { path: "/api/goals", router: goalsRoutes, description: "Financial goals" },
+  { path: "/api/financial", router: financialRoutes, description: "Financial overview" },
+  { path: "/api/analytics", router: analyticsRoutes, description: "Financial analytics" },
+  { path: "/api/categories", router: categoryRoutes, description: "Transaction categories" }
+];
+
+// Mount all API routes
+routes.forEach(({ path, router }) => {
+  app.use(path, router);
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);
-app.use("/api/income", incomeRoutes);
-app.use("/api/expense", expenseRoutes);
-app.use("/api/goals", goalsRoutes);
-app.use("/api/financial", financialRoutes);
-app.use("/api/analytics", analyticsRoutes);
+// API documentation endpoint
+app.get("/api", (req, res) => {
+  const apiDocs = routes.map(({ path, description }) => ({
+    path,
+    description
+  }));
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
+  res.json({
+    name: "Savr-FinTracker API",
+    version: "1.0.0",
+    description: "Financial tracking and management API",
+    routes: apiDocs
   });
 });
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy" });
+});
+
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    name: "Savr-FinTracker API",
+    version: "1.0.0",
+    description: "Financial tracking and management API",
+    docs: "/api",
+    health: "/health"
+  });
+});
+
+// Handle 404 errors
+app.use((req, res) => {
+  logger.warn('Route not found:', { 
+    method: req.method,
+    url: req.url,
+    ip: req.ip
+  });
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error("Unhandled error:", {
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    method: req.method,
+    url: req.url,
+    ip: req.ip
+  });
+
+  res.status(500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'development' ? err.message : "Internal server error"
+  });
+});
+
+// Initialize database connection
+async function initializeDatabase() {
+  try {
+    const connection = await db.getConnection();
+    logger.info('Database connected successfully');
+    connection.release();
+  } catch (error) {
+    logger.error('Database connection failed:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+    throw error;
+  }
+}
+
+// Start server
+async function startServer() {
+  try {
+    await initializeDatabase();
+    app.listen(PORT, () => {
+      logger.info(`Server is running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+    process.exit(1);
+  }
+}
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', {
+    error: error.message,
+    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+  });
+  process.exit(1);
+});
+
+// Handle unhandled rejections
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Rejection:', {
+    error: reason.message,
+    stack: process.env.NODE_ENV === 'development' ? reason.stack : undefined
+  });
+  process.exit(1);
+});
+
+// Schedule token cleanup
 cron.schedule("0 0 * * *", async () => {
   try {
-    const query = `DELETE FROM tokens WHERE expires_at <= NOW()`;
-    await db.execute(query);
-    console.log("Expired tokens cleaned up");
-  } catch (err) {
-    console.error("Error cleaning up tokens:", err);
+    const connection = await db.getConnection();
+    await connection.execute('DELETE FROM tokens WHERE expires_at <= NOW()');
+    logger.info('Expired tokens cleaned up successfully');
+    connection.release();
+  } catch (error) {
+    logger.error('Failed to clean up expired tokens:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start the server
+startServer();

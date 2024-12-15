@@ -25,12 +25,14 @@ Thumbs.db
 .idea/
 *.swp
 
+# Test files
+tests/
+coverage/
+.nyc_output/
+
 # Build artifacts
 dist/
 build/
-
-# Coverage reports
-coverage/
 
 # Temporary files
 *.tmp
@@ -38,3 +40,7 @@ coverage/
 
 # Miscellaneous
 *.lock
+
+# Certificates
+*.pem
+ca.pem

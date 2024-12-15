@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index"
+    "start": "bun run index.js",
+    "dev": "bun --watch index.js",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
   },
   "author": "",
   "license": "ISC",
@@ -13,18 +18,22 @@
     "@react-native-async-storage/async-storage": "^1.23.1",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
-    "brcypt": "^1.0.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "express": "^4.19.1",
     "express-rate-limit": "^7.4.1",
     "express-validator": "^7.2.0",
     "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
-    "mysql2": "^3.10.3",
-    "node-cron": "^3.0.3"
+    "mysql2": "^3.11.5",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }

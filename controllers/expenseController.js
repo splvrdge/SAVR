@@ -1,7 +1,21 @@
 const db = require("../config/db");
+const logger = require("../utils/logger");
 
 exports.addExpense = async (req, res) => {
   const { user_id, amount, description, category } = req.body;
+
+  // Check if requesting user matches the user_id
+  if (parseInt(req.user.user_id) !== parseInt(user_id)) {
+    logger.warn('Unauthorized access attempt:', { 
+      requestingUserId: req.user.user_id, 
+      targetUserId: user_id 
+    });
+    return res.status(403).json({ 
+      success: false, 
+      message: "You are not authorized to add expenses for this user" 
+    });
+  }
+
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
   const connection = await db.getConnection();
@@ -63,10 +77,11 @@ exports.addExpense = async (req, res) => {
     ]);
 
     await connection.commit();
+    logger.info(`Expense added successfully for user ${user_id}`);
     res.status(201).json({ success: true, message: "Expense added successfully" });
   } catch (err) {
     await connection.rollback();
-    console.error("Error adding expense:", err);
+    logger.error('Failed to add expense:', { userId: user_id, error: err.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     connection.release();
@@ -75,6 +90,19 @@ exports.addExpense = async (req, res) => {
 
 exports.getExpenses = async (req, res) => {
   const { user_id } = req.params;
+
+  // Check if requesting user matches the user_id
+  if (parseInt(req.user.user_id) !== parseInt(user_id)) {
+    logger.warn('Unauthorized access attempt:', { 
+      requestingUserId: req.user.user_id, 
+      targetUserId: user_id 
+    });
+    return res.status(403).json({ 
+      success: false, 
+      message: "You are not authorized to view these expenses" 
+    });
+  }
+
   const query = `
     SELECT 
       e.expense_id as id,
@@ -104,13 +132,11 @@ exports.getExpenses = async (req, res) => {
       updated_at: item.updated_at,
       type: item.type
     }));
-    
-    res.json({ 
-      success: true, 
-      data: formattedResults 
-    });
+
+    logger.debug(`Retrieved ${formattedResults.length} expenses for user ${user_id}`);
+    res.json({ success: true, data: formattedResults });
   } catch (err) {
-    console.error("Error fetching expenses:", err);
+    logger.error('Failed to get expenses:', { userId: user_id, error: err.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -161,10 +187,11 @@ exports.updateExpense = async (req, res) => {
     await connection.execute(updateSummaryQuery, [oldAmount, amount, oldAmount, amount, new Date().toISOString().slice(0, 19).replace('T', ' '), user_id]);
 
     await connection.commit();
+    logger.info(`Expense ${expense_id} updated successfully for user ${user_id}`);
     res.json({ success: true, message: "Expense updated successfully" });
   } catch (err) {
     await connection.rollback();
-    console.error("Error updating expense:", err);
+    logger.error('Failed to update expense:', { expenseId: expense_id, error: err.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     connection.release();
@@ -218,10 +245,11 @@ exports.deleteExpense = async (req, res) => {
     await connection.execute(updateSummaryQuery, [amount, amount, new Date().toISOString().slice(0, 19).replace('T', ' '), user_id]);
 
     await connection.commit();
+    logger.info(`Expense ${expense_id} deleted successfully for user ${user_id}`);
     res.json({ success: true, message: "Expense deleted successfully" });
   } catch (err) {
     await connection.rollback();
-    console.error("Error deleting expense:", err);
+    logger.error('Failed to delete expense:', { expenseId: expense_id, error: err.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     connection.release();
