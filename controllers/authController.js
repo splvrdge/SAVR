@@ -339,14 +339,21 @@ exports.refreshTokenController = async (req, res) => {
       });
     }
 
+    logger.info('Attempting to refresh token:', { oldRefreshToken });
+
     connection = await db.getConnection();
     await connection.beginTransaction();
     
-    // Check if token exists and hasn't expired
+    // Check if token exists and hasn't expired (with 5 minute buffer)
     const [tokenResults] = await connection.execute(
-      "SELECT * FROM tokens WHERE refresh_token = ? AND expires_at > NOW()",
+      "SELECT * FROM tokens WHERE refresh_token = ? AND expires_at > DATE_SUB(NOW(), INTERVAL 5 MINUTE)",
       [oldRefreshToken]
     );
+
+    logger.info('Token lookup results:', { 
+      found: tokenResults.length > 0,
+      tokenResults: tokenResults[0] 
+    });
 
     if (tokenResults.length === 0) {
       logger.warn('Refresh token not found or expired');
@@ -356,12 +363,27 @@ exports.refreshTokenController = async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(oldRefreshToken, refreshTokenSecret);
+    let decoded;
+    try {
+      decoded = jwt.verify(oldRefreshToken, refreshTokenSecret);
+      logger.info('Token decoded successfully:', { userId: decoded.user_id });
+    } catch (err) {
+      logger.error('Token verification failed:', { error: err.message });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token"
+      });
+    }
     
     const [users] = await connection.execute(
       "SELECT user_id, user_email, user_name FROM users WHERE user_id = ?",
       [decoded.user_id]
     );
+
+    logger.info('User lookup results:', { 
+      found: users.length > 0,
+      userId: decoded.user_id 
+    });
 
     if (users.length === 0) {
       logger.warn('Refresh token attempt with non-existent user', { userId: decoded.user_id });
@@ -386,7 +408,10 @@ exports.refreshTokenController = async (req, res) => {
 
     await connection.commit();
 
-    logger.info('Token refreshed successfully:', { userId: user.user_id });
+    logger.info('Token refreshed successfully:', { 
+      userId: user.user_id,
+      newTokenExpiry: expiresAt 
+    });
 
     res.json({
       success: true,

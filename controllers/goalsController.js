@@ -172,7 +172,10 @@ exports.addContribution = async (req, res) => {
 
     // Verify goal ownership and status
     const [goals] = await connection.execute(
-      'SELECT * FROM goals WHERE goal_id = ? AND user_id = ? AND is_completed = FALSE',
+      `SELECT g.*, 
+        COALESCE((SELECT SUM(amount) FROM goal_contributions WHERE goal_id = g.goal_id), 0) as current_amount
+       FROM goals g 
+       WHERE g.goal_id = ? AND g.user_id = ? AND g.is_completed = FALSE`,
       [goal_id, userId]
     );
 
