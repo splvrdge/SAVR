@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: savr-fintracker-backend
+    env: node
+    buildCommand: curl -fsSL https://bun.sh/install | bash && ~/.bun/bin/bun install
+    startCommand: ~/.bun/bin/bun run dev
+    envVars:
+      - key: NODE_ENV
+        value: development
+      - key: PORT
+        value: 3000
+      - key: DB_HOST
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: REFRESH_TOKEN_SECRET
+        sync: false
