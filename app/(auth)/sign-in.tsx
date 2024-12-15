@@ -49,17 +49,20 @@ export default function SignIn() {
         const { accessToken, refreshToken, user_name, user_id } = data;
         
         // Store the tokens
-        await AsyncStorage.setItem('token', accessToken);
-        await AsyncStorage.setItem('refreshToken', refreshToken);
-        
-        // Store user data
         await AsyncStorage.multiSet([
+          ['accessToken', accessToken],
+          ['refreshToken', refreshToken],
           ['userId', user_id.toString()],
-          ['userName', user_name],
-          ['userEmail', email.trim().toLowerCase()]
+          ['userName', user_name]
         ]);
 
-        router.replace('/(tabs)/home');
+        // Reset the form
+        setEmail('');
+        setPassword('');
+        setIsLoading(false);
+
+        // Navigate to the main app
+        router.replace('/(tabs)');
       } else {
         Alert.alert('Error', data.message || 'Failed to sign in');
       }
