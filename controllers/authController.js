@@ -29,10 +29,14 @@ function generateRefreshToken(user) {
 
 exports.login = async (req, res) => {
   const { user_email, user_password } = req.body;
+  let connection;
 
   try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
     // Find user by email
-    const [users] = await db.execute(
+    const [users] = await connection.execute(
       'SELECT * FROM users WHERE user_email = ?',
       [user_email]
     );
@@ -50,7 +54,7 @@ exports.login = async (req, res) => {
     // Compare password
     const validPassword = await bcrypt.compare(user_password, user.user_password);
     if (!validPassword) {
-      logger.warn(`Login failed: Invalid password for user ${user_email}`);
+      logger.warn(`Login failed: Invalid password for user ${user.user_id}`);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
@@ -60,59 +64,45 @@ exports.login = async (req, res) => {
     // Generate tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+    // Save refresh token to database
+    await connection.execute(
+      'INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)',
+      [user.user_id, refreshToken, expiresAt]
+    );
 
-    const connection = await db.getConnection();
-    try {
-      await connection.beginTransaction();
+    await connection.commit();
 
-      const revokeOldTokensQuery = `
-        UPDATE tokens 
-        SET is_revoked = TRUE 
-        WHERE user_id = ? AND is_revoked = FALSE
-      `;
-      await connection.execute(revokeOldTokensQuery, [user.user_id]);
+    logger.info(`User logged in successfully: ${user.user_id}`);
 
-      const insertTokenQuery = `
-        INSERT INTO tokens (user_id, refresh_token, expires_at)
-        VALUES (?, ?, ?)
-      `;
-      await connection.execute(insertTokenQuery, [
-        user.user_id,
-        refreshToken,
-        expiresAt
-      ]);
-
-      await connection.commit();
-
-      logger.info('User logged in successfully:', { userId: user.user_id, email: user.user_email });
-      res.json({
-        success: true,
-        message: "Login successful",
-        accessToken,
-        refreshToken,
+    res.json({
+      success: true,
+      message: 'Login successful',
+      accessToken,
+      refreshToken,
+      user: {
+        user_id: user.user_id,
         user_name: user.user_name,
-        user_id: user.user_id
-      });
-    } catch (error) {
-      await connection.rollback();
-      logger.error('Login failed:', { 
-        email: user_email,
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-      });
-      throw error;
-    } finally {
-      connection.release();
-    }
+        user_email: user.user_email
+      }
+    });
   } catch (err) {
-    logger.error('Error in login:', { 
+    if (connection) {
+      await connection.rollback();
+    }
+    logger.error('Login error:', { 
       error: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-    console.error("Error in login:", err);
-    res.status(500).json({ success: false, message: "Internal server error" });
+    res.status(500).json({
+      success: false,
+      message: 'Error during login'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 };
 
@@ -166,7 +156,7 @@ exports.signup = async (req, res) => {
       // Create tokens
       const accessToken = generateAccessToken(user);
       const refreshToken = generateRefreshToken(user);
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
       const insertTokenQuery = `
         INSERT INTO tokens (user_id, refresh_token, expires_at)
@@ -240,7 +230,7 @@ exports.refreshToken = async (req, res) => {
     try {
       await connection.beginTransaction();
 
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await connection.execute(
         `INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)`,
         [user_id, newRefreshToken, expiresAt]
@@ -286,7 +276,7 @@ exports.logout = async (req, res) => {
 
   try {
     await db.execute(
-      `UPDATE tokens SET is_revoked = TRUE WHERE refresh_token = ?`,
+      `UPDATE tokens SET expires_at = NOW() WHERE refresh_token = ?`,
       [refresh_token]
     );
 
@@ -339,9 +329,9 @@ exports.checkEmail = async (req, res) => {
 exports.refreshTokenController = async (req, res) => {
   let connection;
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken: oldRefreshToken } = req.body;
     
-    if (!refreshToken) {
+    if (!oldRefreshToken) {
       logger.warn('Refresh token attempt without token');
       return res.status(400).json({
         success: false,
@@ -350,22 +340,23 @@ exports.refreshTokenController = async (req, res) => {
     }
 
     connection = await db.getConnection();
+    await connection.beginTransaction();
     
-    // Check if token exists and is not revoked
+    // Check if token exists and hasn't expired
     const [tokenResults] = await connection.execute(
-      "SELECT * FROM tokens WHERE refresh_token = ? AND is_revoked = FALSE",
-      [refreshToken]
+      "SELECT * FROM tokens WHERE refresh_token = ? AND expires_at > NOW()",
+      [oldRefreshToken]
     );
 
     if (tokenResults.length === 0) {
-      logger.warn('Refresh token not found or revoked');
+      logger.warn('Refresh token not found or expired');
       return res.status(401).json({
         success: false,
-        message: "Invalid refresh token"
+        message: "Invalid or expired refresh token"
       });
     }
 
-    const decoded = jwt.verify(refreshToken, refreshTokenSecret);
+    const decoded = jwt.verify(oldRefreshToken, refreshTokenSecret);
     
     const [users] = await connection.execute(
       "SELECT user_id, user_email, user_name FROM users WHERE user_id = ?",
@@ -381,54 +372,47 @@ exports.refreshTokenController = async (req, res) => {
     }
 
     const user = users[0];
+
+    // Generate new tokens
     const accessToken = generateAccessToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const refreshToken = generateRefreshToken(user);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    await connection.beginTransaction();
-
-    // Revoke old refresh token
+    // Save new refresh token
     await connection.execute(
-      "UPDATE tokens SET is_revoked = TRUE WHERE refresh_token = ?",
-      [refreshToken]
-    );
-
-    // Insert new refresh token
-    await connection.execute(
-      "INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)",
-      [user.user_id, newRefreshToken, expiresAt]
+      'INSERT INTO tokens (user_id, refresh_token, expires_at) VALUES (?, ?, ?)',
+      [user.user_id, refreshToken, expiresAt]
     );
 
     await connection.commit();
 
-    logger.info('Refresh token generated successfully:', { userId: user.user_id });
+    logger.info('Token refreshed successfully:', { userId: user.user_id });
+
     res.json({
       success: true,
+      message: "Token refreshed successfully",
       accessToken,
-      refreshToken: newRefreshToken,
-      user_name: user.user_name,
-      user_id: user.user_id
+      refreshToken
     });
-  } catch (error) {
+  } catch (err) {
     if (connection) {
       await connection.rollback();
     }
-    
-    logger.error('Refresh token generation failed:', { 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    logger.error('Error refreshing token:', { 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
-    
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
         message: "Invalid or expired refresh token"
       });
     }
-    
+
     res.status(500).json({
       success: false,
-      message: "Error refreshing access token"
+      message: "Error refreshing token"
     });
   } finally {
     if (connection) {
