@@ -94,6 +94,17 @@ app.get("/health", (req, res) => {
   res.json({ status: "healthy" });
 });
 
+// Root endpoint
+app.get("/", (req, res) => {
+  res.json({
+    name: "Savr-FinTracker API",
+    version: "1.0.0",
+    description: "Financial tracking and management API",
+    docs: "/api",
+    health: "/health"
+  });
+});
+
 // Handle 404 errors
 app.use((req, res) => {
   logger.warn('Route not found:', { 
