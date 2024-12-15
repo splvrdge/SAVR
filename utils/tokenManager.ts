@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_URL, API_ENDPOINTS } from '../constants/API';
 
 const TOKEN_KEYS = {
-  ACCESS_TOKEN: 'token',
+  ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
   USER_ID: 'userId',
   USER_NAME: 'userName'

@@ -1,56 +1,37 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '@/constants/API';
+import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import { router } from 'expo-router';
+import { Alert } from 'react-native';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 30000 // 30 second timeout for slow render.com startup
 });
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        return config;
-      }
-
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        console.log('No refresh token found');
-        return config;
-      }
-
-      try {
-        const response = await axios.post(`${API_URL}/api/auth/refresh-token`, {
-          refreshToken
-        });
-        
-        if (response.data.success) {
-          const { accessToken } = response.data;
-          await AsyncStorage.setItem('token', accessToken);
-          config.headers.Authorization = `Bearer ${accessToken}`;
-        } else {
-          console.error('Token refresh failed:', response.data);
-          // Clear tokens if refresh failed
-          await AsyncStorage.multiRemove(['token', 'refreshToken']);
-        }
-      } catch (refreshError) {
-        console.error('Error refreshing token:', refreshError.response?.data || refreshError.message);
-        // Clear tokens on refresh error
-        await AsyncStorage.multiRemove(['token', 'refreshToken']);
+      const accessToken = await AsyncStorage.getItem('accessToken');
+      if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
       }
       return config;
     } catch (error) {
-      console.error('Error in request interceptor:', error);
-      return config;
+      return Promise.reject(error);
     }
   },
   (error) => {
+    if (error.message === 'Network Error' || !error.response) {
+      Alert.alert(
+        'Connection Error',
+        'The server is taking longer than usual to respond. This might happen when the server is starting up. Please try again in a few seconds.'
+      );
+    }
     return Promise.reject(error);
   }
 );
@@ -59,32 +40,59 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (error.message === 'Network Error' || !error.response) {
+      Alert.alert(
+        'Connection Error',
+        'The server is taking longer than usual to respond. This might happen when the server is starting up. Please try again in a few seconds.'
+      );
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config;
 
-    // If the error is due to an expired token and we haven't tried to refresh yet
-    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
+    // If error is 401 and we haven't tried to refresh token yet
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (!refreshToken) {
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
           throw new Error('No refresh token found');
         }
 
-        const response = await axios.post(`${API_URL}/api/auth/refresh-token`, {
-          refreshToken
+        const response = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
+          refresh_token: refreshToken // Changed from refreshToken to refresh_token to match backend
+        }, {
+          timeout: 30000 // 30 second timeout for refresh token request
         });
 
         if (response.data.success) {
-          const { accessToken } = response.data;
-          await AsyncStorage.setItem('token', accessToken);
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+          await AsyncStorage.multiSet([
+            ['accessToken', newAccessToken],
+            ['refreshToken', newRefreshToken]
+          ]);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return axiosInstance(originalRequest);
+        } else {
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
+          throw new Error('Token refresh failed');
         }
       } catch (refreshError) {
-        console.error('Error refreshing token:', refreshError);
-        await AsyncStorage.multiRemove(['token', 'refreshToken', 'userId', 'userName', 'userEmail']);
-        throw new Error('Session expired. Please sign in again.');
+        if (refreshError.message === 'Network Error' || !refreshError.response) {
+          Alert.alert(
+            'Connection Error',
+            'The server is taking longer than usual to respond. This might happen when the server is starting up. Please try again in a few seconds.'
+          );
+        } else {
+          console.error('Error refreshing token:', refreshError.response?.data || refreshError.message);
+          await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'userId', 'userName']);
+          router.replace('/(auth)/sign-in');
+        }
+        throw refreshError;
       }
     }
 
