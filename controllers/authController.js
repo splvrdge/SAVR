@@ -176,8 +176,7 @@ exports.signup = async (req, res) => {
         message: "Signup successful",
         accessToken,
         refreshToken,
-        user_name,
-        user_id: user.user_id
+        user
       });
     } catch (error) {
       await connection.rollback();
