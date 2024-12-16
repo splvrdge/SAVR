@@ -61,7 +61,7 @@ export default function WeeklyAnalytics() {
         return;
       }
 
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = format(weekStart, 'yyyy-MM-dd');
       
       const [expenseResponse, incomeResponse] = await Promise.all([
         axiosInstance.get(API_ENDPOINTS.ANALYTICS.EXPENSES.replace(':user_id', userId), {
@@ -79,8 +79,11 @@ export default function WeeklyAnalytics() {
       ]);
 
       if (expenseResponse.data.success && incomeResponse.data.success) {
-        setExpenseData(expenseResponse.data.data);
-        setIncomeData(incomeResponse.data.data);
+        const expenseData = expenseResponse.data.data || [];
+        const incomeData = incomeResponse.data.data || [];
+        
+        setExpenseData(expenseData);
+        setIncomeData(incomeData);
       } else {
         throw new Error('Failed to fetch analytics data');
       }
@@ -92,7 +95,7 @@ export default function WeeklyAnalytics() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [router, selectedDate]);
+  }, [router, weekStart]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -186,7 +189,7 @@ export default function WeeklyAnalytics() {
               <Text style={styles.weekDateText}>
                 {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
               </Text>
-              {format(new Date(), 'yyyy-MM-dd') === format(weekStart, 'yyyy-MM-dd') && (
+              {format(weekStart, 'yyyy-MM-dd') === format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd') && (
                 <View style={styles.currentWeekBadge}>
                   <Text style={styles.currentWeekText}>Current Week</Text>
                 </View>
