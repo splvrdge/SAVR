@@ -125,23 +125,35 @@ export default function App() {
 
   const checkOnboardingStatus = async () => {
     try {
-      const hasOnboarded = await getItem("hasOnboarded");
-      const token = await getItem("token");
+      const [hasOnboarded, accessToken, token] = await Promise.all([
+        getItem("hasOnboarded"),
+        getItem("accessToken"),
+        getItem("token")
+      ]);
       
-      if (token) {
+      if (!isConnected) {
+        setIsLoading(false);
+        return;
+      }
+
+      const isAuthenticated = accessToken || token;
+
+      if (isAuthenticated) {
         router.replace("/(tabs)/home");
-      } else if (hasOnboarded) {
+      } else if (hasOnboarded === "true") {
         router.replace("/(auth)/sign-in");
       } else {
         setIsLoading(false);
       }
     } catch (error) {
+      console.error('Onboarding check error:', error);
       Alert.alert('Error', 'Failed to check onboarding status');
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(state.isConnected);
       if (state.isConnected) {
@@ -225,7 +237,7 @@ export default function App() {
                 style={[
                   styles.indicator,
                   {
-                    backgroundColor: index === currentIndex ? "#2E8B57" : "#E0E0E0",
+                    backgroundColor: index === currentIndex ? "#1E88E5" : "#E0E0E0",
                     width: index === currentIndex ? 20 : 8,
                   },
                 ]}
@@ -348,13 +360,13 @@ const styles = StyleSheet.create({
     transition: "all 0.3s ease",
   },
   button: {
-    backgroundColor: "#2E8B57",
+    backgroundColor: "#1E88E5",
     height: 56,
     borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    shadowColor: "#2E8B57",
+    shadowColor: "#1E88E5",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -369,7 +381,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   skipText: {
-    color: "#666666",
+    color: "#1E88E5",
     fontSize: responsiveFontSize(16),
     textAlign: "center",
     paddingVertical: 8,
