@@ -3,20 +3,19 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Image,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Dimensions,
   SafeAreaView,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import NetInfo from "@react-native-community/netinfo";
-import { MaterialCommunityIcons, Ionicons, Feather } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface User {
   name: string | null;
@@ -33,7 +32,7 @@ const Profile = () => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
       const userId = await AsyncStorage.getItem("userId");
-      
+
       if (!token || !userId) {
         handleLogout();
         return;
@@ -58,34 +57,34 @@ const Profile = () => {
   }, []);
 
   const handleLogout = async () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        onPress: async () => {
+          try {
+            await AsyncStorage.multiRemove([
+              "accessToken",
+              "userId",
+              "userName",
+            ]);
+            setUser(null);
+            router.replace("/(auth)/sign-in");
+          } catch (error) {
+            console.error("Error logging out:", error);
+            Alert.alert("Error", "Failed to logout. Please try again.");
+          }
         },
-        {
-          text: "Logout",
-          onPress: async () => {
-            try {
-              await AsyncStorage.multiRemove(["accessToken", "userId", "userName"]);
-              setUser(null);
-              router.replace("/(auth)/sign-in");
-            } catch (error) {
-              console.error("Error logging out:", error);
-              Alert.alert("Error", "Failed to logout. Please try again.");
-            }
-          },
-          style: "destructive"
-        }
-      ]
-    );
+        style: "destructive",
+      },
+    ]);
   };
 
   const handleEditProfile = () => {
-    router.push("/(profile)/edit-profile");
+    router.push("/edit-profile");
   };
 
   const handleRefresh = useCallback(async () => {
@@ -102,151 +101,307 @@ const Profile = () => {
     setRefreshing(false);
   }, []);
 
-  const SettingsItem = ({ icon, title, subtitle = "", onPress }) => (
-    <TouchableOpacity 
-      className="flex-row items-center bg-white my-1 mx-4 p-4 rounded-2xl shadow-sm"
-      style={{ 
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3
-      }}
+  const SettingsItem = ({ icon, title, subtitle = "", onPress, color = "#3B82F6" }) => (
+    <TouchableOpacity
+      style={styles.settingsItem}
       onPress={onPress}
     >
-      <View className="w-12 h-12 rounded-full bg-[#2E8B57]/10 items-center justify-center">
+      <View style={[styles.iconContainer, { backgroundColor: `${color}10` }]}>
         {icon}
       </View>
-      <View className="ml-4 flex-1">
-        <Text className="text-base font-semibold text-gray-800">{title}</Text>
+      <View style={styles.settingsContent}>
+        <Text style={styles.settingsTitle}>{title}</Text>
         {subtitle ? (
-          <Text className="text-sm text-gray-500 mt-0.5">{subtitle}</Text>
+          <Text style={styles.settingsSubtitle}>{subtitle}</Text>
         ) : null}
       </View>
-      <Feather name="chevron-right" size={24} color="#2E8B57" />
+      <MaterialCommunityIcons name="chevron-right" size={24} color={color} />
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#2E8B57" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );
   }
 
   if (!user) {
     return (
-      <View className="flex-1 justify-center items-center bg-white p-6">
+      <View style={styles.notLoggedInContainer}>
         <MaterialCommunityIcons name="account-off" size={64} color="#666" />
-        <Text className="text-xl font-semibold mt-4 mb-2 text-center">
-          Not Logged In
-        </Text>
-        <Text className="text-gray-600 mb-8 text-center">
+        <Text style={styles.notLoggedInTitle}>Not Logged In</Text>
+        <Text style={styles.notLoggedInSubtitle}>
           Please sign in to access your profile
         </Text>
         <TouchableOpacity
-          className="bg-[#2E8B57] py-3 px-8 rounded-full"
+          style={styles.signInButton}
           onPress={() => router.replace("/(auth)/sign-in")}
         >
-          <Text className="text-white font-semibold">Sign In</Text>
+          <Text style={styles.signInButtonText}>Sign In</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1">
+    <View style={styles.container}>
       <StatusBar style="light" />
-      <SafeAreaView className="flex-1">
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
-          showsVerticalScrollIndicator={false}
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <LinearGradient
+          colors={["#3B82F6", "#1D4ED8"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
         >
-          <LinearGradient
-            colors={['#2E8B57', '#3da370']}
-            className="pb-8 rounded-b-[40px] shadow-lg"
-          >
-            <SafeAreaView className="px-6">
-              <View className="flex-row items-center justify-between mb-8">
-                <TouchableOpacity 
-                  className="bg-white/20 p-2 rounded-full"
-                  onPress={() => router.back()}
-                >
-                  <Ionicons name="arrow-back" size={24} color="white" />
-                </TouchableOpacity>
-                <Text className="text-white text-2xl font-bold flex-1 text-center">Profile</Text>
-                <TouchableOpacity 
-                  className="bg-white/20 p-2 rounded-full"
-                  onPress={handleEditProfile}
-                >
-                  <Feather name="edit-2" size={20} color="white" />
-                </TouchableOpacity>
-              </View>
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
             
-              <View className="flex-row items-center">
-                <View className="w-24 h-24 rounded-2xl bg-white shadow-md justify-center items-center">
-                  <Text className="text-[#2E8B57] text-3xl font-bold">
-                    {user.name?.[0]?.toUpperCase() || "U"}
-                  </Text>
-                </View>
-                <View className="ml-5">
-                  <Text className="text-white text-xl font-bold mb-1">{user.name}</Text>
-                  <View className="bg-white/20 px-4 py-1 rounded-full">
-                    <Text className="text-white">Personal Account</Text>
-                  </View>
+            <View style={styles.profileInfo}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {user.name?.[0]?.toUpperCase() || "U"}
+                </Text>
+              </View>
+              <View style={styles.nameContainer}>
+                <Text style={styles.nameText}>{user.name}</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>Active Member</Text>
                 </View>
               </View>
-            </SafeAreaView>
-          </LinearGradient>
-
-          <View className="mt-6">
-            <Text className="px-6 mb-3 text-base font-semibold text-gray-800">
-              Account Settings
-            </Text>
-            
-            <SettingsItem
-              icon={<Ionicons name="person-outline" size={24} color="#2E8B57" />}
-              title="Personal Information"
-              subtitle="Update your profile details"
-              onPress={handleEditProfile}
-            />
-            
-            <SettingsItem
-              icon={<Ionicons name="lock-closed-outline" size={24} color="#2E8B57" />}
-              title="Security"
-              subtitle="Change password and security settings"
-              onPress={() => Alert.alert("Coming Soon", "This feature will be available soon!")}
-            />
-            
-            <SettingsItem
-              icon={<Ionicons name="shield-outline" size={24} color="#2E8B57" />}
-              title="Privacy"
-              subtitle="Manage your privacy settings"
-              onPress={() => Alert.alert("Coming Soon", "This feature will be available soon!")}
-            />
-            
-            <SettingsItem
-              icon={<Ionicons name="help-circle-outline" size={24} color="#2E8B57" />}
-              title="Help & Support"
-              subtitle="Get help or contact support"
-              onPress={() => Alert.alert("Coming Soon", "This feature will be available soon!")}
-            />
+            </View>
           </View>
+        </LinearGradient>
 
+        <View style={styles.content}>
+          <Text style={styles.sectionTitle}>Account Settings</Text>
+          
+          <SettingsItem
+            icon={<MaterialCommunityIcons name="account-edit" size={24} color="#3B82F6" />}
+            title="Edit Profile"
+            subtitle="Update your personal information"
+            onPress={handleEditProfile}
+          />
+          
+          <SettingsItem
+            icon={<MaterialCommunityIcons name="shield-lock" size={24} color="#3B82F6" />}
+            title="Security"
+            subtitle="Manage your account security"
+            onPress={() => {}}
+          />
+          
+          <SettingsItem
+            icon={<MaterialCommunityIcons name="bell-outline" size={24} color="#3B82F6" />}
+            title="Notifications"
+            subtitle="Customize your notification settings"
+            onPress={() => {}}
+          />
+          
+          <SettingsItem
+            icon={<MaterialCommunityIcons name="help-circle" size={24} color="#3B82F6" />}
+            title="Help & Support"
+            subtitle="Get help with your account"
+            onPress={() => {}}
+          />
+          
           <TouchableOpacity
-            className="mx-4 my-8 p-4 rounded-2xl bg-red-50 flex-row items-center justify-center"
+            style={styles.logoutButton}
             onPress={handleLogout}
           >
-            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-            <Text className="text-red-500 font-semibold ml-2">Sign Out</Text>
+            <View style={styles.logoutIconContainer}>
+              <MaterialCommunityIcons name="logout" size={24} color="#EF4444" />
+            </View>
+            <View style={styles.logoutContent}>
+              <Text style={styles.logoutTitle}>Logout</Text>
+              <Text style={styles.logoutSubtitle}>Sign out of your account</Text>
+            </View>
           </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
+      </ScrollView>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+  },
+  notLoggedInContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+    padding: 24,
+  },
+  notLoggedInTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginTop: 16,
+    marginBottom: 8,
+    color: "#1F2937",
+  },
+  notLoggedInSubtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginBottom: 32,
+    textAlign: "center",
+  },
+  signInButton: {
+    backgroundColor: "#3B82F6",
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 24,
+  },
+  signInButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  header: {
+    paddingBottom: 32,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  backButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    padding: 12,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    marginBottom: 24,
+  },
+  profileInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#3B82F6",
+  },
+  nameContainer: {
+    marginLeft: 20,
+  },
+  nameText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  badgeText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 14,
+  },
+  content: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 16,
+  },
+  settingsItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  settingsContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  settingsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+  },
+  settingsSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 16,
+  },
+  logoutIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "#FEE2E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logoutContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  logoutTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+  logoutSubtitle: {
+    fontSize: 14,
+    color: "#F87171",
+    marginTop: 2,
+  },
+});
 
 export default Profile;

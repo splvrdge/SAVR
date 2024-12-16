@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import WeeklyAnalytics from '../(analytics)/weekly';
@@ -27,25 +26,24 @@ export default function Analytics() {
   const tabs = [
     { id: 'weekly', label: 'Weekly', icon: 'calendar-week' },
     { id: 'monthly', label: 'Monthly', icon: 'calendar-month' },
-    { id: 'yearly', label: 'Yearly', icon: 'calendar-year' },
+    { id: 'yearly', label: 'Yearly', icon: 'calendar-month' },
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View className="flex-1 bg-[#F8F9FA]">
       <StatusBar style="dark" />
       <TabHeader 
         title="Analytics" 
         subtitle="Track your financial trends"
       />
       
-      <View style={styles.tabContainer}>
+      <View className="flex-row px-4 py-2 gap-2">
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
-            style={[
-              styles.tab,
-              selectedTab === tab.id && styles.selectedTab
-            ]}
+            className={`flex-1 flex-row items-center justify-center py-3 px-4 rounded-xl gap-2 ${
+              selectedTab === tab.id ? 'bg-blue-500' : 'bg-gray-100'
+            }`}
             onPress={() => setSelectedTab(tab.id as 'weekly' | 'monthly' | 'yearly')}
           >
             <MaterialCommunityIcons
@@ -54,10 +52,9 @@ export default function Analytics() {
               color={selectedTab === tab.id ? '#FFFFFF' : '#666666'}
             />
             <Text
-              style={[
-                styles.tabText,
-                selectedTab === tab.id && styles.selectedTabText
-              ]}
+              className={`text-sm font-medium ${
+                selectedTab === tab.id ? 'text-white' : 'text-gray-600'
+              }`}
             >
               {tab.label}
             </Text>
@@ -65,47 +62,9 @@ export default function Analytics() {
         ))}
       </View>
 
-      <View style={styles.content}>
+      <View className="flex-1 px-4">
         {renderContent()}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-    gap: 8,
-  },
-  selectedTab: {
-    backgroundColor: '#3B82F6',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666666',
-  },
-  selectedTabText: {
-    color: '#FFFFFF',
-  },
-  content: {
-    flex: 1,
-  },
-});

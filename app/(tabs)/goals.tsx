@@ -12,7 +12,6 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   SafeAreaView,
-  StyleSheet,
   Platform,
   KeyboardAvoidingView,
   Dimensions,
@@ -25,181 +24,6 @@ import axiosInstance from "@/utils/axiosConfig";
 import { StatusBar } from 'expo-status-bar';
 import TabHeader from '../../components/TabHeader';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  goalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  goalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  goalDescription: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 12,
-  },
-  progressContainer: {
-    marginVertical: 12,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E8F0FE',
-    marginVertical: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#3B82F6',
-    borderRadius: 4,
-  },
-  progressInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  amountText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#3B82F6',
-  },
-  dateText: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    backgroundColor: '#3B82F6',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  input: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  submitButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#666666',
-    fontSize: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  contributionButton: {
-    backgroundColor: '#EBF5FF',
-    borderRadius: 8,
-    padding: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  contributionButtonText: {
-    color: '#3B82F6',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    color: '#3B82F6',
-    fontWeight: '500',
-  },
-  daysRemaining: {
-    fontSize: 12,
-    color: '#666666',
-    marginTop: 4,
-  },
-});
 
 export default function Goals() {
   const router = useRouter();
@@ -264,21 +88,27 @@ export default function Goals() {
     }
   };
 
-  // Helper function to convert MM-DD-YYYY to YYYY-MM-DD for API
-  const convertDateForAPI = (dateString: string) => {
-    if (!dateString || dateString.length !== 10) return dateString;
-    const [month, day, year] = dateString.split('-');
-    return `${year}-${month}-${day}`;
-  };
-
   // Helper function to convert YYYY-MM-DD to MM-DD-YYYY for display
   const convertDateForDisplay = (dateString: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${month}-${day}-${year}`;
+    try {
+      // First split to remove any time component
+      const datePart = dateString.split('T')[0];
+      // Then split the date and rearrange to MM-DD-YYYY
+      const [year, month, day] = datePart.split('-');
+      // Return in MM-DD-YYYY format
+      return `${month}-${day}-${year}`;
+    } catch (error) {
+      console.error('Error converting date:', error);
+      return '';
+    }
+  };
+
+  // Helper function to convert MM-DD-YYYY to YYYY-MM-DD for API
+  const convertDateForAPI = (dateString: string) => {
+    if (!dateString || dateString.length !== 10) return '';
+    const [month, day, year] = dateString.split('-');
+    return `${year}-${month}-${day}`;
   };
 
   const fetchGoals = async () => {
@@ -554,7 +384,7 @@ export default function Goals() {
       // Calculate remaining amount needed
       const remainingAmount = editingGoal.target_amount - editingGoal.current_amount;
       if (amount > remainingAmount) {
-        Alert.alert('Error', `Amount cannot exceed the remaining amount needed (₱${remainingAmount.toLocaleString()})`);
+        Alert.alert('Error', `Amount cannot exceed the remaining amount needed (₱${remainingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`);
         return;
       }
 
@@ -627,8 +457,186 @@ export default function Goals() {
     await fetchContributions(goal.goal_id);
   };
 
+  const handleEditGoal = (goal: any) => {
+    setEditingGoal(goal);
+    setFormData({
+      ...formData,
+      title: goal.title,
+      description: goal.description || '',
+      target_amount: formatAmount(goal.target_amount.toString()),
+      target_date: convertDateForDisplay(goal.target_date),
+      contribution_amount: '',
+      notes: ''
+    });
+    setShowModal(true);
+  };
+
+  const handleContributionPress = (goal: any) => {
+    setEditingGoal(goal);
+    setFormData({
+      ...formData,
+      contribution_amount: '',
+      notes: ''
+    });
+    setShowContributionModal(true);
+  };
+
+  const handleViewContributions = async (goal: any) => {
+    try {
+      setSelectedGoal(goal);
+      setIsLoadingContributions(true);
+      
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.GOALS.GET_CONTRIBUTIONS.replace(':goal_id', goal.goal_id.toString())
+      );
+
+      if (response.data.success) {
+        setContributions(response.data.data);
+        setShowContributionsModal(true);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to fetch contributions');
+      }
+    } catch (error: any) {
+      console.error('Error fetching contributions:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch contributions');
+    } finally {
+      setIsLoadingContributions(false);
+    }
+  };
+
+  const renderContributionModal = () => (
+    <Modal
+      visible={showContributionModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowContributionModal(false)}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1, justifyContent: 'flex-end' }}
+          >
+            <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A' }}>
+                  Add Contribution
+                </Text>
+                <TouchableOpacity onPress={() => setShowContributionModal(false)}>
+                  <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 }}>
+                  {editingGoal?.title}
+                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B82F6' }}>
+                    Current: ₱{editingGoal?.current_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B82F6' }}>
+                    Target: ₱{editingGoal?.target_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                </View>
+
+                <TextInput
+                  style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 16 }}
+                  placeholder="Contribution Amount (₱)"
+                  value={formData.contribution_amount}
+                  onChangeText={(text) => setFormData({ ...formData, contribution_amount: formatAmount(text) })}
+                  keyboardType="decimal-pad"
+                />
+
+                <TextInput
+                  style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 16, height: 100, textAlignVertical: 'top' }}
+                  placeholder="Notes (Optional)"
+                  value={formData.notes}
+                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                  multiline
+                />
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 }}
+                  onPress={handleAddContribution}
+                  disabled={isSubmitting}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+                    {isSubmitting ? 'Adding...' : 'Add Contribution'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
+
+  const renderContributionsModal = () => (
+    <Modal
+      visible={showContributionsModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowContributionsModal(false)}
+    >
+      <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A' }}>
+              Contributions History
+            </Text>
+            <TouchableOpacity onPress={() => setShowContributionsModal(false)}>
+              <MaterialCommunityIcons name="close" size={24} color="#666666" />
+            </TouchableOpacity>
+          </View>
+
+          {isLoadingContributions ? (
+            <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
+          ) : contributions.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+              <MaterialCommunityIcons name="cash-multiple" size={48} color="#3B82F6" />
+              <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A', marginBottom: 8, textAlign: 'center' }}>
+                No Contributions Yet
+              </Text>
+              <Text style={{ fontSize: 16, color: '#666666', textAlign: 'center', marginBottom: 24 }}>
+                Start adding contributions to reach your goal faster.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView style={{ maxHeight: 400 }}>
+              {contributions.map((contribution, index) => (
+                <View key={index} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B82F6' }}>
+                        ₱{parseFloat(contribution.amount.toString()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Text>
+                      <Text style={{ fontSize: 14, color: '#666666' }}>
+                        {new Date(contribution.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </Text>
+                    </View>
+                    {contribution.notes && (
+                      <Text style={{ fontSize: 14, color: '#666666' }}>
+                        {contribution.notes}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
       <StatusBar style="dark" />
       <TabHeader 
         title="Goals" 
@@ -645,79 +653,112 @@ export default function Goals() {
       />
 
       <ScrollView
-        style={styles.content}
+        style={{ flex: 1, paddingHorizontal: 16 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {isLoading ? (
-          <View style={styles.emptyContainer}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
             <ActivityIndicator size="large" color="#3B82F6" />
           </View>
         ) : goals.length === 0 ? (
-          <View style={styles.emptyContainer}>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
             <MaterialCommunityIcons
               name="target"
               size={64}
               color="#3B82F6"
-              style={styles.emptyIcon}
+              style={{ marginBottom: 16 }}
             />
-            <Text style={styles.emptyTitle}>No Goals Yet</Text>
-            <Text style={styles.emptyDescription}>
+            <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A', marginBottom: 8, textAlign: 'center' }}>
+              No Goals Yet
+            </Text>
+            <Text style={{ fontSize: 16, color: '#666666', textAlign: 'center', marginBottom: 24 }}>
               Start setting financial goals to track your progress and achieve your dreams.
             </Text>
             <TouchableOpacity
-              style={styles.submitButton}
+              style={{ backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center' }}
               onPress={() => setShowModal(true)}
             >
-              <Text style={styles.submitButtonText}>Create Your First Goal</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
+                Create Your First Goal
+              </Text>
             </TouchableOpacity>
           </View>
         ) : (
           sortedGoals.map((goal) => (
-            <View key={goal.goal_id} style={styles.goalCard}>
-              <Text style={styles.goalTitle}>{goal.title}</Text>
+            <View key={goal.goal_id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#1A1A1A' }}>
+                {goal.title}
+              </Text>
               {goal.description && (
-                <Text style={styles.goalDescription}>{goal.description}</Text>
+                <Text style={{ fontSize: 14, color: '#666666' }}>
+                  {goal.description}
+                </Text>
               )}
               
-              <View style={styles.progressContainer}>
-                <View style={styles.progressInfo}>
-                  <Text style={styles.amountText}>
-                    ₱{goal.current_amount.toFixed(2)} / ₱{goal.target_amount.toFixed(2)}
+              <View style={{ marginVertical: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B82F6' }}>
+                    ₱{goal.current_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₱{goal.target_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </Text>
-                  <Text style={styles.progressText}>
+                  <Text style={{ fontSize: 14, color: '#3B82F6', fontWeight: '500' }}>
                     {goal.progress_percentage.toFixed(1)}%
                   </Text>
                 </View>
                 
-                <View style={styles.progressBar}>
+                <View style={{ height: 8, borderRadius: 4, backgroundColor: '#E8F0FE', marginVertical: 8, overflow: 'hidden' }}>
                   <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${Math.min(100, goal.progress_percentage)}%` }
-                    ]} 
+                    style={{
+                      height: '100%',
+                      backgroundColor: '#3B82F6',
+                      borderRadius: 4,
+                      width: `${Math.min(100, goal.progress_percentage)}%`
+                    }} 
                   />
                 </View>
                 
-                <View style={styles.progressInfo}>
-                  <Text style={styles.dateText}>Target: {goal.target_date}</Text>
-                  <Text style={styles.daysRemaining}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: '#666666' }}>
+                    Target: {goal.target_date}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#666666', marginTop: 4 }}>
                     {goal.days_remaining} days remaining
                   </Text>
                 </View>
               </View>
 
-              <TouchableOpacity
-                style={styles.contributionButton}
-                onPress={() => {
-                  setSelectedGoal(goal);
-                  setShowContributionModal(true);
-                }}
-              >
-                <MaterialCommunityIcons name="plus-circle" size={16} color="#3B82F6" />
-                <Text style={styles.contributionButtonText}>Add Contribution</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', marginTop: 12 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}
+                  onPress={() => handleContributionPress(goal)}
+                >
+                  <MaterialCommunityIcons name="plus-circle" size={16} color="#3B82F6" />
+                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                    Add Contribution
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}
+                  onPress={() => handleViewContributions(goal)}
+                >
+                  <MaterialCommunityIcons name="history" size={16} color="#3B82F6" />
+                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                    View History
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}
+                  onPress={() => handleEditGoal(goal)}
+                >
+                  <MaterialCommunityIcons name="pencil" size={16} color="#3B82F6" />
+                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))
         )}
@@ -725,7 +766,7 @@ export default function Goals() {
 
       {!isLoading && goals.length > 0 && (
         <TouchableOpacity
-          style={styles.addButton}
+          style={{ position: 'absolute', bottom: 24, right: 24, backgroundColor: '#3B82F6', width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}
           onPress={() => setShowModal(true)}
         >
           <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
@@ -740,14 +781,14 @@ export default function Goals() {
         onRequestClose={() => setShowModal(false)}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalContainer}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={{ flex: 1, justifyContent: 'flex-end' }}
             >
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>
+              <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                  <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A' }}>
                     {editingGoal ? 'Edit Goal' : 'New Goal'}
                   </Text>
                   <TouchableOpacity onPress={() => setShowModal(false)}>
@@ -756,50 +797,75 @@ export default function Goals() {
                 </View>
 
                 <ScrollView>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Goal Title"
-                    value={formData.title}
-                    onChangeText={(text) => setFormData({ ...formData, title: text })}
-                  />
-                  <TextInput
-                    style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-                    placeholder="Description (Optional)"
-                    value={formData.description}
-                    onChangeText={(text) => setFormData({ ...formData, description: text })}
-                    multiline
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Target Amount (₱)"
-                    value={formData.target_amount}
-                    onChangeText={(text) => setFormData({ ...formData, target_amount: formatAmount(text) })}
-                    keyboardType="decimal-pad"
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Target Date (MM-DD-YYYY)"
-                    value={formData.target_date}
-                    onChangeText={(text) => setFormData({ ...formData, target_date: formatDateInput(text) })}
-                    keyboardType="numeric"
-                    maxLength={10}
-                  />
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
+                      Title *
+                    </Text>
+                    <TextInput
+                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      placeholder="Goal Title"
+                      value={formData.title}
+                      onChangeText={(text) => setFormData({ ...formData, title: text })}
+                    />
+                  </View>
+
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
+                      Description (Optional)
+                    </Text>
+                    <TextInput
+                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16, height: 100, textAlignVertical: 'top' }}
+                      placeholder="Description (Optional)"
+                      value={formData.description}
+                      onChangeText={(text) => setFormData({ ...formData, description: text })}
+                      multiline
+                    />
+                  </View>
+
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
+                      Target Amount (₱) *
+                    </Text>
+                    <TextInput
+                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      placeholder="Target Amount (₱)"
+                      value={formData.target_amount}
+                      onChangeText={(text) => setFormData({ ...formData, target_amount: formatAmount(text) })}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
+                      Target Date (MM-DD-YYYY) *
+                    </Text>
+                    <TextInput
+                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      placeholder="MM-DD-YYYY"
+                      value={formData.target_date}
+                      onChangeText={(text) => setFormData({ ...formData, target_date: formatDateInput(text) })}
+                      keyboardType="numeric"
+                      maxLength={10}
+                    />
+                  </View>
 
                   <TouchableOpacity
-                    style={styles.submitButton}
+                    style={{ backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 }}
                     onPress={handleSubmit}
                     disabled={isSubmitting}
                   >
-                    <Text style={styles.submitButtonText}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
                       {isSubmitting ? 'Saving...' : editingGoal ? 'Update Goal' : 'Create Goal'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={{ padding: 16, alignItems: 'center' }}
                     onPress={() => setShowModal(false)}
                   >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                    <Text style={{ color: '#666666', fontSize: 16 }}>
+                      Cancel
+                    </Text>
                   </TouchableOpacity>
                 </ScrollView>
               </View>
@@ -808,63 +874,8 @@ export default function Goals() {
         </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Contribution Modal */}
-      <Modal
-        visible={showContributionModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowContributionModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalContainer}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1, justifyContent: 'flex-end' }}
-            >
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Add Contribution</Text>
-                  <TouchableOpacity onPress={() => setShowContributionModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
-                  </TouchableOpacity>
-                </View>
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="Amount (₱)"
-                  value={formData.contribution_amount}
-                  onChangeText={(text) => setFormData({ ...formData, contribution_amount: formatAmount(text) })}
-                  keyboardType="decimal-pad"
-                />
-                <TextInput
-                  style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
-                  placeholder="Notes (Optional)"
-                  value={formData.notes}
-                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                  multiline
-                />
-
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleAddContribution}
-                  disabled={isSubmitting}
-                >
-                  <Text style={styles.submitButtonText}>
-                    {isSubmitting ? 'Adding...' : 'Add Contribution'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => setShowContributionModal(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </KeyboardAvoidingView>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-    </SafeAreaView>
+      {renderContributionModal()}
+      {renderContributionsModal()}
+    </View>
   );
 }

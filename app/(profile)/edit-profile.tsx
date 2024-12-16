@@ -5,17 +5,19 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
-  Image,
+  Text,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import GradientText from "@/constants/GradientText";
 import FormField from "@/components/FormField";
 import CustomButton from "@/components/CustomButton";
 import axiosInstance from "@/utils/axiosConfig";
 import { API_ENDPOINTS } from "@/constants/API";
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from "expo-linear-gradient";
 
 const EditProfile = () => {
   const router = useRouter();
@@ -59,6 +61,19 @@ const EditProfile = () => {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    // Check if any changes were made
+    if (name.trim() === user.name && email.trim() === user.email) {
+      Alert.alert("No Changes", "No changes were made to your profile");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
@@ -67,11 +82,12 @@ const EditProfile = () => {
       });
 
       if (response.data.success) {
-        // Always update the name in storage
-        await AsyncStorage.setItem("userName", name);
+        // Update local storage with new values
+        await AsyncStorage.setItem("userName", response.data.data.name);
+        await AsyncStorage.setItem("userEmail", response.data.data.email);
         
-        if (email !== user.email) { 
-          // Only log out if email was changed
+        // If email was changed, require re-authentication
+        if (email.trim() !== user.email) {
           await AsyncStorage.multiRemove([
             "accessToken",
             "refreshToken",
@@ -93,19 +109,30 @@ const EditProfile = () => {
             ]
           );
         } else {
-          // If only name was changed, update name and stay logged in
-          await AsyncStorage.setItem("userName", name);
           Alert.alert("Success", "Profile updated successfully", [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () => {
+                // Update local state before going back
+                setUser({
+                  name: response.data.data.name,
+                  email: response.data.data.email
+                });
+                router.back();
+              },
             },
           ]);
         }
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error.response?.data || error);
-      const errorMessage = error.response?.data?.message || "Failed to update profile. Please try again.";
+      let errorMessage = "An error occurred while updating your profile";
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
@@ -117,52 +144,206 @@ const EditProfile = () => {
 
   if (!user.name && !user.email) {
     return (
-      <View className="flex justify-center items-center flex-1">
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3B82F6" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="bg-white flex-1">
-      <ScrollView>
-        <View className="px-8 py-20">
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="absolute top-0 left-0 p-5"
-          >
-            <Image
-              source={require("../../assets/icons/back.png")}
-              style={{ width: 26, height: 26 }}
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <LinearGradient
+          colors={["#3B82F6", "#1D4ED8"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+            
+            <View style={styles.profileInfo}>
+              <View style={styles.avatarContainer}>
+                <Text style={styles.avatarText}>
+                  {name?.[0]?.toUpperCase() || "U"}
+                </Text>
+              </View>
+              <View style={styles.nameContainer}>
+                <Text style={styles.nameText}>{name || "Your Name"}</Text>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>Edit Profile</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.formContainer}>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Full Name</Text>
+            <FormField
+              value={name}
+              handleChangeText={setName}
+              placeholder="Enter your full name"
+              otherStyles={styles.input}
             />
-          </TouchableOpacity>
-          <GradientText text="Edit Profile" />
-          <FormField
-            title="Name"
-            value={name}
-            handleChangeText={setName}
-            otherStyles="mt-7"
-          />
-          <FormField
-            title="Email"
-            value={email}
-            handleChangeText={setEmail}
-            otherStyles="mt-7"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <CustomButton
-            title="Update Profile"
-            handlePress={handleUpdateProfile}
-            containerStyles="mt-7"
-            isLoading={isLoading}
-            disabled={!isFormComplete || isLoading}
-          />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Email Address</Text>
+            <FormField
+              value={email}
+              handleChangeText={setEmail}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              otherStyles={styles.input}
+            />
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <CustomButton
+              title="Save Changes"
+              handlePress={handleUpdateProfile}
+              containerStyles={[
+                styles.saveButton,
+                !isFormComplete && styles.saveButtonDisabled
+              ]}
+              isLoading={isLoading}
+              disabled={!isFormComplete || isLoading}
+            />
+
+            <TouchableOpacity 
+              onPress={() => router.back()}
+              style={styles.cancelButton}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        <StatusBar style="dark" />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8F9FA",
+  },
+  header: {
+    paddingBottom: 32,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  backButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    padding: 12,
+    borderRadius: 16,
+    alignSelf: "flex-start",
+    marginBottom: 24,
+  },
+  profileInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#3B82F6",
+  },
+  nameContainer: {
+    marginLeft: 20,
+  },
+  nameText: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 8,
+  },
+  badgeContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  badgeText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    fontSize: 14,
+  },
+  formContainer: {
+    padding: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  buttonContainer: {
+    marginTop: 12,
+  },
+  saveButton: {
+    backgroundColor: "#3B82F6",
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#93C5FD",
+  },
+  cancelButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: "#6B7280",
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+});
 
 export default EditProfile;
