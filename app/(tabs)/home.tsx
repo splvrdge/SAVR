@@ -244,15 +244,6 @@ export default function Home() {
     testFinancialEndpoints();
   }, []);
 
-  const handleReturnToOnboarding = async () => {
-    try {
-      await AsyncStorage.removeItem("hasCompletedOnboarding");
-      router.replace("/");
-    } catch (error) {
-      console.error("Error returning to onboarding:", error);
-    }
-  };
-
   if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center">
@@ -413,15 +404,6 @@ export default function Home() {
               </View>
             )}
           </View>
-
-          {/* Temporary Return to Onboarding Button */}
-          <TouchableOpacity
-            onPress={handleReturnToOnboarding}
-            className="mt-4 bg-primary/10 p-4 rounded-xl flex-row items-center justify-center"
-          >
-            <MaterialCommunityIcons name="restart" size={20} color="#2563eb" className="mr-2" />
-            <Text className="text-primary font-medium">Return to Onboarding</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
