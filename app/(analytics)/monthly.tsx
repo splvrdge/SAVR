@@ -60,7 +60,7 @@ export default function MonthlyAnalytics() {
         return;
       }
 
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const formattedDate = format(monthStart, 'yyyy-MM');  
       
       const [expenseResponse, incomeResponse] = await Promise.all([
         axiosInstance.get(API_ENDPOINTS.ANALYTICS.EXPENSES.replace(':user_id', userId), {
@@ -78,8 +78,17 @@ export default function MonthlyAnalytics() {
       ]);
 
       if (expenseResponse.data.success && incomeResponse.data.success) {
-        setExpenseData(expenseResponse.data.data);
-        setIncomeData(incomeResponse.data.data);
+        const expenseData = expenseResponse.data.data || [];
+        const incomeData = incomeResponse.data.data || [];
+        
+        setExpenseData(expenseData);
+        setIncomeData(incomeData);
+
+        console.log('Monthly Analytics Data:', {
+          expenses: expenseData,
+          income: incomeData,
+          date: formattedDate
+        });
       } else {
         throw new Error('Failed to fetch analytics data');
       }
@@ -91,7 +100,7 @@ export default function MonthlyAnalytics() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [router, selectedDate]);
+  }, [router, monthStart]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -185,7 +194,7 @@ export default function MonthlyAnalytics() {
               <Text style={styles.monthDateText}>
                 {format(monthStart, 'MMMM yyyy')}
               </Text>
-              {format(new Date(), 'yyyy-MM') === format(monthStart, 'yyyy-MM') && (
+              {format(monthStart, 'yyyy-MM') === format(startOfMonth(new Date()), 'yyyy-MM') && (
                 <View style={styles.currentMonthBadge}>
                   <Text style={styles.currentMonthText}>Current Month</Text>
                 </View>

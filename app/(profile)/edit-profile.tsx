@@ -59,8 +59,17 @@ const EditProfile = () => {
       return;
     }
 
-    // Validate email format if email is changed
-    if (email.trim() !== user.email) {
+    // Check if any changes were made
+    const isNameChanged = name.trim() !== user.name;
+    const isEmailChanged = email.trim() !== user.email;
+
+    if (!isNameChanged && !isEmailChanged) {
+      Alert.alert("No Changes", "No changes were made to your profile");
+      return;
+    }
+
+    // Validate email format only if email is changed
+    if (isEmailChanged) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email.trim())) {
         Alert.alert("Error", "Please enter a valid email address");
@@ -68,50 +77,21 @@ const EditProfile = () => {
       }
     }
 
-    // Check if any changes were made
-    if (name.trim() === user.name && email.trim() === user.email) {
-      Alert.alert("No Changes", "No changes were made to your profile");
-      return;
-    }
-
     setIsLoading(true);
     try {
-      // If only name is changed
-      if (name.trim() !== user.name && email.trim() === user.email) {
-        const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
-          name: name.trim(),
-          email: user.email // Send existing email
-        });
+      const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
+        name: name.trim(),
+        email: isEmailChanged ? email.trim() : user.email
+      });
 
-        if (response.data.success) {
-          await AsyncStorage.setItem("userName", response.data.data.name);
-          Alert.alert("Success", "Name updated successfully", [
-            {
-              text: "OK",
-              onPress: () => {
-                setUser({
-                  ...user,
-                  name: response.data.data.name
-                });
-                router.back();
-              },
-            },
-          ]);
-        }
-      } 
-      // If email is changed (with or without name change)
-      else if (email.trim() !== user.email) {
-        const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
-          name: name.trim(),
-          email: email.trim()
-        });
-
-        if (response.data.success) {
-          // Update local storage with new values
-          await AsyncStorage.setItem("userName", response.data.data.name);
+      if (response.data.success) {
+        // Update local storage with new name
+        await AsyncStorage.setItem("userName", response.data.data.name);
+        
+        // If email was changed
+        if (isEmailChanged) {
           await AsyncStorage.setItem("userEmail", response.data.data.email);
-          
-          // Require re-authentication for email change
+          // Clear auth tokens and require re-authentication
           await AsyncStorage.multiRemove([
             "accessToken",
             "refreshToken",
@@ -121,13 +101,31 @@ const EditProfile = () => {
           ]);
 
           Alert.alert(
-            "Email Updated",
+            "Profile Updated",
             "Your email has been updated. Please sign in again with your new email.",
             [
               {
                 text: "OK",
                 onPress: () => {
                   router.replace("/(auth)/sign-in");
+                },
+              },
+            ]
+          );
+        } else {
+          // Only name was changed
+          Alert.alert(
+            "Success",
+            "Your name has been updated successfully",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  setUser({
+                    ...user,
+                    name: response.data.data.name
+                  });
+                  router.back();
                 },
               },
             ]
@@ -149,8 +147,11 @@ const EditProfile = () => {
     }
   };
 
-  const isFormComplete =
-    name !== "" && email !== "" && (name !== user.name || email !== user.email);
+  const isFormComplete = () => {
+    const isNameChanged = name.trim() !== user.name;
+    const isEmailChanged = email.trim() !== user.email;
+    return (isNameChanged || isEmailChanged) && name.trim() !== "" && email.trim() !== "";
+  };
 
   if (!user.name && !user.email) {
     return (
@@ -224,9 +225,9 @@ const EditProfile = () => {
               onPress={handleUpdateProfile}
               style={[
                 styles.saveButton,
-                !isFormComplete && styles.saveButtonDisabled
+                !isFormComplete() && styles.saveButtonDisabled
               ]}
-              disabled={!isFormComplete || isLoading}
+              disabled={!isFormComplete() || isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator color="white" />

@@ -41,6 +41,17 @@ export const API_ENDPOINTS = {
     GET_HISTORY: '/api/financial/history/:user_id',
   },
 
+  // Analytics endpoints
+  ANALYTICS: {
+    EXPENSES: '/api/analytics/expenses/:user_id',
+    INCOME: '/api/analytics/income/:user_id',
+    TRENDS: '/api/analytics/trends/:user_id',
+    BUDGET: '/api/analytics/budget/:user_id',
+    SAVINGS: '/api/analytics/savings/:user_id',
+    EXPENSE_CATEGORIES: '/api/analytics/expense-categories/:user_id',
+    INCOME_CATEGORIES: '/api/analytics/income-categories/:user_id',
+  },
+
   // Goals endpoints
   GOALS: {
     ADD: '/api/goals/create',
@@ -50,15 +61,6 @@ export const API_ENDPOINTS = {
     ADD_CONTRIBUTION: '/api/goals/contribute',
     GET_CONTRIBUTIONS: '/api/goals/contributions/:goal_id',
     DELETE_CONTRIBUTION: '/api/goals/contribution/:contribution_id'
-  },
-
-  // Analytics endpoints
-  ANALYTICS: {
-    EXPENSES: '/api/analytics/expenses/:user_id',
-    INCOME: '/api/analytics/income/:user_id',
-    TRENDS: '/api/analytics/trends/:user_id',
-    BUDGET: '/api/analytics/budget/:user_id',
-    SAVINGS: '/api/analytics/savings/:user_id',
   },
 
   // Category endpoints
