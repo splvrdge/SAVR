@@ -31,8 +31,10 @@ const Profile = () => {
 
   const fetchUser = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
+      const token = await AsyncStorage.getItem("accessToken");
+      const userId = await AsyncStorage.getItem("userId");
+      
+      if (!token || !userId) {
         handleLogout();
         return;
       }
@@ -68,7 +70,7 @@ const Profile = () => {
           text: "Logout",
           onPress: async () => {
             try {
-              await AsyncStorage.multiRemove(["token", "refreshToken", "userName"]);
+              await AsyncStorage.multiRemove(["accessToken", "userId", "userName"]);
               setUser(null);
               router.replace("/(auth)/sign-in");
             } catch (error) {
@@ -154,7 +156,7 @@ const Profile = () => {
   }
 
   return (
-    <View className="flex-1 bg-customGreen">
+    <View className="flex-1">
       <StatusBar style="light" />
       <SafeAreaView className="flex-1">
         <ScrollView

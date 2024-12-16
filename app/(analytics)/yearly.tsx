@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedYear: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#7C3AED',
   },
   yearText: {
     fontSize: 14,

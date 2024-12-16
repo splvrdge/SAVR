@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from '@/utils/axiosConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import tokenManager from '@/utils/tokenManager';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -46,19 +46,19 @@ export default function SignIn() {
       const { data } = response;
       
       if (data.success) {
-        const { accessToken, refreshToken, user_name, user_id } = data;
+        const { accessToken, refreshToken, user } = data;
         
-        // Store the tokens
-        await AsyncStorage.setItem('token', accessToken);
-        await AsyncStorage.setItem('refreshToken', refreshToken);
-        
-        // Store user data
-        await AsyncStorage.multiSet([
-          ['userId', user_id.toString()],
-          ['userName', user_name],
-          ['userEmail', email.trim().toLowerCase()]
+        // Store tokens and user info using TokenManager
+        await Promise.all([
+          tokenManager.setTokens(accessToken, refreshToken),
+          tokenManager.setUserInfo(user.user_id.toString(), user.user_name)
         ]);
 
+        // Reset the form
+        setEmail('');
+        setPassword('');
+        
+        // Navigate to home
         router.replace('/(tabs)/home');
       } else {
         Alert.alert('Error', data.message || 'Failed to sign in');
@@ -66,10 +66,12 @@ export default function SignIn() {
     } catch (error: any) {
       let errorMessage = 'Failed to sign in. Please try again.';
       
-      if (error.response?.data?.message) {
+      if (error.response?.status === 401) {
+        errorMessage = 'Invalid email or password';
+      } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (!navigator.onLine) {
-        errorMessage = 'No internet connection. Please check your network.';
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
       }
       
       Alert.alert('Error', errorMessage);

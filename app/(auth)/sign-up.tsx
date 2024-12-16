@@ -61,12 +61,12 @@ export default function SignUp() {
       });
 
       if (response.data.success) {
-        const { accessToken, refreshToken, user_id, user_name } = response.data;
+        const { accessToken, refreshToken, user } = response.data;
         
         // Store tokens and user info using TokenManager
         await Promise.all([
           tokenManager.setTokens(accessToken, refreshToken),
-          tokenManager.setUserInfo(user_id.toString(), user_name)
+          tokenManager.setUserInfo(user.user_id.toString(), user.user_name)
         ]);
 
         router.replace('/(tabs)/home');
