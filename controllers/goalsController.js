@@ -98,7 +98,18 @@ exports.getGoals = async (req, res) => {
         SELECT 
           g.*,
           COALESCE(SUM(gc.amount), 0) as current_amount,
-          COALESCE(COUNT(gc.contribution_id), 0) as contribution_count
+          COALESCE(COUNT(gc.contribution_id), 0) as contribution_count,
+          CASE 
+            WHEN g.target_amount > 0 
+            THEN ROUND((COALESCE(SUM(gc.amount), 0) / g.target_amount) * 100, 1)
+            ELSE 0 
+          END as progress_percentage,
+          CASE 
+            WHEN COALESCE(SUM(gc.amount), 0) >= g.target_amount 
+            THEN 1 
+            ELSE 0 
+          END as is_completed,
+          DATEDIFF(g.target_date, CURDATE()) as days_remaining
         FROM goals g
         LEFT JOIN goal_contributions gc ON g.goal_id = gc.goal_id
         WHERE g.user_id = ?
@@ -106,9 +117,18 @@ exports.getGoals = async (req, res) => {
         ORDER BY g.created_at DESC
       `, [userId]);
 
+      const formattedGoals = goals.map(goal => ({
+        ...goal,
+        progress_percentage: parseFloat(goal.progress_percentage) || 0,
+        is_completed: goal.is_completed === 1,
+        days_remaining: parseInt(goal.days_remaining) || 0,
+        current_amount: parseFloat(goal.current_amount) || 0,
+        target_amount: parseFloat(goal.target_amount) || 0
+      }));
+
       res.json({
         success: true,
-        data: goals || []
+        data: formattedGoals || []
       });
     } catch (error) {
       logger.error('Database error during goal retrieval:', {
