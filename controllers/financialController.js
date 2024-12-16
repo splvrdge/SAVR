@@ -37,14 +37,9 @@ exports.getFinancialSummary = async (req, res) => {
     const totalIncome = incomes.reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
     
-    // Calculate investment income (counts as savings)
-    const investmentIncome = incomes
-      .filter(inc => inc.category === 'investment')
-      .reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0);
-
     // Calculate current balance and net savings
     const currentBalance = totalIncome - totalExpenses;
-    const netSavings = investmentIncome; // Investment income is considered savings
+    const netSavings = totalIncome; // All income counts as savings
 
     // Get latest dates
     const lastIncomeDate = incomes.length > 0 ? incomes[0].timestamp : null;
@@ -71,7 +66,6 @@ exports.getFinancialSummary = async (req, res) => {
         totalIncome,
         totalExpenses,
         currentBalance,
-        investmentIncome,
         netSavings
       },
       incomeBreakdown: incomes.map(inc => ({
