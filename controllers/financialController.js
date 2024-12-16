@@ -7,33 +7,31 @@ exports.getFinancialSummary = async (req, res) => {
   try {
     logger.debug("Fetching financial summary for user:", { userId: user_id });
 
-    // Get total income, expenses, and savings in a single query
+    // Get total income and expenses in a single query
     const query = `
       SELECT 
         (SELECT COALESCE(SUM(amount), 0) FROM incomes WHERE user_id = ?) as total_income,
         (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = ?) as total_expenses,
-        (
-          SELECT COALESCE(SUM(amount), 0) 
-          FROM expenses 
-          WHERE user_id = ? 
-          AND category IN ('Savings', 'Investment')
-        ) as total_savings,
         (SELECT MAX(timestamp) FROM incomes WHERE user_id = ?) as last_income_date,
         (SELECT MAX(timestamp) FROM expenses WHERE user_id = ?) as last_expense_date
     `;
 
-    const [results] = await pool.query(query, [user_id, user_id, user_id, user_id, user_id]);
+    const [results] = await pool.query(query, [user_id, user_id, user_id, user_id]);
 
     if (!results || !results[0]) {
       logger.error("No results returned from summary query:", { userId: user_id });
       throw new Error("Failed to retrieve financial data");
     }
 
+    const totalIncome = parseFloat(results[0].total_income || 0);
+    const totalExpenses = parseFloat(results[0].total_expenses || 0);
+    const currentBalance = totalIncome - totalExpenses;
+
     const summary = {
-      total_income: parseFloat(results[0].total_income || 0),
-      total_expenses: parseFloat(results[0].total_expenses || 0),
-      current_balance: parseFloat(results[0].total_income || 0) - parseFloat(results[0].total_expenses || 0),
-      net_savings: parseFloat(results[0].total_savings || 0),
+      total_income: totalIncome,
+      total_expenses: totalExpenses,
+      current_balance: currentBalance,
+      net_savings: currentBalance, // Net savings is the same as current balance (money saved)
       last_income_date: results[0].last_income_date,
       last_expense_date: results[0].last_expense_date,
       created_at: new Date(),
