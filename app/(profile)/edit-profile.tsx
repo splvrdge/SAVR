@@ -28,7 +28,7 @@ const EditProfile = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem("token");
+        const storedToken = await AsyncStorage.getItem("accessToken");
         if (storedToken) {
           setToken(storedToken);
         }
@@ -54,20 +54,26 @@ const EditProfile = () => {
       return;
     }
 
+    if (!email.trim()) {
+      Alert.alert("Error", "Email cannot be empty");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
         name: name.trim(),
-        email: email.trim(),
+        email: email.trim()
       });
 
       if (response.data.success) {
+        // Always update the name in storage
         await AsyncStorage.setItem("userName", name);
         
         if (email !== user.email) { 
-          // Clear all existing tokens and user data
+          // Only log out if email was changed
           await AsyncStorage.multiRemove([
-            "token",
+            "accessToken",
             "refreshToken",
             "userName",
             "userEmail",
@@ -87,6 +93,8 @@ const EditProfile = () => {
             ]
           );
         } else {
+          // If only name was changed, update name and stay logged in
+          await AsyncStorage.setItem("userName", name);
           Alert.alert("Success", "Profile updated successfully", [
             {
               text: "OK",
@@ -96,7 +104,7 @@ const EditProfile = () => {
         }
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error);
+      console.error("Error updating profile:", error.response?.data || error);
       const errorMessage = error.response?.data?.message || "Failed to update profile. Please try again.";
       Alert.alert("Error", errorMessage);
     } finally {
