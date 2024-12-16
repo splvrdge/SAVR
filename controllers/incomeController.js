@@ -103,49 +103,48 @@ exports.getIncomes = async (req, res) => {
     });
   }
 
+  let connection;
   try {
-    const connection = await db.getConnection();
-    try {
-      const query = `
-        SELECT 
-          i.income_id as id,
-          i.user_id,
-          i.amount,
-          i.description,
-          i.category,
-          i.timestamp,
-          i.created_at,
-          i.updated_at,
-          'income' as type
-        FROM incomes i
-        WHERE i.user_id = ?
-        ORDER BY i.timestamp DESC
-      `;
+    connection = await db.getConnection();
+    const query = `
+      SELECT 
+        i.income_id as id,
+        i.user_id,
+        i.amount,
+        i.description,
+        i.category,
+        i.timestamp,
+        i.created_at,
+        i.updated_at,
+        'income' as type
+      FROM incomes i
+      WHERE i.user_id = ?
+      ORDER BY i.timestamp DESC
+    `;
 
-      const [results] = await connection.execute(query, [user_id]);
-      
-      const formattedResults = results.map(item => ({
-        id: item.id,
-        amount: parseFloat(item.amount),
-        description: item.description || '',
-        category: item.category || 'Other',
-        timestamp: item.timestamp,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        type: item.type
-      }));
+    const [results] = await connection.execute(query, [user_id]);
+    
+    const formattedResults = results.map(item => ({
+      id: item.id,
+      user_id: item.user_id,
+      amount: parseFloat(item.amount),
+      description: item.description || '',
+      category: item.category || 'Other',
+      timestamp: item.timestamp,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      type: item.type
+    }));
 
-      logger.debug(`Retrieved ${formattedResults.length} incomes for user ${user_id}`);
-      res.json({ success: true, data: formattedResults });
-    } catch (err) {
-      logger.error('Failed to get incomes:', { userId: user_id, error: err.message });
-      res.status(500).json({ success: false, message: "Internal server error" });
-    } finally {
+    logger.debug(`Retrieved ${formattedResults.length} incomes for user ${user_id}`);
+    res.json({ success: true, data: formattedResults });
+  } catch (err) {
+    logger.error('Failed to get incomes:', { userId: user_id, error: err.message });
+    res.status(500).json({ success: false, message: "Internal server error" });
+  } finally {
+    if (connection) {
       connection.release();
     }
-  } catch (err) {
-    logger.error('Failed to get database connection:', { error: err.message });
-    res.status(500).json({ success: false, message: "Database connection error" });
   }
 };
 
