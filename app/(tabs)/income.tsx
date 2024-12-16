@@ -365,7 +365,7 @@ export default function IncomeScreen() {
   if (!isAuthenticated) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#2E8B57" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
@@ -373,7 +373,7 @@ export default function IncomeScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#2E8B57" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
@@ -403,7 +403,12 @@ export default function IncomeScreen() {
         <ScrollView
           contentContainerStyle={{ flexGrow: 0 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#2563eb"
+              colors={["#2563eb"]}
+            />
           }
           showsVerticalScrollIndicator={false}
         >

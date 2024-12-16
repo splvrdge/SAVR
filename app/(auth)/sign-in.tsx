@@ -88,7 +88,7 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      className="flex-1 bg-gradient-to-b from-primary-light/10 to-primary/10"
     >
       <StatusBar style="dark" />
       <ScrollView
@@ -96,107 +96,112 @@ export default function SignIn() {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-1 px-8 pt-20">
+        <View className="flex-1 justify-center px-6">
           {/* Header */}
-          <View className="mb-16">
-            <Text className="text-4xl font-bold text-gray-900 mb-4">
-              Welcome back!
+          <View className="items-center mb-10">
+            <Text className="text-4xl font-bold text-gray-900 text-center mb-3">
+              Welcome Back
             </Text>
-            <Text className="text-gray-600 text-lg">
-              Sign in to continue tracking your finances
+            <Text className="text-base text-gray-600 text-center">
+              Track your finances with ease
             </Text>
           </View>
 
           {/* Form */}
-          <View className="space-y-8">
-            <View className="mb-4">
+          <View className="space-y-5 bg-white p-6 rounded-3xl shadow-sm border border-primary/10">
+            <View>
               <Text className="text-gray-700 mb-2 text-base font-medium">
                 Email
               </Text>
-              <TextInput
-                className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
-                placeholder="Enter your email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor="#9CA3AF"
-              />
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+                <MaterialCommunityIcons name="email-outline" size={20} color="#2563eb" />
+                <TextInput
+                  className="flex-1 px-3 py-3.5 text-base text-gray-800"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor="#94a3b8"
+                />
+              </View>
             </View>
 
-            <View className="mb-4">
+            <View>
               <Text className="text-gray-700 mb-2 text-base font-medium">
                 Password
               </Text>
-              <View className="relative">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+                <MaterialCommunityIcons name="lock-outline" size={20} color="#2563eb" />
                 <TextInput
-                  className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
+                  className="flex-1 px-3 py-3.5 text-base text-gray-800"
                   placeholder="Enter your password"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor="#94a3b8"
                 />
                 <TouchableOpacity
-                  className="absolute right-5 top-4"
                   onPress={() => setShowPassword(!showPassword)}
+                  className="p-2"
                 >
                   <MaterialCommunityIcons
                     name={showPassword ? "eye-off" : "eye"}
-                    size={24}
-                    color="#6B7280"
+                    size={20}
+                    color="#2563eb"
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View className="mt-6">
-              <TouchableOpacity
-                className={`bg-customGreen py-4 rounded-2xl ${
-                  isLoading ? "opacity-70" : ""
-                }`}
-                onPress={handleSignIn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white text-center text-lg font-semibold">
-                    Sign In
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              className={`bg-primary mt-4 py-4 rounded-xl shadow-sm ${
+                isLoading ? "opacity-70" : ""
+              }`}
+              onPress={handleSignIn}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white text-center text-base font-semibold">
+                  Sign In
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-            <View className="flex-row items-center my-8">
+          {/* Social Sign In */}
+          <View className="mt-8">
+            <View className="flex-row items-center mb-6">
               <View className="flex-1 h-[1px] bg-gray-200" />
-              <Text className="mx-4 text-gray-400 font-medium">or</Text>
+              <Text className="mx-4 text-gray-400 font-medium">or continue with</Text>
               <View className="flex-1 h-[1px] bg-gray-200" />
             </View>
 
             <TouchableOpacity
-              className="bg-white border border-gray-200 py-4 rounded-2xl flex-row justify-center items-center shadow-sm"
+              className="bg-white border border-gray-200 py-3.5 rounded-xl flex-row justify-center items-center shadow-sm"
               onPress={handleGoogleSignIn}
             >
               <Image
                 source={require("../../assets/icons/google.png")}
-                style={{ width: 24, height: 24, marginRight: 12 }}
+                style={{ width: 20, height: 20, marginRight: 10 }}
                 resizeMode="contain"
               />
               <Text className="text-gray-700 text-base font-medium">
-                Continue with Google
+                Sign in with Google
               </Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer */}
-          <View className="mt-12 flex-row justify-center">
+          <View className="mt-8 mb-6 flex-row justify-center items-center">
             <Text className="text-gray-600 text-base">
               Don't have an account?{" "}
             </Text>
             <Link href="/(auth)/sign-up" asChild>
               <TouchableOpacity>
-                <Text className="text-customGreen font-semibold text-base">
+                <Text className="text-primary font-semibold text-base">
                   Sign Up
                 </Text>
               </TouchableOpacity>

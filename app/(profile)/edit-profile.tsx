@@ -7,13 +7,11 @@ import {
   TouchableOpacity,
   Text,
   StyleSheet,
+  TextInput,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import FormField from "@/components/FormField";
-import CustomButton from "@/components/CustomButton";
 import axiosInstance from "@/utils/axiosConfig";
 import { API_ENDPOINTS } from "@/constants/API";
 import { Ionicons } from '@expo/vector-icons';
@@ -61,11 +59,13 @@ const EditProfile = () => {
       return;
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      Alert.alert("Error", "Please enter a valid email address");
-      return;
+    // Validate email format if email is changed
+    if (email.trim() !== user.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        Alert.alert("Error", "Please enter a valid email address");
+        return;
+      }
     }
 
     // Check if any changes were made
@@ -76,18 +76,42 @@ const EditProfile = () => {
 
     setIsLoading(true);
     try {
-      const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
-        name: name.trim(),
-        email: email.trim()
-      });
+      // If only name is changed
+      if (name.trim() !== user.name && email.trim() === user.email) {
+        const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
+          name: name.trim(),
+          email: user.email // Send existing email
+        });
 
-      if (response.data.success) {
-        // Update local storage with new values
-        await AsyncStorage.setItem("userName", response.data.data.name);
-        await AsyncStorage.setItem("userEmail", response.data.data.email);
-        
-        // If email was changed, require re-authentication
-        if (email.trim() !== user.email) {
+        if (response.data.success) {
+          await AsyncStorage.setItem("userName", response.data.data.name);
+          Alert.alert("Success", "Name updated successfully", [
+            {
+              text: "OK",
+              onPress: () => {
+                setUser({
+                  ...user,
+                  name: response.data.data.name
+                });
+                router.back();
+              },
+            },
+          ]);
+        }
+      } 
+      // If email is changed (with or without name change)
+      else if (email.trim() !== user.email) {
+        const response = await axiosInstance.put(API_ENDPOINTS.USER.UPDATE_PROFILE, {
+          name: name.trim(),
+          email: email.trim()
+        });
+
+        if (response.data.success) {
+          // Update local storage with new values
+          await AsyncStorage.setItem("userName", response.data.data.name);
+          await AsyncStorage.setItem("userEmail", response.data.data.email);
+          
+          // Require re-authentication for email change
           await AsyncStorage.multiRemove([
             "accessToken",
             "refreshToken",
@@ -108,20 +132,6 @@ const EditProfile = () => {
               },
             ]
           );
-        } else {
-          Alert.alert("Success", "Profile updated successfully", [
-            {
-              text: "OK",
-              onPress: () => {
-                // Update local state before going back
-                setUser({
-                  name: response.data.data.name,
-                  email: response.data.data.email
-                });
-                router.back();
-              },
-            },
-          ]);
         }
       }
     } catch (error: any) {
@@ -145,7 +155,7 @@ const EditProfile = () => {
   if (!user.name && !user.email) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
@@ -155,7 +165,7 @@ const EditProfile = () => {
       <StatusBar style="light" />
       <ScrollView showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={["#3B82F6", "#1D4ED8"]}
+          colors={["#2563eb", "#1D4ED8"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -187,37 +197,43 @@ const EditProfile = () => {
         <View style={styles.formContainer}>
           <View style={styles.formGroup}>
             <Text style={styles.label}>Full Name</Text>
-            <FormField
+            <TextInput
               value={name}
-              handleChangeText={setName}
+              onChangeText={setName}
               placeholder="Enter your full name"
-              otherStyles={styles.input}
+              style={styles.input}
+              placeholderTextColor="#94a3b8"
             />
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <FormField
+            <TextInput
               value={email}
-              handleChangeText={setEmail}
+              onChangeText={setEmail}
               placeholder="Enter your email"
               keyboardType="email-address"
               autoCapitalize="none"
-              otherStyles={styles.input}
+              style={styles.input}
+              placeholderTextColor="#94a3b8"
             />
           </View>
 
           <View style={styles.buttonContainer}>
-            <CustomButton
-              title="Save Changes"
-              handlePress={handleUpdateProfile}
-              containerStyles={[
+            <TouchableOpacity
+              onPress={handleUpdateProfile}
+              style={[
                 styles.saveButton,
                 !isFormComplete && styles.saveButtonDisabled
               ]}
-              isLoading={isLoading}
               disabled={!isFormComplete || isLoading}
-            />
+            >
+              {isLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save Changes</Text>
+              )}
+            </TouchableOpacity>
 
             <TouchableOpacity 
               onPress={() => router.back()}
@@ -276,7 +292,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#3B82F6",
+    color: "#2563eb",
   },
   nameContainer: {
     marginLeft: 20,
@@ -317,12 +333,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    color: "#1F2937",
   },
   buttonContainer: {
     marginTop: 12,
   },
   saveButton: {
-    backgroundColor: "#3B82F6",
+    backgroundColor: "#2563eb",
     paddingVertical: 16,
     borderRadius: 16,
     shadowColor: "#000",
@@ -333,6 +350,12 @@ const styles = StyleSheet.create({
   },
   saveButtonDisabled: {
     backgroundColor: "#93C5FD",
+  },
+  saveButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
   cancelButton: {
     marginTop: 12,
