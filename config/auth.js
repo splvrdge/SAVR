@@ -5,7 +5,7 @@ const secretKey =
 const refreshTokenSecret =
   process.env.REFRESH_TOKEN_SECRET;
 
-const tokenExpiration = "15m";
+const tokenExpiration = "1d";
 const refreshTokenExpiration = "7d";
 
 module.exports = {
