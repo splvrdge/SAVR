@@ -149,7 +149,7 @@ exports.getIncomes = async (req, res) => {
 };
 
 exports.updateIncome = async (req, res) => {
-  const { id } = req.params; // Frontend sends id
+  const { income_id: id } = req.params; // Frontend sends id
   const { amount, description, category } = req.body;
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -158,19 +158,20 @@ exports.updateIncome = async (req, res) => {
     await connection.beginTransaction();
 
     // Get the original income to calculate the difference
-    const [originalIncome] = await connection.execute(
+    const [originalIncomeResult] = await connection.execute(
       'SELECT amount, user_id FROM incomes WHERE id = ?',
       [id]
     );
 
-    if (originalIncome.length === 0) {
+    if (!originalIncomeResult || originalIncomeResult.length === 0) {
       await connection.rollback();
       logger.warn(`Update attempted on non-existent income: ${id}`);
       return res.status(404).json({ success: false, message: "Income not found" });
     }
 
-    const amountDifference = amount - originalIncome[0].amount;
-    const user_id = originalIncome[0].user_id;
+    const originalIncome = originalIncomeResult[0];
+    const amountDifference = parseFloat(amount) - parseFloat(originalIncome.amount);
+    const user_id = originalIncome.user_id;
 
     // Update the income
     await connection.execute(
