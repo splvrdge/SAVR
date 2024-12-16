@@ -152,7 +152,7 @@ exports.addContribution = async (req, res) => {
       });
     }
 
-    if (!goal_id || !amount) {
+    if (!goal_id || amount === undefined) {
       logger.warn('Missing required fields:', { goal_id, amount });
       return res.status(400).json({
         success: false,
@@ -160,10 +160,20 @@ exports.addContribution = async (req, res) => {
       });
     }
 
+    // Validate amount
+    const contributionAmount = parseFloat(amount);
+    if (isNaN(contributionAmount) || contributionAmount <= 0) {
+      logger.warn('Invalid contribution amount:', { amount });
+      return res.status(400).json({
+        success: false,
+        message: 'Contribution amount must be greater than 0'
+      });
+    }
+
     logger.info('Adding contribution:', {
       userId,
       goal_id,
-      amount,
+      amount: contributionAmount,
       notes
     });
 
@@ -202,28 +212,44 @@ exports.addContribution = async (req, res) => {
       });
     }
 
-    const newAmount = parseFloat(goal.current_amount || 0) + parseFloat(amount);
+    // Calculate new amount and validate against target
+    const currentAmount = parseFloat(goal.current_amount || 0);
+    const newAmount = currentAmount + contributionAmount;
+    const targetAmount = parseFloat(goal.target_amount);
+
+    if (newAmount > targetAmount) {
+      logger.warn('Contribution would exceed target amount:', {
+        currentAmount,
+        contributionAmount,
+        targetAmount,
+        newAmount
+      });
+      return res.status(400).json({
+        success: false,
+        message: `Contribution of ${contributionAmount} would exceed the remaining amount needed (${targetAmount - currentAmount})`
+      });
+    }
 
     // Add contribution
     const [result] = await connection.execute(
-      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-      [goal_id, userId, amount, notes || null]
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
+      [goal_id, userId, contributionAmount, notes || null]
     );
 
     // Update goal progress
     await connection.execute(
-      'UPDATE goals SET current_amount = ?, updated_at = NOW(), is_completed = ? WHERE goal_id = ?',
-      [newAmount, newAmount >= goal.target_amount, goal_id]
+      'UPDATE goals SET current_amount = ?, is_completed = ? WHERE goal_id = ?',
+      [newAmount, newAmount >= targetAmount, goal_id]
     );
 
     await connection.commit();
 
-    logger.info('Contribution added:', {
+    logger.info('Contribution added successfully:', {
       contributionId: result.insertId,
       goalId: goal_id,
-      amount: amount,
+      amount: contributionAmount,
       newTotal: newAmount,
-      isCompleted: newAmount >= goal.target_amount
+      isCompleted: newAmount >= targetAmount
     });
 
     res.status(201).json({
@@ -231,10 +257,10 @@ exports.addContribution = async (req, res) => {
       message: 'Contribution added successfully',
       data: {
         contribution_id: result.insertId,
-        amount: amount,
+        amount: contributionAmount,
         notes: notes || null,
         current_amount: newAmount,
-        is_completed: newAmount >= goal.target_amount,
+        is_completed: newAmount >= targetAmount,
         created_at: new Date()
       }
     });
@@ -245,12 +271,12 @@ exports.addContribution = async (req, res) => {
     logger.error('Failed to add contribution:', {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      body: req.body,
-      userId: req.user?.user_id
+      body: req.body
     });
     res.status(500).json({
       success: false,
-      message: 'Error adding contribution'
+      message: 'Failed to add contribution',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     if (connection) {
