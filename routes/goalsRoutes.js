@@ -56,50 +56,36 @@ const validateGoalId = [
 ];
 
 // Create goal
-router.post(
-  "/create",
-  authenticateToken,
-  validateGoal,
-  goalController.createGoal
-);
+router.post("/create", [authenticateToken, validateGoal], goalController.createGoal);
 
 // Get goals
-router.get(
-  "/",
-  authenticateToken,
-  goalController.getGoals
-);
+router.get("/", authenticateToken, goalController.getGoals);
 
 // Get goal contributions
 router.get(
   "/contributions/:goal_id",
-  authenticateToken,
-  validateGoalId,
+  [authenticateToken, validateGoalId],
   goalController.getGoalContributions
 );
 
 // Add contribution
 router.post(
   "/contribute",
-  authenticateToken,
-  validateContribution,
+  [authenticateToken, validateContribution],
   goalController.addContribution
 );
 
 // Update goal
 router.put(
   "/update/:goal_id",
-  authenticateToken,
-  validateGoalId,
-  validateGoal,
+  [authenticateToken, validateGoalId, validateGoal],
   goalController.updateGoal
 );
 
 // Delete goal
 router.delete(
   "/delete/:goal_id",
-  authenticateToken,
-  validateGoalId,
+  [authenticateToken, validateGoalId],
   goalController.deleteGoal
 );
 
