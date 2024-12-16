@@ -38,8 +38,8 @@ app.use(limiter);
 app.use(bodyParser.json());
 
 const allowedOrigins = [
-  'https://savr-fintracker.vercel.app',
   'https://savr-backend.onrender.com',
+  'http://localhost:8081',
   'http://localhost:8082',
   'http://localhost:5173'
 ];
