@@ -7,41 +7,78 @@ exports.getFinancialSummary = async (req, res) => {
   try {
     logger.debug("Fetching financial summary for user:", { userId: user_id });
 
-    // Get total income and expenses in a single query
-    const query = `
-      SELECT 
-        (SELECT COALESCE(SUM(amount), 0) FROM incomes WHERE user_id = ?) as total_income,
-        (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = ?) as total_expenses,
-        (SELECT MAX(timestamp) FROM incomes WHERE user_id = ?) as last_income_date,
-        (SELECT MAX(timestamp) FROM expenses WHERE user_id = ?) as last_expense_date
-    `;
+    // Get detailed financial data
+    const queries = {
+      income: `
+        SELECT amount, category, timestamp 
+        FROM incomes 
+        WHERE user_id = ?
+        ORDER BY timestamp DESC
+      `,
+      expenses: `
+        SELECT amount, category, timestamp 
+        FROM expenses 
+        WHERE user_id = ?
+        ORDER BY timestamp DESC
+      `
+    };
 
-    const [results] = await pool.query(query, [user_id, user_id, user_id, user_id]);
+    // Execute queries in parallel
+    const [incomeResults, expenseResults] = await Promise.all([
+      pool.query(queries.income, [user_id]),
+      pool.query(queries.expenses, [user_id])
+    ]);
 
-    if (!results || !results[0]) {
-      logger.error("No results returned from summary query:", { userId: user_id });
-      throw new Error("Failed to retrieve financial data");
-    }
+    // Get the raw data
+    const incomes = incomeResults[0];
+    const expenses = expenseResults[0];
 
-    const totalIncome = parseFloat(results[0].total_income || 0);
-    const totalExpenses = parseFloat(results[0].total_expenses || 0);
+    // Calculate totals
+    const totalIncome = incomes.reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0);
+    const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
+    
+    // Calculate investment income (counts as savings)
+    const investmentIncome = incomes
+      .filter(inc => inc.category === 'investment')
+      .reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0);
+
+    // Calculate current balance and net savings
     const currentBalance = totalIncome - totalExpenses;
+    const netSavings = investmentIncome; // Investment income is considered savings
 
+    // Get latest dates
+    const lastIncomeDate = incomes.length > 0 ? incomes[0].timestamp : null;
+    const lastExpenseDate = expenses.length > 0 ? expenses[0].timestamp : null;
+
+    // Prepare summary
     const summary = {
       total_income: totalIncome,
       total_expenses: totalExpenses,
       current_balance: currentBalance,
-      net_savings: currentBalance, // Net savings is the same as current balance (money saved)
-      last_income_date: results[0].last_income_date,
-      last_expense_date: results[0].last_expense_date,
+      net_savings: netSavings,
+      last_income_date: lastIncomeDate,
+      last_expense_date: lastExpenseDate,
       created_at: new Date(),
       updated_at: new Date()
     };
 
-    logger.debug("Retrieved financial summary:", { 
+    // Log detailed breakdown
+    logger.debug("Financial Summary Details:", {
       userId: user_id,
-      summary,
-      rawResults: results[0]
+      incomeCount: incomes.length,
+      expenseCount: expenses.length,
+      calculations: {
+        totalIncome,
+        totalExpenses,
+        currentBalance,
+        investmentIncome,
+        netSavings
+      },
+      incomeBreakdown: incomes.map(inc => ({
+        amount: inc.amount,
+        category: inc.category
+      })),
+      summary
     });
 
     res.json({
