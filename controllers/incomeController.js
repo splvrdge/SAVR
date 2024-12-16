@@ -149,7 +149,7 @@ exports.getIncomes = async (req, res) => {
 };
 
 exports.updateIncome = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // Frontend sends id
   const { amount, description, category } = req.body;
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -159,7 +159,7 @@ exports.updateIncome = async (req, res) => {
 
     // Get the original income to calculate the difference
     const [originalIncome] = await connection.execute(
-      'SELECT amount, user_id FROM incomes WHERE income_id = ?',
+      'SELECT amount, user_id FROM incomes WHERE id = ?',
       [id]
     );
 
@@ -176,34 +176,49 @@ exports.updateIncome = async (req, res) => {
     await connection.execute(
       `UPDATE incomes 
        SET amount = ?, description = ?, category = ?, updated_at = ?
-       WHERE income_id = ?`,
+       WHERE id = ?`,
       [amount, description, category, timestamp, id]
     );
 
-    // Update the financial data
+    // Update user_financial_data
     await connection.execute(
       `UPDATE user_financial_data 
-       SET amount = ?, description = ?, category = ?
-       WHERE income_id = ?`,
-      [amount, description, category, id]
+       SET amount = ?, description = ?, category = ?, updated_at = ?
+       WHERE income_id = ? AND type = 'income'`,
+      [amount, description, category, timestamp, id]
     );
 
-    // Update the financial summary
+    // Update user_financial_summary
     await connection.execute(
       `UPDATE user_financial_summary 
-       SET current_balance = current_balance + ?,
-           total_income = total_income + ?
+       SET total_income = total_income + ?,
+           current_balance = current_balance + ?,
+           net_savings = net_savings + ?,
+           last_income_date = ?,
+           updated_at = ?
        WHERE user_id = ?`,
-      [amountDifference, amountDifference, user_id]
+      [amountDifference, amountDifference, amountDifference, timestamp, timestamp, user_id]
     );
 
     await connection.commit();
     logger.info(`Income ${id} updated successfully for user ${user_id}`);
-    res.json({ success: true, message: "Income updated successfully" });
-  } catch (err) {
+    
+    res.json({
+      success: true,
+      message: "Income updated successfully"
+    });
+  } catch (error) {
     await connection.rollback();
-    logger.error('Failed to update income:', { incomeId: id, error: err.message });
-    res.status(500).json({ success: false, message: "Internal server error" });
+    logger.error("Failed to update income:", {
+      id,
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
   } finally {
     connection.release();
   }
