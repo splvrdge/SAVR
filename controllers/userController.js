@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const db = require("../config/db");
+const { pool } = require("../config/db");
 const jwt = require("jsonwebtoken");
 const logger = require('../utils/logger');
 const { secretKey, tokenExpiration, refreshTokenSecret, refreshTokenExpiration } = require("../config/auth");
@@ -29,7 +29,7 @@ exports.updateProfile = async (req, res) => {
     const userId = req.user.user_id;
 
     // First check if user exists
-    const [users] = await db.execute(
+    const [users] = await pool.query(
       'SELECT * FROM users WHERE user_id = ?',
       [userId]
     );
@@ -56,7 +56,7 @@ exports.updateProfile = async (req, res) => {
     // Handle email update
     if (email !== undefined && email !== user.user_email) {
       // Check if email is already taken
-      const [existingUsers] = await db.execute(
+      const [existingUsers] = await pool.query(
         'SELECT user_id FROM users WHERE user_email = ? AND user_id != ?',
         [email, userId]
       );
@@ -111,10 +111,10 @@ exports.updateProfile = async (req, res) => {
     `;
 
     try {
-      await db.execute(updateQuery, params);
+      await pool.query(updateQuery, params);
       
       // Get updated user data
-      const [updatedUser] = await db.execute(
+      const [updatedUser] = await pool.query(
         'SELECT user_id, user_name, user_email FROM users WHERE user_id = ?',
         [userId]
       );
@@ -129,15 +129,12 @@ exports.updateProfile = async (req, res) => {
         }
       });
     } catch (error) {
-      logger.error('Error updating profile:', { 
+      logger.error('Error executing update query:', { 
         error: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
         userId: req.user?.user_id 
       });
-      res.status(500).json({
-        success: false,
-        message: 'Error updating profile'
-      });
+      throw error;
     }
   } catch (error) {
     logger.error('Error updating profile:', { 
@@ -157,7 +154,7 @@ exports.getSecuredInfo = async (req, res) => {
   try {
     const userId = req.user.user_id;
 
-    const [users] = await db.execute(
+    const [users] = await pool.query(
       'SELECT user_id, user_name, user_email, created_at FROM users WHERE user_id = ?',
       [userId]
     );
