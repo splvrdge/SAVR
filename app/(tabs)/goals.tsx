@@ -15,50 +15,206 @@ import {
   StyleSheet,
   Platform,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { API_ENDPOINTS } from '@/constants/API';
 import axiosInstance from "@/utils/axiosConfig";
 import { StatusBar } from 'expo-status-bar';
 import TabHeader from '../../components/TabHeader';
-import AddButton from '../../components/AddButton';
+import { LinearGradient } from 'expo-linear-gradient';
 
-interface Goal {
-  goal_id: number;
-  user_id: number;
-  title: string;
-  description?: string;
-  target_amount: number;
-  current_amount: number;
-  target_date: string;
-  days_remaining: number;
-  progress_percentage: number;
-}
-
-interface Contribution {
-  contribution_id: number;
-  goal_id: number;
-  amount: number;
-  notes?: string;
-  created_at: string;
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  goalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  goalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  goalDescription: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
+  },
+  progressContainer: {
+    marginVertical: 12,
+  },
+  progressBar: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E8F0FE',
+    marginVertical: 8,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#3B82F6',
+    borderRadius: 4,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  amountText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: '#3B82F6',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  input: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    color: '#666666',
+    fontSize: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyIcon: {
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: 16,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  contributionButton: {
+    backgroundColor: '#EBF5FF',
+    borderRadius: 8,
+    padding: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  contributionButtonText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#3B82F6',
+    fontWeight: '500',
+  },
+  daysRemaining: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 4,
+  },
+});
 
 export default function Goals() {
   const router = useRouter();
-  const [goals, setGoals] = useState<Goal[]>([]);
+  const [goals, setGoals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [contributions, setContributions] = useState<Contribution[]>([]);
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
-  const [sortBy, setSortBy] = useState<'date' | 'progress'>('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [contributions, setContributions] = useState([]);
+  const [editingGoal, setEditingGoal] = useState(null);
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [showContributionsModal, setShowContributionsModal] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState(null);
   const [isLoadingContributions, setIsLoadingContributions] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -465,423 +621,249 @@ export default function Goals() {
     }
   };
 
-  const handleShowContributions = async (goal: Goal) => {
+  const handleShowContributions = async (goal: any) => {
     setSelectedGoal(goal);
     setShowContributionsModal(true);
     await fetchContributions(goal.goal_id);
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar backgroundColor="white" style="dark" />
-      
-      <TabHeader
-        title="Goals"
-        sortOptions={[
-          { id: 'date', label: 'Due Date' },
-          { id: 'progress', label: 'Progress' },
-          { id: 'amount', label: 'Amount' }
-        ]}
-        selectedSort={sortBy}
-        sortOrder={sortOrder}
-        onSortChange={setSortBy}
-        onSortOrderChange={toggleSortOrder}
+    <SafeAreaView style={styles.container}>
+      <StatusBar style="dark" />
+      <TabHeader 
+        title="Goals" 
+        subtitle={`${goals.length} active goals`}
+        rightComponent={
+          <TouchableOpacity onPress={toggleSortOrder} style={{ padding: 8 }}>
+            <MaterialCommunityIcons 
+              name={sortOrder === 'desc' ? 'sort-descending' : 'sort-ascending'} 
+              size={24} 
+              color="#3B82F6" 
+            />
+          </TouchableOpacity>
+        }
       />
 
-      {/* Add Goal Button */}
-      <AddButton onPress={() => {
-        setEditingGoal(null);
-        setFormData({ title: '', description: '', target_amount: '', target_date: '', contribution_amount: '', notes: '' });
-        setShowModal(true);
-      }} />
-
-      {/* Goals List */}
       <ScrollView
-        className="flex-1 px-4 pb-20"
+        style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {isLoading ? (
-          <ActivityIndicator size="large" className="mt-20" color="#3B82F6" />
-        ) : sortedGoals.length > 0 ? (
-          sortedGoals.map((goal) => (
-            <View
-              key={goal.goal_id}
-              className="bg-white p-4 rounded-xl mb-3 border border-gray-100 shadow-sm"
+          <View style={styles.emptyContainer}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+          </View>
+        ) : goals.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons
+              name="target"
+              size={64}
+              color="#3B82F6"
+              style={styles.emptyIcon}
+            />
+            <Text style={styles.emptyTitle}>No Goals Yet</Text>
+            <Text style={styles.emptyDescription}>
+              Start setting financial goals to track your progress and achieve your dreams.
+            </Text>
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => setShowModal(true)}
             >
-              <View className="flex-row justify-between items-start">
-                <View className="flex-1">
-                  <View className="flex-row items-center">
-                    <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center mr-3">
-                      <MaterialCommunityIcons
-                        name="target"
-                        size={20}
-                        color="#3B82F6"
-                      />
-                    </View>
-                    <View className="flex-1 pr-8">
-                      <Text className="text-gray-800 font-medium text-lg">
-                        {goal.title}
-                      </Text>
-                      {goal.description && (
-                        <Text className="text-gray-600 mt-1 mb-2">
-                          {goal.description}
-                        </Text>
-                      )}
-                      <Text className="text-gray-500 text-sm">
-                        Target Date: {goal.target_date}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteGoal(goal.goal_id)}
-                      className="p-2"
-                    >
-                      <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <View className="mt-3">
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-gray-600 text-sm">Progress</Text>
-                      <Text className="text-gray-600 text-sm">
-                        {goal.progress_percentage.toFixed(1)}%
-                      </Text>
-                    </View>
-                    <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
-                      <View
-                        className="bg-blue-500 h-full rounded-full"
-                        style={{
-                          width: `${goal.progress_percentage}%`
-                        }}
-                      />
-                    </View>
-                  </View>
-                  
-                  <View className="mt-3 flex-row justify-between items-center">
-                    <View>
-                      <Text className="text-gray-500 text-sm">Current Amount</Text>
-                      <Text className="text-gray-800 font-semibold">
-                        ₱{goal.current_amount.toLocaleString()}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text className="text-gray-500 text-sm">Target Amount</Text>
-                      <Text className="text-gray-800 font-semibold">
-                        ₱{goal.target_amount.toLocaleString()}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row gap-2 mt-4">
-                    <TouchableOpacity
-                      onPress={() => {
-                        setEditingGoal(goal);
-                        setFormData({
-                          title: goal.title,
-                          description: goal.description || '',
-                          target_amount: goal.target_amount.toString(),
-                          target_date: goal.target_date,
-                        });
-                        setShowModal(true);
-                      }}
-                      className="flex-1 bg-gray-100 py-2 px-4 rounded-lg flex-row justify-center items-center"
-                    >
-                      <MaterialCommunityIcons name="pencil" size={20} color="#4B5563" />
-                      <Text className="text-gray-700 font-semibold ml-2">
-                        Edit
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleShowContributions(goal)}
-                      className="flex-1 bg-gray-100 py-2 px-4 rounded-lg flex-row justify-center items-center"
-                    >
-                      <MaterialCommunityIcons name="history" size={20} color="#4B5563" />
-                      <Text className="text-gray-700 font-semibold ml-2">
-                        History
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSelectedGoal(goal);
-                        setFormData({
-                          ...formData,
-                          contribution_amount: '',
-                          notes: ''
-                        });
-                        setShowContributionModal(true);
-                      }}
-                      className="flex-1 bg-blue-500 py-2 px-4 rounded-lg flex-row justify-center items-center"
-                    >
-                      <MaterialCommunityIcons name="cash-plus" size={20} color="white" />
-                      <Text className="text-white font-semibold ml-2">
-                        Add
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+              <Text style={styles.submitButtonText}>Create Your First Goal</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          sortedGoals.map((goal) => (
+            <View key={goal.goal_id} style={styles.goalCard}>
+              <Text style={styles.goalTitle}>{goal.title}</Text>
+              {goal.description && (
+                <Text style={styles.goalDescription}>{goal.description}</Text>
+              )}
+              
+              <View style={styles.progressContainer}>
+                <View style={styles.progressInfo}>
+                  <Text style={styles.amountText}>
+                    ₱{goal.current_amount.toFixed(2)} / ₱{goal.target_amount.toFixed(2)}
+                  </Text>
+                  <Text style={styles.progressText}>
+                    {goal.progress_percentage.toFixed(1)}%
+                  </Text>
+                </View>
+                
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { width: `${Math.min(100, goal.progress_percentage)}%` }
+                    ]} 
+                  />
+                </View>
+                
+                <View style={styles.progressInfo}>
+                  <Text style={styles.dateText}>Target: {goal.target_date}</Text>
+                  <Text style={styles.daysRemaining}>
+                    {goal.days_remaining} days remaining
+                  </Text>
                 </View>
               </View>
+
+              <TouchableOpacity
+                style={styles.contributionButton}
+                onPress={() => {
+                  setSelectedGoal(goal);
+                  setShowContributionModal(true);
+                }}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={16} color="#3B82F6" />
+                <Text style={styles.contributionButtonText}>Add Contribution</Text>
+              </TouchableOpacity>
             </View>
           ))
-        ) : (
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-gray-500 text-lg">No goals found</Text>
-          </View>
         )}
       </ScrollView>
+
+      {!isLoading && goals.length > 0 && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowModal(true)}
+        >
+          <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
 
       {/* Add/Edit Goal Modal */}
       <Modal
         visible={showModal}
+        transparent
         animationType="slide"
-        transparent={true}
         onRequestClose={() => setShowModal(false)}
       >
-        <View className="flex-1 justify-end bg-black/30">
-          <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-2xl font-bold text-gray-800">
-                {editingGoal ? 'Edit Goal' : 'Add New Goal'}
-              </Text>
-              <TouchableOpacity onPress={() => setShowModal(false)} className="p-2">
-                <MaterialCommunityIcons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContainer}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1, justifyContent: 'flex-end' }}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {editingGoal ? 'Edit Goal' : 'New Goal'}
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowModal(false)}>
+                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
+                  </TouchableOpacity>
+                </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <View className="space-y-6">
-                {/* Title Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Title</Text>
+                <ScrollView>
                   <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    style={styles.input}
+                    placeholder="Goal Title"
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
-                    placeholder="Enter goal title"
                   />
-                </View>
-
-                {/* Description Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Description</Text>
                   <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                    placeholder="Description (Optional)"
                     value={formData.description}
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
-                    placeholder="Enter goal description"
-                    multiline={true}
-                    numberOfLines={4}
+                    multiline
                   />
-                </View>
-
-                {/* Target Amount Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Target Amount</Text>
                   <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    style={styles.input}
+                    placeholder="Target Amount (₱)"
                     value={formData.target_amount}
-                    onChangeText={(text) => {
-                      const formatted = formatAmount(text);
-                      setFormData({ ...formData, target_amount: formatted });
-                    }}
-                    placeholder="Enter target amount"
-                    keyboardType="numeric"
+                    onChangeText={(text) => setFormData({ ...formData, target_amount: formatAmount(text) })}
+                    keyboardType="decimal-pad"
                   />
-                </View>
-
-                {/* Target Date Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Target Date</Text>
                   <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    style={styles.input}
+                    placeholder="Target Date (MM-DD-YYYY)"
                     value={formData.target_date}
-                    onChangeText={(text) => {
-                      const formatted = formatDateInput(text);
-                      setFormData({ ...formData, target_date: formatted });
-                    }}
-                    placeholder="MM-DD-YYYY"
+                    onChangeText={(text) => setFormData({ ...formData, target_date: formatDateInput(text) })}
                     keyboardType="numeric"
                     maxLength={10}
                   />
-                </View>
 
-                {/* Submit Button */}
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={isSubmitting}
-                  className={`bg-blue-500 p-4 rounded-xl mt-6`}
-                  style={{ marginTop: 20 }}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text className="text-white text-center font-semibold text-lg">
-                      {editingGoal ? 'Update Goal' : 'Add Goal'}
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
+                  >
+                    <Text style={styles.submitButtonText}>
+                      {isSubmitting ? 'Saving...' : editingGoal ? 'Update Goal' : 'Create Goal'}
                     </Text>
-                  )}
-                </TouchableOpacity>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={() => setShowModal(false)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                </ScrollView>
               </View>
-            </ScrollView>
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Add Money Modal */}
+      {/* Contribution Modal */}
       <Modal
         visible={showContributionModal}
+        transparent
         animationType="slide"
-        transparent={true}
         onRequestClose={() => setShowContributionModal(false)}
       >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
-        >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <View className="flex-1 justify-end">
-              <View className="bg-white rounded-t-3xl p-6">
-                <View className="flex-row justify-between items-center mb-6">
-                  <Text className="text-xl font-semibold">
-                    Add Money to Goal
-                  </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalContainer}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={{ flex: 1, justifyContent: 'flex-end' }}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Add Contribution</Text>
                   <TouchableOpacity onPress={() => setShowContributionModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} />
+                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
                   </TouchableOpacity>
                 </View>
 
-                <View className="space-y-4">
-                  <View>
-                    <Text className="text-gray-600 mb-2">Amount*</Text>
-                    <TextInput
-                      className="border border-gray-300 rounded-lg p-3"
-                      value={formData.contribution_amount}
-                      onChangeText={(text) => {
-                        // Allow empty string for clearing
-                        if (text === '') {
-                          setFormData({ ...formData, contribution_amount: '' });
-                          return;
-                        }
-                        const formatted = formatAmount(text);
-                        if (formatted !== null) {
-                          setFormData({ ...formData, contribution_amount: formatted });
-                        }
-                      }}
-                      placeholder="Enter amount"
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View>
-                    <Text className="text-gray-600 mb-2">Notes</Text>
-                    <TextInput
-                      className="border border-gray-300 rounded-lg p-3"
-                      value={formData.notes}
-                      onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                      placeholder="Add notes (optional)"
-                      multiline
-                    />
-                  </View>
-                </View>
-
-                <View className="flex-row justify-end space-x-4 mt-6 pt-4 border-t border-gray-200">
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowContributionModal(false);
-                      setFormData({
-                        ...formData,
-                        contribution_amount: '',
-                        notes: ''
-                      });
-                    }}
-                    className="px-4 py-2 rounded-lg bg-gray-100"
-                  >
-                    <Text className="text-gray-600">Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleAddContribution}
-                    disabled={isSubmitting}
-                    className={`px-4 py-2 rounded-lg ${
-                      isSubmitting ? 'bg-blue-300' : 'bg-blue-500'
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text className="text-white">Add Money</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Contributions Modal */}
-      <Modal
-        visible={showContributionsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowContributionsModal(false)}
-      >
-        <View className="flex-1 justify-end">
-          <View className="bg-white rounded-t-3xl p-6 h-3/4">
-            <View className="flex-row justify-between items-center mb-6">
-              <View>
-                <Text className="text-xl font-semibold">
-                  Contributions History
-                </Text>
-                {selectedGoal && (
-                  <Text className="text-gray-600 mt-1">
-                    {selectedGoal.title}
-                  </Text>
-                )}
-              </View>
-              <TouchableOpacity onPress={() => setShowContributionsModal(false)}>
-                <MaterialCommunityIcons name="close" size={24} />
-              </TouchableOpacity>
-            </View>
-
-            {isLoadingContributions ? (
-              <ActivityIndicator size="large" color="#3B82F6" />
-            ) : contributions.length > 0 ? (
-              <ScrollView className="flex-1">
-                {contributions.map((contribution) => (
-                  <View
-                    key={contribution.contribution_id}
-                    className="bg-white border border-gray-100 rounded-xl p-4 mb-3"
-                  >
-                    <View className="flex-row justify-between items-start">
-                      <View>
-                        <Text className="text-gray-800 font-semibold text-lg">
-                          ₱{contribution.amount.toLocaleString()}
-                        </Text>
-                        {contribution.notes && (
-                          <Text className="text-gray-600 mt-1">
-                            {contribution.notes}
-                          </Text>
-                        )}
-                      </View>
-                      <Text className="text-gray-500 text-sm">
-                        {new Date(contribution.created_at).toLocaleDateString()}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <MaterialCommunityIcons
-                  name="cash-remove"
-                  size={48}
-                  color="#9CA3AF"
+                <TextInput
+                  style={styles.input}
+                  placeholder="Amount (₱)"
+                  value={formData.contribution_amount}
+                  onChangeText={(text) => setFormData({ ...formData, contribution_amount: formatAmount(text) })}
+                  keyboardType="decimal-pad"
                 />
-                <Text className="text-gray-500 mt-4 text-center">
-                  No contributions yet
-                </Text>
+                <TextInput
+                  style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+                  placeholder="Notes (Optional)"
+                  value={formData.notes}
+                  onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                  multiline
+                />
+
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleAddContribution}
+                  disabled={isSubmitting}
+                >
+                  <Text style={styles.submitButtonText}>
+                    {isSubmitting ? 'Adding...' : 'Add Contribution'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowContributionModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
               </View>
-            )}
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );

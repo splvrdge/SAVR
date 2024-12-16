@@ -3,15 +3,12 @@ import { View, Text } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from 'react-native';
 
-const TabIcon = ({ name, color, focused }) => {
+const TabIcon = ({ name, color, size }) => {
   return (
     <View className="flex items-center justify-center">
-      <MaterialCommunityIcons name={name} size={32} color={color} />
-      <Text
-        className={`${focused ? "font-semibold" : "font-normal"} text-2xl`}
-        style={{ color }}
-      ></Text>
+      <MaterialCommunityIcons name={name} size={size} color={color} />
     </View>
   );
 };
@@ -32,63 +29,80 @@ const TabsLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#2E8B57",
-        tabBarInactiveTintColor: "#8E8E8E",
-        tabBarShowLabel: true,
+        headerShown: false,
         tabBarStyle: {
-          backgroundColor: "#fff",
-          height: 110,
-          paddingTop: 20,
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#F5F5F5',
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+          paddingTop: 12,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarActiveTintColor: '#3B82F6',
+        tabBarInactiveTintColor: '#94A3B8',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: 4,
         },
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="home-outline" color={color} focused={focused} />
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="home" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="income"
         options={{
-          title: "Income",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="cash-multiple" color={color} focused={focused} />
+          title: 'Income',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="cash-plus" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
-          title: "Expenses",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="wallet-outline" color={color} focused={focused} />
+          title: 'Expenses',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="cash-minus" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="goals"
         options={{
-          title: "Goals",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="target" color={color} focused={focused} />
+          title: 'Goals',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="flag" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="analytics"
         options={{
-          title: "Analytics",
-          headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="chart-line" color={color} focused={focused} />
+          title: 'Analytics',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="chart-line" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="account" color={color} size={size} />
           ),
         }}
       />
