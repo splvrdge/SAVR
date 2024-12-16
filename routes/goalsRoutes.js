@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const goalController = require("../controllers/goalsController");
-const { authenticateToken, validateUser } = require("../middlewares/authMiddleware");
+const { authenticateToken } = require("../middlewares/authMiddleware");
 const { body, param } = require("express-validator");
 const { handleValidationErrors } = require("../middlewares/validationMiddleware");
 
@@ -74,6 +74,7 @@ router.get(
 router.get(
   "/contributions/:goal_id",
   authenticateToken,
+  validateGoalId,
   goalController.getGoalContributions
 );
 
@@ -89,6 +90,7 @@ router.post(
 router.put(
   "/update/:goal_id",
   authenticateToken,
+  validateGoalId,
   validateGoal,
   goalController.updateGoal
 );
