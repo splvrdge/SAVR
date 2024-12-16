@@ -479,3 +479,70 @@ exports.deleteGoal = async (req, res) => {
     }
   }
 };
+
+exports.getGoalContributions = async (req, res) => {
+  let connection;
+  try {
+    const { goal_id } = req.params;
+    const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    connection = await db.getConnection();
+
+    // First verify the goal belongs to the user
+    const [goals] = await connection.execute(
+      'SELECT goal_id FROM goals WHERE goal_id = ? AND user_id = ?',
+      [goal_id, userId]
+    );
+
+    if (goals.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found or unauthorized'
+      });
+    }
+
+    // Get all contributions for the goal
+    const [contributions] = await connection.execute(`
+      SELECT 
+        gc.*,
+        DATE_FORMAT(gc.created_at, '%Y-%m-%d %H:%i:%s') as formatted_date
+      FROM goal_contributions gc
+      WHERE gc.goal_id = ?
+      ORDER BY gc.created_at DESC
+    `, [goal_id]);
+
+    const formattedContributions = contributions.map(contribution => ({
+      ...contribution,
+      amount: parseFloat(contribution.amount) || 0,
+      created_at: contribution.formatted_date
+    }));
+
+    res.json({
+      success: true,
+      data: formattedContributions
+    });
+  } catch (error) {
+    logger.error('Failed to get goal contributions:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id,
+      goalId: req.params?.goal_id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving goal contributions'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};

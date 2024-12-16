@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const goalController = require("../controllers/goalsController");
-const { validateToken, validateUser } = require("../middlewares/authMiddleware");
+const { authenticateToken, validateUser } = require("../middlewares/authMiddleware");
 const { body, param } = require("express-validator");
 const { handleValidationErrors } = require("../middlewares/validationMiddleware");
 
@@ -58,7 +58,7 @@ const validateGoalId = [
 // Create goal
 router.post(
   "/create",
-  validateToken,
+  authenticateToken,
   validateGoal,
   goalController.createGoal
 );
@@ -66,14 +66,21 @@ router.post(
 // Get goals
 router.get(
   "/",
-  validateToken,
+  authenticateToken,
   goalController.getGoals
+);
+
+// Get goal contributions
+router.get(
+  "/contributions/:goal_id",
+  authenticateToken,
+  goalController.getGoalContributions
 );
 
 // Add contribution
 router.post(
   "/contribute",
-  validateToken,
+  authenticateToken,
   validateContribution,
   goalController.addContribution
 );
@@ -81,7 +88,7 @@ router.post(
 // Update goal
 router.put(
   "/update/:goal_id",
-  validateToken,
+  authenticateToken,
   validateGoal,
   goalController.updateGoal
 );
@@ -89,7 +96,7 @@ router.put(
 // Delete goal
 router.delete(
   "/delete/:goal_id",
-  validateToken,
+  authenticateToken,
   validateGoalId,
   goalController.deleteGoal
 );
