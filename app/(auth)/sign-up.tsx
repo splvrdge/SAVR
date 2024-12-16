@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,19 +10,19 @@ import {
   Platform,
   ScrollView,
   Image,
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { API_ENDPOINTS } from '@/constants/API';
-import axiosInstance from '@/utils/axiosConfig';
-import tokenManager from '@/utils/tokenManager';
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { API_ENDPOINTS } from "@/constants/API";
+import axiosInstance from "@/utils/axiosConfig";
+import tokenManager from "@/utils/tokenManager";
 
 export default function SignUp() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,12 +30,12 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert("Error", "Passwords do not match");
       return;
     }
 
@@ -43,12 +43,15 @@ export default function SignUp() {
 
     try {
       // First check if email exists
-      const checkEmailResponse = await axiosInstance.post(API_ENDPOINTS.AUTH.CHECK_EMAIL, {
-        user_email: email
-      });
+      const checkEmailResponse = await axiosInstance.post(
+        API_ENDPOINTS.AUTH.CHECK_EMAIL,
+        {
+          user_email: email,
+        }
+      );
 
       if (!checkEmailResponse.data.available) {
-        Alert.alert('Error', 'Email already exists');
+        Alert.alert("Error", "Email already exists");
         setIsLoading(false);
         return;
       }
@@ -57,25 +60,25 @@ export default function SignUp() {
       const response = await axiosInstance.post(API_ENDPOINTS.AUTH.SIGNUP, {
         user_name: name,
         user_email: email,
-        user_password: password
+        user_password: password,
       });
 
       if (response.data.success) {
         const { accessToken, refreshToken, user } = response.data;
-        
+
         // Store tokens and user info using TokenManager
         await Promise.all([
           tokenManager.setTokens(accessToken, refreshToken),
-          tokenManager.setUserInfo(user.user_id.toString(), user.user_name)
+          tokenManager.setUserInfo(user.user_id.toString(), user.user_name),
         ]);
 
-        router.replace('/(tabs)/home');
+        router.replace("/(tabs)/home");
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
       Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to sign up. Please try again.'
+        "Error",
+        error.response?.data?.message || "Failed to sign up. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -84,17 +87,17 @@ export default function SignUp() {
 
   const handleGoogleSignUp = () => {
     // Implement Google Sign Up
-    Alert.alert('Coming Soon', 'Google signup will be available soon!');
+    Alert.alert("Coming Soon", "Google signup will be available soon!");
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-white"
     >
       <StatusBar style="dark" />
-      <ScrollView 
-        className="flex-1" 
+      <ScrollView
+        className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -112,7 +115,9 @@ export default function SignUp() {
           {/* Form */}
           <View className="space-y-8">
             <View className="mb-3">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Full Name</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Full Name
+              </Text>
               <TextInput
                 className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
                 placeholder="Enter your full name"
@@ -123,7 +128,9 @@ export default function SignUp() {
             </View>
 
             <View className="mb-3">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Email</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Email
+              </Text>
               <TextInput
                 className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
                 placeholder="Enter your email"
@@ -136,7 +143,9 @@ export default function SignUp() {
             </View>
 
             <View className="mb-3">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Password</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Password
+              </Text>
               <View className="relative">
                 <TextInput
                   className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
@@ -151,7 +160,7 @@ export default function SignUp() {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   <MaterialCommunityIcons
-                    name={showPassword ? 'eye-off' : 'eye'}
+                    name={showPassword ? "eye-off" : "eye"}
                     size={24}
                     color="#6B7280"
                   />
@@ -160,7 +169,9 @@ export default function SignUp() {
             </View>
 
             <View className="mb-3">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Confirm Password</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Confirm Password
+              </Text>
               <View className="relative">
                 <TextInput
                   className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
@@ -175,7 +186,7 @@ export default function SignUp() {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   <MaterialCommunityIcons
-                    name={showConfirmPassword ? 'eye-off' : 'eye'}
+                    name={showConfirmPassword ? "eye-off" : "eye"}
                     size={24}
                     color="#6B7280"
                   />
@@ -186,7 +197,7 @@ export default function SignUp() {
             <View className="mt-6">
               <TouchableOpacity
                 className={`bg-customGreen py-4 rounded-2xl ${
-                  isLoading ? 'opacity-70' : ''
+                  isLoading ? "opacity-70" : ""
                 }`}
                 onPress={handleSignUp}
                 disabled={isLoading}
@@ -211,8 +222,8 @@ export default function SignUp() {
               className="bg-white border border-gray-200 py-4 rounded-2xl flex-row justify-center items-center shadow-sm"
               onPress={handleGoogleSignUp}
             >
-              <Image 
-                source={require('../../assets/icons/google.png')} 
+              <Image
+                source={require("../../assets/icons/google.png")}
                 style={{ width: 24, height: 24, marginRight: 12 }}
                 resizeMode="contain"
               />
@@ -224,10 +235,14 @@ export default function SignUp() {
 
           {/* Footer */}
           <View className="mt-12 flex-row justify-center">
-            <Text className="text-gray-600 text-base">Already have an account? </Text>
+            <Text className="text-gray-600 text-base">
+              Already have an account?{" "}
+            </Text>
             <Link href="/(auth)/sign-in" asChild>
               <TouchableOpacity>
-                <Text className="text-customGreen font-semibold text-base">Sign In</Text>
+                <Text className="text-customGreen font-semibold text-base">
+                  Sign In
+                </Text>
               </TouchableOpacity>
             </Link>
           </View>

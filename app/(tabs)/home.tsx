@@ -279,7 +279,7 @@ export default function Home() {
           </View>
 
           {/* Balance Card */}
-          <View className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[24px] mb-6 shadow-xl">
+          <View className="bg-blue-600 p-6 rounded-[24px] mb-6 shadow-2xl">
             <Text className="text-white/80 text-sm font-medium mb-2">Total Balance</Text>
             <Text className="text-white text-3xl font-bold mb-4">
               {formatCurrency(financialSummary?.current_balance)}
@@ -291,7 +291,7 @@ export default function Home() {
                 </View>
                 <View>
                   <Text className="text-white/60 text-xs">Net Savings</Text>
-                  <Text className="text-white font-semibold">
+                  <Text className="text-white font-semibold text-2xl">
                     {formatCurrency(financialSummary?.net_savings)}
                   </Text>
                 </View>
@@ -302,7 +302,7 @@ export default function Home() {
                 </View>
                 <View>
                   <Text className="text-white/60 text-xs">Total Expenses</Text>
-                  <Text className="text-white font-semibold">
+                  <Text className="text-white font-semibold text-2xl">
                     {formatCurrency(financialSummary?.total_expenses)}
                   </Text>
                 </View>
@@ -310,60 +310,23 @@ export default function Home() {
             </View>
           </View>
 
-          {/* Quick Actions Grid */}
+          {/* Quick Actions */}
           <View className="mb-8">
             <Text className="text-lg font-bold text-gray-800 mb-4">Quick Actions</Text>
-            <View className="grid grid-cols-2 gap-4">
+            <View className="flex-row justify-between items-center">
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/income')}
-                className="bg-blue-50 rounded-2xl overflow-hidden"
+                className="flex-1 flex-row items-center justify-center bg-blue-50 py-4 rounded-2xl mr-3"
               >
-                <View className="p-4">
-                  <View className="bg-blue-100 w-10 h-10 rounded-full items-center justify-center mb-3">
-                    <MaterialCommunityIcons name="cash-plus" size={20} color="#2563eb" />
-                  </View>
-                  <Text className="text-blue-700 font-semibold">Add Income</Text>
-                  <Text className="text-blue-600/60 text-sm mt-1">Record earnings</Text>
-                </View>
+                <MaterialCommunityIcons name="cash-plus" size={20} color="#2563eb" style={{ marginRight: 8 }} />
+                <Text className="text-blue-600 font-medium">Add Income</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/expenses')}
-                className="bg-gray-50 rounded-2xl overflow-hidden"
+                className="flex-1 flex-row items-center justify-center bg-red-50 py-4 rounded-2xl"
               >
-                <View className="p-4">
-                  <View className="bg-gray-200 w-10 h-10 rounded-full items-center justify-center mb-3">
-                    <MaterialCommunityIcons name="cash-minus" size={20} color="#1f2937" />
-                  </View>
-                  <Text className="text-gray-800 font-semibold">Add Expense</Text>
-                  <Text className="text-gray-500 text-sm mt-1">Track spending</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/goals')}
-                className="bg-blue-50 rounded-2xl overflow-hidden"
-              >
-                <View className="p-4">
-                  <View className="bg-blue-100 w-10 h-10 rounded-full items-center justify-center mb-3">
-                    <MaterialCommunityIcons name="flag-outline" size={20} color="#2563eb" />
-                  </View>
-                  <Text className="text-blue-700 font-semibold">Set Goals</Text>
-                  <Text className="text-blue-600/60 text-sm mt-1">Plan ahead</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => router.push('/profile')}
-                className="bg-gray-50 rounded-2xl overflow-hidden"
-              >
-                <View className="p-4">
-                  <View className="bg-gray-200 w-10 h-10 rounded-full items-center justify-center mb-3">
-                    <MaterialCommunityIcons name="chart-box-outline" size={20} color="#1f2937" />
-                  </View>
-                  <Text className="text-gray-800 font-semibold">Analytics</Text>
-                  <Text className="text-gray-500 text-sm mt-1">View insights</Text>
-                </View>
+                <MaterialCommunityIcons name="cash-minus" size={20} color="#dc2626" style={{ marginRight: 8 }} />
+                <Text className="text-red-600 font-medium">Add Expense</Text>
               </TouchableOpacity>
             </View>
           </View>

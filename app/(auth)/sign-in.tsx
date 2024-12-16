@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -9,29 +9,29 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { API_ENDPOINTS } from '@/constants/API';
-import axiosInstance from '@/utils/axiosConfig';
-import tokenManager from '@/utils/tokenManager';
+  Image,
+} from "react-native";
+import { Link, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { API_ENDPOINTS } from "@/constants/API";
+import axiosInstance from "@/utils/axiosConfig";
+import tokenManager from "@/utils/tokenManager";
 
 export default function SignIn() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSignIn = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert("Error", "Please enter your email");
       return;
     }
     if (!password) {
-      Alert.alert('Error', 'Please enter your password');
+      Alert.alert("Error", "Please enter your password");
       return;
     }
 
@@ -40,58 +40,59 @@ export default function SignIn() {
     try {
       const response = await axiosInstance.post(API_ENDPOINTS.AUTH.LOGIN, {
         user_email: email.trim().toLowerCase(),
-        user_password: password
+        user_password: password,
       });
 
       const { data } = response;
-      
+
       if (data.success) {
         const { accessToken, refreshToken, user } = data;
-        
+
         // Store tokens and user info using TokenManager
         await Promise.all([
           tokenManager.setTokens(accessToken, refreshToken),
-          tokenManager.setUserInfo(user.user_id.toString(), user.user_name)
+          tokenManager.setUserInfo(user.user_id.toString(), user.user_name),
         ]);
 
         // Reset the form
-        setEmail('');
-        setPassword('');
-        
+        setEmail("");
+        setPassword("");
+
         // Navigate to home
-        router.replace('/(tabs)/home');
+        router.replace("/(tabs)/home");
       } else {
-        Alert.alert('Error', data.message || 'Failed to sign in');
+        Alert.alert("Error", data.message || "Failed to sign in");
       }
     } catch (error: any) {
-      let errorMessage = 'Failed to sign in. Please try again.';
-      
+      let errorMessage = "Failed to sign in. Please try again.";
+
       if (error.response?.status === 401) {
-        errorMessage = 'Invalid email or password';
+        errorMessage = "Invalid email or password";
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (error.message === 'Network Error') {
-        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (error.message === "Network Error") {
+        errorMessage =
+          "Unable to connect to the server. Please check your internet connection.";
       }
-      
-      Alert.alert('Error', errorMessage);
+
+      Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    Alert.alert('Coming Soon', 'Google Sign In will be available soon!');
+    Alert.alert("Coming Soon", "Google Sign In will be available soon!");
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-white"
     >
       <StatusBar style="dark" />
-      <ScrollView 
-        className="flex-1" 
+      <ScrollView
+        className="flex-1"
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -109,7 +110,9 @@ export default function SignIn() {
           {/* Form */}
           <View className="space-y-8">
             <View className="mb-4">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Email</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Email
+              </Text>
               <TextInput
                 className="bg-gray-50 px-5 py-4 rounded-2xl text-base"
                 placeholder="Enter your email"
@@ -122,7 +125,9 @@ export default function SignIn() {
             </View>
 
             <View className="mb-4">
-              <Text className="text-gray-700 mb-2 text-base font-medium">Password</Text>
+              <Text className="text-gray-700 mb-2 text-base font-medium">
+                Password
+              </Text>
               <View className="relative">
                 <TextInput
                   className="bg-gray-50 px-5 py-4 rounded-2xl text-base pr-12"
@@ -137,7 +142,7 @@ export default function SignIn() {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   <MaterialCommunityIcons
-                    name={showPassword ? 'eye-off' : 'eye'}
+                    name={showPassword ? "eye-off" : "eye"}
                     size={24}
                     color="#6B7280"
                   />
@@ -148,7 +153,7 @@ export default function SignIn() {
             <View className="mt-6">
               <TouchableOpacity
                 className={`bg-customGreen py-4 rounded-2xl ${
-                  isLoading ? 'opacity-70' : ''
+                  isLoading ? "opacity-70" : ""
                 }`}
                 onPress={handleSignIn}
                 disabled={isLoading}
@@ -173,8 +178,8 @@ export default function SignIn() {
               className="bg-white border border-gray-200 py-4 rounded-2xl flex-row justify-center items-center shadow-sm"
               onPress={handleGoogleSignIn}
             >
-              <Image 
-                source={require('../../assets/icons/google.png')} 
+              <Image
+                source={require("../../assets/icons/google.png")}
                 style={{ width: 24, height: 24, marginRight: 12 }}
                 resizeMode="contain"
               />
@@ -186,10 +191,14 @@ export default function SignIn() {
 
           {/* Footer */}
           <View className="mt-12 flex-row justify-center">
-            <Text className="text-gray-600 text-base">Don't have an account? </Text>
+            <Text className="text-gray-600 text-base">
+              Don't have an account?{" "}
+            </Text>
             <Link href="/(auth)/sign-up" asChild>
               <TouchableOpacity>
-                <Text className="text-customGreen font-semibold text-base">Sign Up</Text>
+                <Text className="text-customGreen font-semibold text-base">
+                  Sign Up
+                </Text>
               </TouchableOpacity>
             </Link>
           </View>
