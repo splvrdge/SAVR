@@ -149,7 +149,7 @@ exports.getIncomes = async (req, res) => {
 };
 
 exports.updateIncome = async (req, res) => {
-  const { income_id: id } = req.params; // Frontend sends id
+  const { income_id } = req.params; // Frontend sends as id
   const { amount, description, category } = req.body;
   const timestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
@@ -159,13 +159,13 @@ exports.updateIncome = async (req, res) => {
 
     // Get the original income to calculate the difference
     const [originalIncomeResult] = await connection.execute(
-      'SELECT amount, user_id FROM incomes WHERE id = ?',
-      [id]
+      'SELECT amount, user_id FROM incomes WHERE income_id = ?',
+      [income_id]
     );
 
     if (!originalIncomeResult || originalIncomeResult.length === 0) {
       await connection.rollback();
-      logger.warn(`Update attempted on non-existent income: ${id}`);
+      logger.warn(`Update attempted on non-existent income: ${income_id}`);
       return res.status(404).json({ success: false, message: "Income not found" });
     }
 
@@ -177,8 +177,8 @@ exports.updateIncome = async (req, res) => {
     await connection.execute(
       `UPDATE incomes 
        SET amount = ?, description = ?, category = ?, updated_at = ?
-       WHERE id = ?`,
-      [amount, description, category, timestamp, id]
+       WHERE income_id = ?`,
+      [amount, description, category, timestamp, income_id]
     );
 
     // Update user_financial_data
@@ -186,7 +186,7 @@ exports.updateIncome = async (req, res) => {
       `UPDATE user_financial_data 
        SET amount = ?, description = ?, category = ?, updated_at = ?
        WHERE income_id = ? AND type = 'income'`,
-      [amount, description, category, timestamp, id]
+      [amount, description, category, timestamp, income_id]
     );
 
     // Update user_financial_summary
@@ -202,7 +202,7 @@ exports.updateIncome = async (req, res) => {
     );
 
     await connection.commit();
-    logger.info(`Income ${id} updated successfully for user ${user_id}`);
+    logger.info(`Income ${income_id} updated successfully for user ${user_id}`);
     
     res.json({
       success: true,
@@ -211,7 +211,7 @@ exports.updateIncome = async (req, res) => {
   } catch (error) {
     await connection.rollback();
     logger.error("Failed to update income:", {
-      id,
+      income_id,
       error: error.message,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
@@ -226,7 +226,7 @@ exports.updateIncome = async (req, res) => {
 };
 
 exports.deleteIncome = async (req, res) => {
-  const { id } = req.params;
+  const { income_id } = req.params;
   const connection = await db.getConnection();
 
   try {
@@ -235,12 +235,12 @@ exports.deleteIncome = async (req, res) => {
     // Get the income details before deletion
     const [income] = await connection.execute(
       'SELECT amount, user_id FROM incomes WHERE income_id = ?',
-      [id]
+      [income_id]
     );
 
     if (income.length === 0) {
       await connection.rollback();
-      logger.warn(`Delete attempted on non-existent income: ${id}`);
+      logger.warn(`Delete attempted on non-existent income: ${income_id}`);
       return res.status(404).json({ success: false, message: "Income not found" });
     }
 
@@ -249,13 +249,13 @@ exports.deleteIncome = async (req, res) => {
     // Delete from financial data first (foreign key constraint)
     await connection.execute(
       'DELETE FROM user_financial_data WHERE income_id = ?',
-      [id]
+      [income_id]
     );
 
     // Delete the income
     await connection.execute(
       'DELETE FROM incomes WHERE income_id = ?',
-      [id]
+      [income_id]
     );
 
     // Update financial summary
@@ -268,11 +268,11 @@ exports.deleteIncome = async (req, res) => {
     );
 
     await connection.commit();
-    logger.info(`Income ${id} deleted successfully for user ${user_id}`);
+    logger.info(`Income ${income_id} deleted successfully for user ${user_id}`);
     res.json({ success: true, message: "Income deleted successfully" });
   } catch (err) {
     await connection.rollback();
-    logger.error('Failed to delete income:', { incomeId: id, error: err.message });
+    logger.error('Failed to delete income:', { incomeId: income_id, error: err.message });
     res.status(500).json({ success: false, message: "Internal server error" });
   } finally {
     connection.release();
