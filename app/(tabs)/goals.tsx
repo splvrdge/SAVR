@@ -29,6 +29,7 @@ interface Goal {
   goal_id: number;
   user_id: number;
   title: string;
+  description?: string;
   target_amount: number;
   current_amount: number;
   target_date: string;
@@ -40,8 +41,8 @@ interface Contribution {
   contribution_id: number;
   goal_id: number;
   amount: number;
-  contribution_date: string;
   notes?: string;
+  created_at: string;
 }
 
 export default function Goals() {
@@ -56,11 +57,17 @@ export default function Goals() {
   const [sortBy, setSortBy] = useState<'date' | 'progress'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showContributionsModal, setShowContributionsModal] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [isLoadingContributions, setIsLoadingContributions] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
+    description: '',
     target_amount: '',
     target_date: '',
+    contribution_amount: '',
+    notes: ''
   });
 
   const sortedGoals = useMemo(() => {
@@ -120,51 +127,91 @@ export default function Goals() {
 
   const fetchGoals = async () => {
     try {
+      console.log('Fetching goals...');
       const userId = await AsyncStorage.getItem('userId');
-      const token = await AsyncStorage.getItem('token');
+      const token = await AsyncStorage.getItem('accessToken');
 
       if (!userId || !token) {
+        console.log('No userId or token found');
         router.replace('/(auth)/sign-in');
         return;
       }
 
-      const response = await axiosInstance.get(API_ENDPOINTS.GOALS.GET_ALL.replace(':user_id', userId));
+      console.log('Making API request to:', API_ENDPOINTS.GOALS.GET_ALL);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.GOALS.GET_ALL,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       
-      if (response.data.success) {
-        const formattedGoals = response.data.data.map((goal: Goal) => ({
-          ...goal,
-          target_amount: parseFloat(goal.target_amount.toString()) || 0,
-          current_amount: parseFloat(goal.current_amount.toString()) || 0,
-          progress_percentage: parseFloat(goal.progress_percentage.toString()) || 0,
-          target_date: convertDateForDisplay(goal.target_date)
-        }));
+      console.log('API Response:', response.data);
+      
+      if (response.data.success && Array.isArray(response.data.data)) {
+        const formattedGoals = response.data.data.map((goal: any) => {
+          // Safely parse numbers with fallbacks
+          const targetAmount = goal.target_amount ? parseFloat(goal.target_amount.toString()) : 0;
+          const currentAmount = goal.current_amount ? parseFloat(goal.current_amount.toString()) : 0;
+          const progressPercentage = goal.progress_percentage ? parseFloat(goal.progress_percentage.toString()) : 0;
+          
+          console.log('Processing goal:', goal);
+          
+          return {
+            goal_id: goal.goal_id || 0,
+            user_id: goal.user_id || 0,
+            title: goal.title || '',
+            description: goal.description || '',
+            target_amount: targetAmount,
+            current_amount: currentAmount,
+            target_date: goal.target_date ? convertDateForDisplay(goal.target_date) : '',
+            days_remaining: goal.days_remaining || 0,
+            progress_percentage: progressPercentage
+          };
+        });
+        
+        console.log('Formatted goals:', formattedGoals);
         setGoals(formattedGoals);
       } else {
+        console.log('Failed to fetch goals:', response.data.message);
         Alert.alert('Error', response.data.message || 'Failed to fetch goals');
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to fetch goals');
+      console.error('Error in fetchGoals:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      } else {
+        Alert.alert('Error', 'Failed to fetch goals');
+      }
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchGoals();
-    }, [])
-  );
+  useEffect(() => {
+    fetchGoals();
+  }, []);
 
   const formatAmount = (text: string) => {
+    // Remove any non-digit characters except decimal point
     const cleaned = text.replace(/[^\d.]/g, '');
     
+    // Handle cases with multiple decimal points
     const parts = cleaned.split('.');
     const wholeNumber = parts[0];
-    const decimal = parts[1];
+    const decimal = parts.length > 1 ? parts[1] : '';
 
+    // Don't format if empty
+    if (!wholeNumber && !decimal) return '';
+
+    // Add commas to whole number part
     const formatted = wholeNumber.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     
+    // Return with decimal if it exists
     return decimal ? `${formatted}.${decimal}` : formatted;
   };
 
@@ -185,43 +232,116 @@ export default function Goals() {
         return;
       }
 
+      // Validate title length
+      if (formData.title.length < 2 || formData.title.length > 100) {
+        Alert.alert('Error', 'Title must be between 2 and 100 characters');
+        return;
+      }
+
+      // Validate description length if provided
+      if (formData.description && formData.description.length > 500) {
+        Alert.alert('Error', 'Description must not exceed 500 characters');
+        return;
+      }
+
+      // Validate target amount
+      const targetAmount = parseFloat(cleanAmount(formData.target_amount));
+      if (isNaN(targetAmount) || targetAmount <= 0) {
+        Alert.alert('Error', 'Target amount must be greater than 0');
+        return;
+      }
+
+      // Convert and validate date
+      const targetDate = convertDateForAPI(formData.target_date);
+      if (new Date(targetDate) <= new Date()) {
+        Alert.alert('Error', 'Target date must be in the future');
+        return;
+      }
+
       const payload = {
-        user_id: parseInt(userId),
-        title: formData.title,
-        target_amount: parseFloat(cleanAmount(formData.target_amount)),
-        target_date: convertDateForAPI(formData.target_date)
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        target_amount: targetAmount,
+        target_date: targetDate
       };
 
+      console.log('Submitting goal with payload:', payload);
+      setIsSubmitting(true);
       const response = await axiosInstance.post(API_ENDPOINTS.GOALS.ADD, payload);
+      console.log('Add goal response:', response.data);
 
       if (response.data.success) {
         setShowModal(false);
-        setFormData({ title: '', target_amount: '', target_date: '' });
-        fetchGoals();
+        setFormData({ title: '', description: '', target_amount: '', target_date: '', contribution_amount: '', notes: '' });
+        await fetchGoals();
         Alert.alert('Success', 'Goal added successfully');
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to add goal');
+      console.error('Error adding goal:', error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to add goal');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdateGoal = async () => {
     if (!editingGoal) return;
 
+    if (!formData.title || !formData.target_amount || !formData.target_date) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
     try {
+      // Validate title length
+      if (formData.title.length < 2 || formData.title.length > 100) {
+        Alert.alert('Error', 'Title must be between 2 and 100 characters');
+        return;
+      }
+
+      // Validate description length if provided
+      if (formData.description && formData.description.length > 500) {
+        Alert.alert('Error', 'Description must not exceed 500 characters');
+        return;
+      }
+
+      // Validate target amount
+      const targetAmount = parseFloat(cleanAmount(formData.target_amount));
+      if (isNaN(targetAmount) || targetAmount <= 0) {
+        Alert.alert('Error', 'Target amount must be greater than 0');
+        return;
+      }
+
+      // Convert and validate date
+      const targetDate = convertDateForAPI(formData.target_date);
+      if (new Date(targetDate) <= new Date()) {
+        Alert.alert('Error', 'Target date must be in the future');
+        return;
+      }
+
+      const payload = {
+        title: formData.title.trim(),
+        description: formData.description?.trim(),
+        target_amount: targetAmount,
+        target_date: targetDate
+      };
+
+      console.log('Updating goal with payload:', payload);
       const response = await axiosInstance.put(
         API_ENDPOINTS.GOALS.UPDATE.replace(':goal_id', editingGoal.goal_id.toString()),
-        formData
+        payload
       );
 
       if (response.data.success) {
         setShowModal(false);
-        setFormData({ title: '', target_amount: '', target_date: '' });
-        fetchGoals();
+        setFormData({ title: '', description: '', target_amount: '', target_date: '', contribution_amount: '', notes: '' });
+        setEditingGoal(null);
+        await fetchGoals();
         Alert.alert('Success', 'Goal updated successfully');
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to update goal');
+      console.error('Error updating goal:', error.response?.data || error.message);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update goal');
     }
   };
 
@@ -264,32 +384,59 @@ export default function Goals() {
   };
 
   const handleAddContribution = async () => {
-    if (!editingGoal || !formData.target_amount) {
-      Alert.alert('Error', 'Please enter an amount');
-      return;
-    }
-
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      if (!userId) {
-        router.replace('/(auth)/sign-in');
+      if (!editingGoal) return;
+
+      const amount = parseFloat(formData.contribution_amount.replace(/,/g, ''));
+      
+      // Validate amount
+      if (isNaN(amount) || amount <= 0) {
+        Alert.alert('Error', 'Please enter a valid amount greater than 0');
         return;
       }
 
-      const response = await axiosInstance.post(API_ENDPOINTS.GOALS.ADD_CONTRIBUTION, {
-        goal_id: editingGoal.goal_id,
-        user_id: parseInt(userId),
-        amount: parseFloat(cleanAmount(formData.target_amount)),
-      });
+      // Calculate remaining amount needed
+      const remainingAmount = editingGoal.target_amount - editingGoal.current_amount;
+      if (amount > remainingAmount) {
+        Alert.alert('Error', `Amount cannot exceed the remaining amount needed (₱${remainingAmount.toLocaleString()})`);
+        return;
+      }
+
+      setIsSubmitting(true);
+      const token = await AsyncStorage.getItem('accessToken');
+
+      const response = await axiosInstance.post(
+        API_ENDPOINTS.GOALS.ADD_CONTRIBUTION,
+        {
+          goal_id: editingGoal.goal_id,
+          amount,
+          notes: formData.notes
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
       if (response.data.success) {
-        setShowContributionModal(false);
-        setFormData({ title: '', target_amount: '', target_date: '' });
-        fetchGoals();
         Alert.alert('Success', 'Contribution added successfully');
+        setShowContributionModal(false);
+        setFormData({
+          ...formData,
+          contribution_amount: '',
+          notes: ''
+        });
+        await fetchGoals();
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to add contribution');
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to add contribution');
+      console.error('Error adding contribution:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to add contribution');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -297,6 +444,32 @@ export default function Goals() {
     setRefreshing(true);
     fetchGoals();
   }, []);
+
+  const fetchContributions = async (goalId: number) => {
+    try {
+      setIsLoadingContributions(true);
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.GOALS.GET_CONTRIBUTIONS.replace(':goal_id', goalId.toString())
+      );
+      
+      if (response.data.success) {
+        setContributions(response.data.data);
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to fetch contributions');
+      }
+    } catch (error: any) {
+      console.error('Error fetching contributions:', error);
+      Alert.alert('Error', error.response?.data?.message || 'Failed to fetch contributions');
+    } finally {
+      setIsLoadingContributions(false);
+    }
+  };
+
+  const handleShowContributions = async (goal: Goal) => {
+    setSelectedGoal(goal);
+    setShowContributionsModal(true);
+    await fetchContributions(goal.goal_id);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -318,7 +491,7 @@ export default function Goals() {
       {/* Add Goal Button */}
       <AddButton onPress={() => {
         setEditingGoal(null);
-        setFormData({ title: '', target_amount: '', target_date: '' });
+        setFormData({ title: '', description: '', target_amount: '', target_date: '', contribution_amount: '', notes: '' });
         setShowModal(true);
       }} />
 
@@ -351,6 +524,11 @@ export default function Goals() {
                       <Text className="text-gray-800 font-medium text-lg">
                         {goal.title}
                       </Text>
+                      {goal.description && (
+                        <Text className="text-gray-600 mt-1 mb-2">
+                          {goal.description}
+                        </Text>
+                      )}
                       <Text className="text-gray-500 text-sm">
                         Target Date: {goal.target_date}
                       </Text>
@@ -374,10 +552,7 @@ export default function Goals() {
                       <View
                         className="bg-blue-500 h-full rounded-full"
                         style={{
-                          width: `${Math.min(
-                            goal.progress_percentage,
-                            100
-                          )}%`,
+                          width: `${goal.progress_percentage}%`
                         }}
                       />
                     </View>
@@ -398,36 +573,49 @@ export default function Goals() {
                     </View>
                   </View>
 
-                  <View className="flex-row space-x-2 mt-3">
+                  <View className="flex-row gap-2 mt-4">
                     <TouchableOpacity
                       onPress={() => {
                         setEditingGoal(goal);
                         setFormData({
                           title: goal.title,
+                          description: goal.description || '',
                           target_amount: goal.target_amount.toString(),
                           target_date: goal.target_date,
                         });
                         setShowModal(true);
                       }}
-                      className="flex-1 bg-gray-100 py-2 px-4 rounded-lg"
+                      className="flex-1 bg-gray-100 py-2 px-4 rounded-lg flex-row justify-center items-center"
                     >
-                      <Text className="text-gray-700 text-center font-semibold">
-                        Edit Goal
+                      <MaterialCommunityIcons name="pencil" size={20} color="#4B5563" />
+                      <Text className="text-gray-700 font-semibold ml-2">
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleShowContributions(goal)}
+                      className="flex-1 bg-gray-100 py-2 px-4 rounded-lg flex-row justify-center items-center"
+                    >
+                      <MaterialCommunityIcons name="history" size={20} color="#4B5563" />
+                      <Text className="text-gray-700 font-semibold ml-2">
+                        History
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        setEditingGoal(goal);
+                        setSelectedGoal(goal);
                         setFormData({
                           ...formData,
-                          target_amount: '',
+                          contribution_amount: '',
+                          notes: ''
                         });
                         setShowContributionModal(true);
                       }}
-                      className="flex-1 bg-blue-500 py-2 px-4 rounded-lg"
+                      className="flex-1 bg-blue-500 py-2 px-4 rounded-lg flex-row justify-center items-center"
                     >
-                      <Text className="text-white text-center font-semibold">
-                        Add Money
+                      <MaterialCommunityIcons name="cash-plus" size={20} color="white" />
+                      <Text className="text-white font-semibold ml-2">
+                        Add
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -470,6 +658,19 @@ export default function Goals() {
                     value={formData.title}
                     onChangeText={(text) => setFormData({ ...formData, title: text })}
                     placeholder="Enter goal title"
+                  />
+                </View>
+
+                {/* Description Input */}
+                <View className="mb-4">
+                  <Text className="text-gray-600 mb-2">Description</Text>
+                  <TextInput
+                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
+                    value={formData.description}
+                    onChangeText={(text) => setFormData({ ...formData, description: text })}
+                    placeholder="Enter goal description"
+                    multiline={true}
+                    numberOfLines={4}
                   />
                 </View>
 
@@ -553,13 +754,30 @@ export default function Goals() {
                     <Text className="text-gray-600 mb-2">Amount*</Text>
                     <TextInput
                       className="border border-gray-300 rounded-lg p-3"
-                      value={formData.target_amount}
+                      value={formData.contribution_amount}
                       onChangeText={(text) => {
+                        // Allow empty string for clearing
+                        if (text === '') {
+                          setFormData({ ...formData, contribution_amount: '' });
+                          return;
+                        }
                         const formatted = formatAmount(text);
-                        setFormData({ ...formData, target_amount: formatted });
+                        if (formatted !== null) {
+                          setFormData({ ...formData, contribution_amount: formatted });
+                        }
                       }}
                       placeholder="Enter amount"
                       keyboardType="numeric"
+                    />
+                  </View>
+                  <View>
+                    <Text className="text-gray-600 mb-2">Notes</Text>
+                    <TextInput
+                      className="border border-gray-300 rounded-lg p-3"
+                      value={formData.notes}
+                      onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                      placeholder="Add notes (optional)"
+                      multiline
                     />
                   </View>
                 </View>
@@ -568,7 +786,11 @@ export default function Goals() {
                   <TouchableOpacity
                     onPress={() => {
                       setShowContributionModal(false);
-                      setFormData({ ...formData, target_amount: '' });
+                      setFormData({
+                        ...formData,
+                        contribution_amount: '',
+                        notes: ''
+                      });
                     }}
                     className="px-4 py-2 rounded-lg bg-gray-100"
                   >
@@ -592,6 +814,74 @@ export default function Goals() {
             </View>
           </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Contributions Modal */}
+      <Modal
+        visible={showContributionsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowContributionsModal(false)}
+      >
+        <View className="flex-1 justify-end">
+          <View className="bg-white rounded-t-3xl p-6 h-3/4">
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                <Text className="text-xl font-semibold">
+                  Contributions History
+                </Text>
+                {selectedGoal && (
+                  <Text className="text-gray-600 mt-1">
+                    {selectedGoal.title}
+                  </Text>
+                )}
+              </View>
+              <TouchableOpacity onPress={() => setShowContributionsModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} />
+              </TouchableOpacity>
+            </View>
+
+            {isLoadingContributions ? (
+              <ActivityIndicator size="large" color="#3B82F6" />
+            ) : contributions.length > 0 ? (
+              <ScrollView className="flex-1">
+                {contributions.map((contribution) => (
+                  <View
+                    key={contribution.contribution_id}
+                    className="bg-white border border-gray-100 rounded-xl p-4 mb-3"
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View>
+                        <Text className="text-gray-800 font-semibold text-lg">
+                          ₱{contribution.amount.toLocaleString()}
+                        </Text>
+                        {contribution.notes && (
+                          <Text className="text-gray-600 mt-1">
+                            {contribution.notes}
+                          </Text>
+                        )}
+                      </View>
+                      <Text className="text-gray-500 text-sm">
+                        {new Date(contribution.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View className="flex-1 items-center justify-center">
+                <MaterialCommunityIcons
+                  name="cash-remove"
+                  size={48}
+                  color="#9CA3AF"
+                />
+                <Text className="text-gray-500 mt-4 text-center">
+                  No contributions yet
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );

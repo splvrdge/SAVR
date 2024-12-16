@@ -68,6 +68,7 @@ export default function Expenses() {
   const [isEditing, setIsEditing] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'category' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const sortedExpenses = useMemo(() => {
     if (!expenses) return [];
@@ -97,66 +98,64 @@ export default function Expenses() {
 
   const fetchExpenses = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      setIsLoading(true);
       const userId = await AsyncStorage.getItem('userId');
-
-      if (!token || !userId) {
-        router.replace('/(auth)/sign-in');
+      if (!userId) {
+        Alert.alert('Error', 'Authentication required');
         return;
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      const response = await axiosInstance.get(
-        `${API_URL}${API_ENDPOINTS.EXPENSE.GET_ALL.replace(':user_id', userId)}`,
-        { headers }
-      );
+      const endpoint = API_ENDPOINTS.EXPENSE.GET_ALL.replace(':user_id', userId);
+      console.log('Fetching expenses from:', endpoint);
+      
+      const response = await axiosInstance.get(endpoint);
+      console.log('Fetch response:', response.data);
 
       if (response.data.success) {
-        setExpenses(response.data.data);
+        setExpenses(response.data.data || []);
       } else {
-        setExpenses([]);
+        throw new Error(response.data.message || 'Failed to fetch expenses');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching expenses:', error);
-      if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-        router.replace('/(auth)/sign-in');
-        return;
+      if (error.response?.data) {
+        console.error('Error details:', error.response.data);
       }
-      setExpenses([]);
+      
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to fetch expenses. Please try again.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    const checkAuthentication = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const userId = await AsyncStorage.getItem('userId');
-        
-        if (!token || !userId) {
-          router.replace('/(auth)/sign-in');
-          return;
-        }
-        
-        setIsAuthenticated(true);
-        await fetchExpenses();
-      } catch (error) {
-        console.error('Authentication error:', error);
-        if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-        }
+  const checkAuthentication = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        router.replace('/(auth)/sign-in');
+        return;
       }
-    };
-  
-    checkAuthentication();
-  }, []);
+      
+      setIsAuthenticated(true);
+      await fetchExpenses();
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      }
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -200,6 +199,11 @@ export default function Expenses() {
       return;
     }
 
+    if (isNaN(parseFloat(amount))) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const userId = await AsyncStorage.getItem('userId');
@@ -209,20 +213,30 @@ export default function Expenses() {
       }
 
       const endpoint = isEditing 
-        ? API_ENDPOINTS.EXPENSE.UPDATE
+        ? API_ENDPOINTS.EXPENSE.UPDATE.replace(':expense_id', selectedExpense?.id?.toString() || '')
         : API_ENDPOINTS.EXPENSE.ADD;
       
-      const response = await axiosInstance({
-        method: isEditing ? 'PUT' : 'POST',
-        url: endpoint,
-        data: {
-          user_id: parseInt(userId),
-          amount: parseFloat(amount),
-          description,
-          category: selectedCategory,
-          ...(isEditing && { expense_id: selectedExpense?.id })
-        }
+      console.log('Submitting expense to:', endpoint);
+      console.log('Expense data:', {
+        user_id: parseInt(userId),
+        amount: parseFloat(amount),
+        description,
+        category: selectedCategory
       });
+
+      const data = {
+        user_id: parseInt(userId),
+        amount: parseFloat(amount),
+        description,
+        category: selectedCategory,
+        ...(isEditing && { expense_id: selectedExpense?.id })
+      };
+
+      const response = isEditing
+        ? await axiosInstance.put(endpoint, data)
+        : await axiosInstance.post(endpoint, data);
+
+      console.log('Response:', response.data);
 
       if (response.data.success) {
         // Reset form before closing modal and fetching
@@ -243,15 +257,21 @@ export default function Expenses() {
       }
     } catch (error: any) {
       console.error('Error submitting expense:', error);
-      console.error('Error details:', error.response?.data);
+      if (error.response?.data) {
+        console.error('Error details:', error.response.data);
+      }
       
       if (error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
+      } else if (error.response?.status === 403) {
+        Alert.alert('Error', 'You are not authorized to perform this action');
+      } else if (error.message === 'Network Error') {
+        Alert.alert('Connection Error', 'Please check your internet connection and try again');
       } else {
         Alert.alert(
           'Error',
-          error.response?.data?.message || 'Failed to process expense'
+          error.response?.data?.message || 'Failed to process expense. Please try again.'
         );
       }
     } finally {
@@ -261,18 +281,25 @@ export default function Expenses() {
 
   const handleDelete = async (expenseId: number) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      setIsDeleting(true);
+      const token = await AsyncStorage.getItem('accessToken');
       const userId = await AsyncStorage.getItem('userId');
-      if (!token || !userId) {
+      if (!userId || !token) {
         Alert.alert('Error', 'Authentication required');
         return;
       }
 
-      const response = await axiosInstance.delete(`${API_URL}/expenses/delete/${expenseId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
+      console.log('Deleting expense:', expenseId);
+      const response = await axiosInstance.delete(
+        API_ENDPOINTS.EXPENSE.DELETE.replace(':expense_id', expenseId.toString()),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
+      console.log('Delete response:', response.data);
 
       if (response.data.success) {
         Alert.alert('Success', 'Expense deleted successfully');
@@ -281,14 +308,21 @@ export default function Expenses() {
       } else {
         Alert.alert('Error', response.data.message || 'Failed to delete expense');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+    } catch (error: any) {
+      console.error('Error deleting expense:', error);
+      console.error('Error details:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
-        return;
+      } else {
+        Alert.alert(
+          'Error',
+          error.response?.data?.message || 'Failed to delete expense'
+        );
       }
-      Alert.alert('Error', 'Failed to delete expense');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -321,6 +355,10 @@ export default function Expenses() {
     setSelectedExpense(expense);
     setShowViewModal(true);
   };
+
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -514,11 +552,21 @@ export default function Expenses() {
                     {/* Submit Button */}
                     <TouchableOpacity
                       onPress={handleSubmit}
-                      className="bg-red-600 p-4 rounded-xl mt-6"
+                      disabled={isSubmitting}
+                      className={`p-4 rounded-xl mt-6 ${isSubmitting ? 'bg-red-500' : 'bg-red-600'}`}
                     >
-                      <Text className="text-white text-center font-semibold text-lg">
-                        {isEditing ? 'Update Expense' : 'Add Expense'}
-                      </Text>
+                      {isSubmitting ? (
+                        <View className="flex-row justify-center items-center space-x-2">
+                          <ActivityIndicator color="#fee2e2" size="small" />
+                          <Text className="text-white text-center font-semibold text-lg">
+                            {isEditing ? 'Updating...' : 'Adding...'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text className="text-white text-center font-semibold text-lg">
+                          {isEditing ? 'Update Expense' : 'Add Expense'}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
                 </ScrollView>
@@ -592,22 +640,43 @@ export default function Expenses() {
 
                     <View className="flex-row space-x-4 mt-6">
                       <TouchableOpacity
-                        onPress={() => {
-                          setShowViewModal(false);
-                          handleEditPress();
-                        }}
-                        className="flex-1 bg-gray-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
+                        onPress={handleEditPress}
+                        className="flex-1 bg-gray-100 p-4 rounded-xl"
                       >
-                        <MaterialCommunityIcons name="pencil" size={20} color="#666" />
-                        <Text className="text-gray-600 font-semibold">Edit</Text>
+                        <Text className="text-center text-gray-800 font-semibold">
+                          Edit
+                        </Text>
                       </TouchableOpacity>
-
                       <TouchableOpacity
-                        onPress={() => handleDelete(selectedExpense.id)}
-                        className="flex-1 bg-red-100 p-4 rounded-xl flex-row justify-center items-center space-x-2"
+                        onPress={() => {
+                          Alert.alert(
+                            'Delete Expense',
+                            'Are you sure you want to delete this expense?',
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              {
+                                text: 'Delete',
+                                style: 'destructive',
+                                onPress: () => selectedExpense && handleDelete(selectedExpense.id),
+                              },
+                            ]
+                          );
+                        }}
+                        disabled={isDeleting}
+                        className={`flex-1 p-4 rounded-xl ${isDeleting ? 'bg-red-500' : 'bg-red-600'}`}
                       >
-                        <MaterialCommunityIcons name="trash-can" size={20} color="#dc2626" />
-                        <Text className="text-red-600 font-semibold">Delete</Text>
+                        {isDeleting ? (
+                          <View className="flex-row justify-center items-center space-x-2">
+                            <ActivityIndicator color="#fee2e2" size="small" />
+                            <Text className="text-white text-center font-semibold">
+                              Deleting...
+                            </Text>
+                          </View>
+                        ) : (
+                          <Text className="text-white text-center font-semibold">
+                            Delete
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>

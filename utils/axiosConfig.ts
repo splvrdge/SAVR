@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
 import { router } from 'expo-router';
@@ -11,6 +11,9 @@ const axiosInstance = axios.create({
   },
   timeout: 30000 // 30 second timeout for slow render.com startup
 });
+
+// Add isAxiosError utility to axiosInstance
+axiosInstance.isAxiosError = isAxiosError;
 
 // Add a request interceptor
 axiosInstance.interceptors.request.use(
@@ -40,7 +43,7 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.message === 'Network Error' || !error.response) {
+    if (axiosInstance.isAxiosError(error) && error.message === 'Network Error' || !error.response) {
       Alert.alert(
         'Connection Error',
         'The server is taking longer than usual to respond. This might happen when the server is starting up. Please try again in a few seconds.'
@@ -62,10 +65,13 @@ axiosInstance.interceptors.response.use(
           throw new Error('No refresh token found');
         }
 
-        const response = await axios.post(`${API_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`, {
-          refresh_token: refreshToken // Changed from refreshToken to refresh_token to match backend
+        const response = await axios.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
+          refresh_token: refreshToken
         }, {
-          timeout: 30000 // 30 second timeout for refresh token request
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
         });
 
         if (response.data.success) {
@@ -82,7 +88,7 @@ axiosInstance.interceptors.response.use(
           throw new Error('Token refresh failed');
         }
       } catch (refreshError) {
-        if (refreshError.message === 'Network Error' || !refreshError.response) {
+        if (axiosInstance.isAxiosError(refreshError) && refreshError.message === 'Network Error' || !refreshError.response) {
           Alert.alert(
             'Connection Error',
             'The server is taking longer than usual to respond. This might happen when the server is starting up. Please try again in a few seconds.'
