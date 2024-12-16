@@ -253,8 +253,8 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-customGreen" edges={['top']}>
-      <StatusBar backgroundColor="transparent" style="light" />
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <StatusBar backgroundColor="transparent" style="dark" />
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -262,178 +262,177 @@ export default function Home() {
         className="flex-1"
       >
         {/* Header Section */}
-        <View className="px-6 pt-4 pb-12">
-          <View className="flex-row justify-between items-center mb-8">
+        <View className="px-6 pt-4">
+          <View className="flex-row justify-between items-center mb-6">
             <View>
-              <Text className="text-white text-lg opacity-90">Welcome back,</Text>
-              <Text className="text-white text-2xl font-bold">
-                {userName || 'User'}
+              <Text className="text-gray-800 text-2xl font-bold mb-1">
+                {userName ? `Hi, ${userName.split(' ')[0]} 👋` : 'Welcome 👋'}
               </Text>
+              <Text className="text-gray-500 text-base">Let's manage your finances</Text>
             </View>
             <TouchableOpacity 
               onPress={handleProfilePress}
-              className="bg-white/20 p-2 rounded-full"
+              className="bg-gray-100 p-2.5 rounded-xl"
             >
-              <MaterialCommunityIcons name="account" size={30} color="#fff" />
+              <MaterialCommunityIcons name="account" size={24} color="#1f2937" />
             </TouchableOpacity>
           </View>
 
-          {/* Financial Summary Card */}
-          <View className="bg-white p-6 rounded-2xl shadow-lg">
-            <View className="mb-6">
-              <Text className="text-gray-600 text-base mb-2">Current Balance</Text>
-              <Text className="text-3xl font-bold text-customGreen">
-                {formatCurrency(financialSummary?.current_balance)}
-              </Text>
-            </View>
-            
-            <View className="flex-row justify-between">
-              <View className="bg-green-50 p-4 rounded-xl flex-1 mr-4">
-                <View className="flex-row items-center mb-2">
-                  <MaterialCommunityIcons name="trending-up" size={20} color="#16A34A" />
-                  <Text className="text-gray-600 text-sm ml-2">Net Savings</Text>
+          {/* Balance Card */}
+          <View className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[24px] mb-6 shadow-xl">
+            <Text className="text-white/80 text-sm font-medium mb-2">Total Balance</Text>
+            <Text className="text-white text-3xl font-bold mb-4">
+              {formatCurrency(financialSummary?.current_balance)}
+            </Text>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center">
+                <View className="bg-white/20 p-2 rounded-full mr-3">
+                  <MaterialCommunityIcons name="trending-up" size={16} color="#fff" />
                 </View>
-                <Text className="text-lg font-semibold text-green-600">
-                  {formatCurrency(financialSummary?.net_savings)}
-                </Text>
+                <View>
+                  <Text className="text-white/60 text-xs">Net Savings</Text>
+                  <Text className="text-white font-semibold">
+                    {formatCurrency(financialSummary?.net_savings)}
+                  </Text>
+                </View>
               </View>
-              <View className="bg-red-50 p-4 rounded-xl flex-1">
-                <View className="flex-row items-center mb-2">
-                  <MaterialCommunityIcons name="trending-down" size={20} color="#DC2626" />
-                  <Text className="text-gray-600 text-sm ml-2">Total Expenses</Text>
+              <View className="flex-row items-center">
+                <View className="bg-white/20 p-2 rounded-full mr-3">
+                  <MaterialCommunityIcons name="trending-down" size={16} color="#fff" />
                 </View>
-                <Text className="text-lg font-semibold text-red-500">
-                  {formatCurrency(financialSummary?.total_expenses)}
-                </Text>
+                <View>
+                  <Text className="text-white/60 text-xs">Total Expenses</Text>
+                  <Text className="text-white font-semibold">
+                    {formatCurrency(financialSummary?.total_expenses)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
-        </View>
 
-        {/* Main Content */}
-        <View className="flex-1 bg-white rounded-t-[20px] pt-6">
-          {/* Quick Actions */}
-          <View className="px-6">
-            <Text className="text-xl font-bold text-gray-800 mb-4">
-              Quick Actions
-            </Text>
-            <View className="flex-row justify-between">
+          {/* Quick Actions Grid */}
+          <View className="mb-8">
+            <Text className="text-lg font-bold text-gray-800 mb-4">Quick Actions</Text>
+            <View className="grid grid-cols-2 gap-4">
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/income')}
-                className="bg-green-50 p-4 rounded-xl flex-1 mr-4"
+                className="bg-blue-50 rounded-2xl overflow-hidden"
               >
-                <View className="items-center">
-                  <View className="w-12 h-12 bg-green-100 rounded-full items-center justify-center mb-2">
-                    <MaterialCommunityIcons
-                      name="cash-plus"
-                      size={24}
-                      color="#16a34a"
-                    />
+                <View className="p-4">
+                  <View className="bg-blue-100 w-10 h-10 rounded-full items-center justify-center mb-3">
+                    <MaterialCommunityIcons name="cash-plus" size={20} color="#2563eb" />
                   </View>
-                  <Text className="text-green-600 font-semibold text-base">Add Income</Text>
+                  <Text className="text-blue-700 font-semibold">Add Income</Text>
+                  <Text className="text-blue-600/60 text-sm mt-1">Record earnings</Text>
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/expenses')}
-                className="bg-red-50 p-4 rounded-xl flex-1"
+                className="bg-gray-50 rounded-2xl overflow-hidden"
               >
-                <View className="items-center">
-                  <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-2">
-                    <MaterialCommunityIcons
-                      name="cash-minus"
-                      size={24}
-                      color="#dc2626"
-                    />
+                <View className="p-4">
+                  <View className="bg-gray-200 w-10 h-10 rounded-full items-center justify-center mb-3">
+                    <MaterialCommunityIcons name="cash-minus" size={20} color="#1f2937" />
                   </View>
-                  <Text className="text-red-600 font-semibold text-base">Add Expense</Text>
+                  <Text className="text-gray-800 font-semibold">Add Expense</Text>
+                  <Text className="text-gray-500 text-sm mt-1">Track spending</Text>
                 </View>
               </TouchableOpacity>
-            </View>
 
-            <View className="flex-row justify-between mt-4">
               <TouchableOpacity
                 onPress={() => router.push('/(tabs)/goals')}
-                className="bg-blue-50 p-4 rounded-xl flex-1 mr-4"
+                className="bg-blue-50 rounded-2xl overflow-hidden"
               >
-                <View className="items-center">
-                  <View className="w-12 h-12 bg-blue-100 rounded-full items-center justify-center mb-2">
-                    <MaterialCommunityIcons
-                      name="flag-outline"
-                      size={24}
-                      color="#2563eb"
-                    />
+                <View className="p-4">
+                  <View className="bg-blue-100 w-10 h-10 rounded-full items-center justify-center mb-3">
+                    <MaterialCommunityIcons name="flag-outline" size={20} color="#2563eb" />
                   </View>
-                  <Text className="text-blue-600 font-semibold text-base">Set Goals</Text>
+                  <Text className="text-blue-700 font-semibold">Set Goals</Text>
+                  <Text className="text-blue-600/60 text-sm mt-1">Plan ahead</Text>
                 </View>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => router.push('/profile')}
-                className="bg-purple-50 p-4 rounded-xl flex-1"
+                className="bg-gray-50 rounded-2xl overflow-hidden"
               >
-                <View className="items-center">
-                  <View className="w-12 h-12 bg-purple-100 rounded-full items-center justify-center mb-2">
-                    <MaterialCommunityIcons
-                      name="account-outline"
-                      size={24}
-                      color="#7c3aed"
-                    />
+                <View className="p-4">
+                  <View className="bg-gray-200 w-10 h-10 rounded-full items-center justify-center mb-3">
+                    <MaterialCommunityIcons name="chart-box-outline" size={20} color="#1f2937" />
                   </View>
-                  <Text className="text-purple-600 font-semibold text-base">Profile</Text>
+                  <Text className="text-gray-800 font-semibold">Analytics</Text>
+                  <Text className="text-gray-500 text-sm mt-1">View insights</Text>
                 </View>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Recent Transactions */}
-          <View className="px-6 mt-8 mb-6">
-            <Text className="text-lg font-semibold mb-4">Latest Transactions</Text>
+          <View className="mb-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-lg font-bold text-gray-800">Recent Activity</Text>
+              <TouchableOpacity>
+                <Text className="text-blue-600 text-sm font-medium">See All</Text>
+              </TouchableOpacity>
+            </View>
             
             {latestTransactions.length > 0 ? (
               latestTransactions.map((transaction, index) => (
-                <View 
+                <TouchableOpacity 
                   key={`transaction-${transaction.id}-${index}`} 
-                  className="flex-row justify-between items-center mb-4 bg-gray-50 p-4 rounded-xl"
+                  className="flex-row justify-between items-center mb-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100"
                 >
                   <View className="flex-row items-center flex-1">
                     <View
                       className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
-                        transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'
+                        transaction.type === 'income' ? 'bg-blue-100' : 'bg-gray-200'
                       }`}
                     >
                       <MaterialCommunityIcons
                         name={getCategoryIcon(transaction.category, transaction.type)}
                         size={20}
-                        color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
+                        color={transaction.type === 'income' ? '#2563eb' : '#1f2937'}
                       />
                     </View>
                     <View className="flex-1">
                       <Text className="font-semibold text-gray-800">
                         {transaction.description || capitalizeFirstLetter(transaction.category)}
                       </Text>
-                      <Text className="text-sm text-gray-500">
+                      <Text className="text-xs text-gray-500 mt-0.5">
                         {new Date(transaction.timestamp).toLocaleDateString('en-PH', {
-                          year: 'numeric',
                           month: 'short',
                           day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
                         })}
                       </Text>
                     </View>
                   </View>
-                  <Text
-                    className={`font-semibold ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {transaction.type === 'income' ? '+' : '-'}
-                    {formatCurrency(transaction.amount)}
-                  </Text>
-                </View>
+                  <View>
+                    <Text
+                      className={`font-bold text-right ${
+                        transaction.type === 'income' ? 'text-blue-600' : 'text-gray-800'
+                      }`}
+                    >
+                      {transaction.type === 'income' ? '+' : '-'}
+                      {formatCurrency(transaction.amount)}
+                    </Text>
+                    <Text className="text-xs text-gray-500 text-right mt-0.5">
+                      {capitalizeFirstLetter(transaction.category)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               ))
             ) : (
-              <View className="items-center py-4">
-                <Text className="text-gray-500">No recent transactions</Text>
+              <View className="items-center py-8 bg-gray-50 rounded-2xl">
+                <View className="bg-gray-100 p-4 rounded-full mb-3">
+                  <MaterialCommunityIcons name="currency-usd-off" size={24} color="#9ca3af" />
+                </View>
+                <Text className="text-gray-800 font-medium mb-1">No Transactions Yet</Text>
+                <Text className="text-gray-500 text-sm text-center">
+                  Start tracking your income and expenses
+                </Text>
               </View>
             )}
           </View>

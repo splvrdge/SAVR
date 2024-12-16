@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import WeeklyAnalytics from '../(analytics)/weekly';
 import MonthlyAnalytics from '../(analytics)/monthly';
 import YearlyAnalytics from '../(analytics)/yearly';
+import TabHeader from '../../components/TabHeader';
 
 export default function Analytics() {
   const [selectedTab, setSelectedTab] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
@@ -23,43 +24,88 @@ export default function Analytics() {
     }
   };
 
+  const tabs = [
+    { id: 'weekly', label: 'Weekly', icon: 'calendar-week' },
+    { id: 'monthly', label: 'Monthly', icon: 'calendar-month' },
+    { id: 'yearly', label: 'Yearly', icon: 'calendar-year' },
+  ];
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <View style={{ padding: 16 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Analytics</Text>
-      </View>
-      <View style={{ flexDirection: 'row', padding: 16, paddingTop: 0 }}>
-        {['weekly', 'monthly', 'yearly'].map((tab) => (
-          <View
-            key={tab}
-            style={{
-              flex: 1,
-              marginRight: tab !== 'yearly' ? 8 : 0,
-            }}
+      <TabHeader 
+        title="Analytics" 
+        subtitle="Track your financial trends"
+      />
+      
+      <View style={styles.tabContainer}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[
+              styles.tab,
+              selectedTab === tab.id && styles.selectedTab
+            ]}
+            onPress={() => setSelectedTab(tab.id as 'weekly' | 'monthly' | 'yearly')}
           >
-            <TouchableOpacity
-              style={{
-                backgroundColor: selectedTab === tab ? '#7C3AED' : '#F0F0F0',
-                padding: 10,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}
-              onPress={() => setSelectedTab(tab as 'weekly' | 'monthly' | 'yearly')}
+            <MaterialCommunityIcons
+              name={tab.icon as any}
+              size={20}
+              color={selectedTab === tab.id ? '#FFFFFF' : '#666666'}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                selectedTab === tab.id && styles.selectedTabText
+              ]}
             >
-              <Text
-                style={{
-                  color: selectedTab === tab ? '#FFFFFF' : '#000000',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {tab}
-              </Text>
-            </TouchableOpacity>
-          </View>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
         ))}
       </View>
-      {renderContent()}
+
+      <View style={styles.content}>
+        {renderContent()}
+      </View>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    gap: 8,
+  },
+  selectedTab: {
+    backgroundColor: '#3B82F6',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666666',
+  },
+  selectedTabText: {
+    color: '#FFFFFF',
+  },
+  content: {
+    flex: 1,
+  },
+});

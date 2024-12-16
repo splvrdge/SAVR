@@ -382,92 +382,96 @@ export default function IncomeScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <StatusBar backgroundColor="white" style="dark" />
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <StatusBar backgroundColor="transparent" style="dark" />
       
+      {/* Header */}
       <TabHeader
         title="Income"
+        subtitle="Track your earnings"
         sortOptions={[
-          { id: 'date', label: 'Date' },
-          { id: 'category', label: 'Category' },
-          { id: 'amount', label: 'Amount' },
+          { id: 'date', label: 'Date', icon: 'clock-outline' },
+          { id: 'amount', label: 'Amount', icon: 'cash' },
+          { id: 'category', label: 'Category', icon: 'tag-outline' }
         ]}
         selectedSort={sortBy}
         sortOrder={sortOrder}
         onSortChange={setSortBy}
         onSortOrderChange={toggleSortOrder}
-        themeColor="#2E8B57" // custom color for this page
-      />
-
-      {/* Add Income Button */}
-      <AddButton onPress={() => {
-        setIsEditing(false);
-        setSelectedIncome(null);
-        setAmount('');
-        setDescription('');
-        setSelectedCategory(categories[0].id);
-        setShowModal(true);
-      }}
-      themeColor="#2E8B57" // custom color for this page
+        themeColor="#2563eb"
       />
 
       {/* Income List */}
       <ScrollView
-        className="flex-1 px-4 pb-20 mt-4"
+        className="flex-1 px-6"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
+        showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <ActivityIndicator size="large" className="mt-20" color="#3B82F6" />
+          <View className="flex-1 justify-center items-center py-20">
+            <ActivityIndicator size="large" color="#2563eb" />
+          </View>
         ) : sortedIncomes.length > 0 ? (
-          sortedIncomes.map((income) => (
-            <TouchableOpacity
-              key={income.id}
-              onPress={() => handleIncomePress(income)}
-              className="bg-white p-4 rounded-xl mb-3 border border-gray-100"
-            >
-              <View className="flex-row justify-between items-center">
-                <View className="flex-row items-center flex-1">
-                  <View className="w-10 h-10 rounded-full bg-green-100 items-center justify-center mr-3">
-                    <MaterialCommunityIcons
-                      name={getCategoryIcon(income.category)}
-                      size={20}
-                      color="#16a34a"
-                    />
+          <View className="space-y-4">
+            {sortedIncomes.map((income) => (
+              <TouchableOpacity
+                key={income.id}
+                onPress={() => handleIncomePress(income)}
+                className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
+              >
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-row items-center flex-1">
+                    <View className="w-12 h-12 rounded-full bg-blue-50 items-center justify-center mr-4">
+                      <MaterialCommunityIcons
+                        name={getCategoryIcon(income.category)}
+                        size={24}
+                        color="#2563eb"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-gray-800 font-bold text-base mb-0.5">
+                        {income.description || 'Income'}
+                      </Text>
+                      <Text className="text-gray-500 text-sm mb-0.5 capitalize">
+                        {income.category}
+                      </Text>
+                      <Text className="text-gray-400 text-xs">
+                        {formatDate(income.timestamp)}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-gray-800 font-medium">
-                      {income.description || 'Income'}
-                    </Text>
-                    <Text className="text-gray-500 text-sm">
-                      {income.category}
-                    </Text>
-                    <Text className="text-gray-400 text-xs">
-                      {formatDate(income.timestamp)}
+                  <View>
+                    <Text className="text-blue-600 font-bold text-base text-right mb-1">
+                      +{formatCurrency(income.amount)}
                     </Text>
                   </View>
                 </View>
-                <View className="flex-row items-center">
-                  <Text className="text-green-600 font-semibold mr-2">
-                    {formatCurrency(income.amount)}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => handleDelete(income.id)}
-                    className="p-2"
-                  >
-                    <MaterialCommunityIcons name="trash-can-outline" size={20} color="#666" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))
+              </TouchableOpacity>
+            ))}
+          </View>
         ) : (
-          <View className="flex-1 items-center justify-center mt-20">
-            <Text className="text-gray-500 text-lg">No income records found</Text>
+          <View className="flex-1 items-center justify-center py-20">
+            <View className="bg-gray-50 p-4 rounded-full mb-4">
+              <MaterialCommunityIcons name="cash-plus" size={32} color="#9ca3af" />
+            </View>
+            <Text className="text-gray-800 font-semibold text-lg mb-2">No Income Yet</Text>
+            <Text className="text-gray-500 text-center text-base">
+              Start tracking your earnings by adding your first income
+            </Text>
           </View>
         )}
+        <View className="h-32" /> {/* Bottom spacing for FAB */}
       </ScrollView>
+
+      {/* Add Income FAB */}
+      <TouchableOpacity
+        onPress={handleAddPress}
+        className="absolute bottom-8 right-6 bg-blue-600 w-14 h-14 rounded-full items-center justify-center shadow-lg"
+      >
+        <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+      </TouchableOpacity>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -477,98 +481,108 @@ export default function IncomeScreen() {
         onRequestClose={() => setShowModal(false)}
       >
         <View className="flex-1 justify-end bg-black/30">
-          <View className="bg-white rounded-t-3xl p-6 h-[75%] shadow-2xl">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-2xl font-bold text-gray-800">
-                {isEditing ? 'Edit Income' : 'Add Income'}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setShowModal(false)}
-                className="p-2"
-              >
-                <MaterialCommunityIcons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <View className="space-y-6">
-                {/* Description Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Description</Text>
-                  <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                    placeholder="Enter description"
-                    value={description}
-                    onChangeText={setDescription}
-                  />
-                </View>
-
-                {/* Amount Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Amount</Text>
-                  <TextInput
-                    className="bg-gray-50 p-4 rounded-xl text-gray-800"
-                    placeholder="Enter amount"
-                    keyboardType="numeric"
-                    value={amount}
-                    onChangeText={setAmount}
-                  />
-                </View>
-
-                {/* Category Input */}
-                <View className="mb-4">
-                  <Text className="text-gray-600 mb-2">Category</Text>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    className="flex-row space-x-2"
-                  >
-                    {categories.map((cat) => (
-                      <TouchableOpacity
-                        key={cat.id}
-                        onPress={() => setSelectedCategory(cat.id)}
-                        className={`p-4 rounded-xl flex-row items-center space-x-2 ${
-                          selectedCategory === cat.id ? 'bg-green-100 border border-green-200' : 'bg-gray-50'
-                        }`}
-                        style={{ marginRight: 10 }}
-                      >
-                        <MaterialCommunityIcons
-                          name={cat.icon}
-                          size={24}
-                          color={selectedCategory === cat.id ? '#16a34a' : '#666'}
-                        />
-                        <Text className={selectedCategory === cat.id ? 'text-green-600' : 'text-gray-600'}
-                          style={{ marginLeft: 8 }}
-                        >
-                          {cat.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Submit Button */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            className="bg-white rounded-t-[32px] shadow-2xl"
+          >
+            <View className="p-6">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-2xl font-bold text-gray-800">
+                  {isEditing ? 'Edit Income' : 'New Income'}
+                </Text>
                 <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={isSubmitting}
-                  className={`p-4 rounded-xl mt-6 ${isSubmitting ? 'bg-green-500' : 'bg-green-600'}`}
+                  onPress={() => setShowModal(false)}
+                  className="bg-gray-100 p-2 rounded-full"
                 >
-                  {isSubmitting ? (
-                    <View className="flex-row justify-center items-center space-x-2">
-                      <ActivityIndicator color="#dcfce7" size="small" />
-                      <Text className="text-white text-center font-semibold text-lg">
-                        {isEditing ? 'Updating...' : 'Adding...'}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text className="text-white text-center font-semibold text-lg">
-                      {isEditing ? 'Update Income' : 'Add Income'}
-                    </Text>
-                  )}
+                  <MaterialCommunityIcons name="close" size={20} color="#666" />
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </View>
+
+              <ScrollView className="max-h-[600px]" showsVerticalScrollIndicator={false}>
+                <View className="space-y-6">
+                  {/* Amount Input */}
+                  <View>
+                    <Text className="text-gray-600 font-medium mb-2">Amount</Text>
+                    <TextInput
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
+                      placeholder="₱0.00"
+                      keyboardType="numeric"
+                      value={amount}
+                      onChangeText={setAmount}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+
+                  {/* Description Input */}
+                  <View>
+                    <Text className="text-gray-600 font-medium mb-2">Description</Text>
+                    <TextInput
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800"
+                      placeholder="What's this income for?"
+                      value={description}
+                      onChangeText={setDescription}
+                      placeholderTextColor="#9ca3af"
+                    />
+                  </View>
+
+                  {/* Category Selection */}
+                  <View>
+                    <Text className="text-gray-600 font-medium mb-3">Category</Text>
+                    <ScrollView 
+                      horizontal 
+                      showsHorizontalScrollIndicator={false} 
+                      className="flex-row"
+                    >
+                      {categories.map((cat) => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          onPress={() => setSelectedCategory(cat.id)}
+                          className={`mr-3 p-4 rounded-xl flex-row items-center ${
+                            selectedCategory === cat.id ? 'bg-blue-50 border border-blue-100' : 'bg-gray-50'
+                          }`}
+                        >
+                          <MaterialCommunityIcons
+                            name={cat.icon}
+                            size={20}
+                            color={selectedCategory === cat.id ? '#2563eb' : '#666'}
+                          />
+                          <Text 
+                            className={`ml-2 font-medium ${
+                              selectedCategory === cat.id ? 'text-blue-600' : 'text-gray-600'
+                            }`}
+                          >
+                            {cat.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={isSubmitting}
+                    className={`py-4 rounded-xl mt-4 ${
+                      isSubmitting ? 'bg-blue-400' : 'bg-blue-600'
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <View className="flex-row justify-center items-center space-x-2">
+                        <ActivityIndicator color="#fff" size="small" />
+                        <Text className="text-white font-semibold text-lg">
+                          {isEditing ? 'Updating...' : 'Adding...'}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text className="text-white text-center font-semibold text-lg">
+                        {isEditing ? 'Update Income' : 'Add Income'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -580,93 +594,68 @@ export default function IncomeScreen() {
         onRequestClose={() => setShowViewModal(false)}
       >
         <View className="flex-1 justify-end bg-black/30">
-          <View className="bg-white rounded-t-3xl p-6 shadow-2xl">
+          <View className="bg-white rounded-t-[32px] p-6">
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-2xl font-bold text-gray-800">
-                Income Details
-              </Text>
+              <Text className="text-2xl font-bold text-gray-800">Details</Text>
               <TouchableOpacity
                 onPress={() => setShowViewModal(false)}
-                className="p-2"
+                className="bg-gray-100 p-2 rounded-full"
               >
-                <MaterialCommunityIcons name="close" size={24} color="#666" />
+                <MaterialCommunityIcons name="close" size={20} color="#666" />
               </TouchableOpacity>
             </View>
 
             {selectedIncome && (
               <View className="space-y-6">
-                <View className="items-center mb-6">
-                  <View className="w-16 h-16 rounded-full bg-green-100 items-center justify-center mb-3">
+                <View className="items-center">
+                  <View className="w-20 h-20 rounded-full bg-blue-50 items-center justify-center mb-4">
                     <MaterialCommunityIcons
                       name={getCategoryIcon(selectedIncome.category)}
                       size={32}
-                      color="#16a34a"
+                      color="#2563eb"
                     />
                   </View>
-                  <Text className="text-3xl font-bold text-green-600">
+                  <Text className="text-3xl font-bold text-gray-800 mb-1">
                     {formatCurrency(selectedIncome.amount)}
+                  </Text>
+                  <Text className="text-gray-500 text-lg capitalize">
+                    {selectedIncome.category}
                   </Text>
                 </View>
 
                 <View className="space-y-4">
-                  <View>
+                  <View className="bg-gray-50 p-4 rounded-xl">
                     <Text className="text-gray-500 text-sm mb-1">Description</Text>
-                    <Text className="text-gray-800 text-lg">
+                    <Text className="text-gray-800 font-medium">
                       {selectedIncome.description || 'No description'}
                     </Text>
                   </View>
 
-                  <View>
-                    <Text className="text-gray-500 text-sm mb-1">Category</Text>
-                    <Text className="text-gray-800 text-lg">
-                      {selectedIncome.category}
-                    </Text>
-                  </View>
-
-                  <View>
-                    <Text className="text-gray-500 text-sm mb-1">Date</Text>
-                    <Text className="text-gray-800 text-lg">
+                  <View className="bg-gray-50 p-4 rounded-xl">
+                    <Text className="text-gray-500 text-sm mb-1">Date & Time</Text>
+                    <Text className="text-gray-800 font-medium">
                       {formatDate(selectedIncome.timestamp)}
                     </Text>
                   </View>
                 </View>
 
-                <View className="flex-row space-x-4 mt-6">
+                <View className="flex-row space-x-3 mt-4">
                   <TouchableOpacity
                     onPress={handleEditPress}
-                    className="flex-1 bg-gray-100 p-4 rounded-xl"
+                    className="flex-1 bg-blue-600 py-4 rounded-xl"
                   >
-                    <Text className="text-center text-gray-800 font-semibold">
+                    <Text className="text-white text-center font-semibold">
                       Edit
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => {
-                      Alert.alert(
-                        'Delete Income',
-                        'Are you sure you want to delete this income?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => selectedIncome && handleDelete(selectedIncome.id),
-                          },
-                        ]
-                      );
-                    }}
-                    disabled={isDeleting}
-                    className={`flex-1 p-4 rounded-xl ${isDeleting ? 'bg-green-500' : 'bg-green-600'}`}
+                    onPress={() => handleDelete(selectedIncome.id)}
+                    className="flex-1 bg-gray-100 py-4 rounded-xl"
                   >
                     {isDeleting ? (
-                      <View className="flex-row justify-center items-center space-x-2">
-                        <ActivityIndicator color="#dcfce7" size="small" />
-                        <Text className="text-white text-center font-semibold">
-                          Deleting...
-                        </Text>
-                      </View>
+                      <ActivityIndicator size="small" color="#666" />
                     ) : (
-                      <Text className="text-white text-center font-semibold">
+                      <Text className="text-gray-800 text-center font-semibold">
                         Delete
                       </Text>
                     )}
