@@ -11,6 +11,12 @@ export const API_ENDPOINTS = {
     REFRESH_TOKEN: '/api/auth/refresh-token',
   },
 
+  // User endpoints
+  USER: {
+    UPDATE_PROFILE: '/api/users/profile',
+    GET_PROFILE: '/api/users/profile',
+  },
+
   // Income endpoints
   INCOME: {
     ADD: '/api/income/add',
@@ -53,12 +59,6 @@ export const API_ENDPOINTS = {
     TRENDS: '/api/analytics/trends/:user_id',
     BUDGET: '/api/analytics/budget/:user_id',
     SAVINGS: '/api/analytics/savings/:user_id',
-  },
-
-  // User endpoints
-  USER: {
-    UPDATE_PROFILE: '/api/user/profile',
-    GET_PROFILE: '/api/user/profile/:user_id',
   },
 
   // Category endpoints
