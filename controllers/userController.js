@@ -28,6 +28,7 @@ exports.updateProfile = async (req, res) => {
     const { name, email, currentPassword, newPassword } = req.body;
     const userId = req.user.user_id;
 
+    // First check if user exists
     const [users] = await db.execute(
       'SELECT * FROM users WHERE user_id = ?',
       [userId]
@@ -40,22 +41,39 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
+    const user = users[0];
     let updates = {};
     let params = [];
     let setStatements = [];
 
-    if (name) {
+    // Handle name update
+    if (name !== undefined && name !== user.user_name) {
       setStatements.push('user_name = ?');
       params.push(name);
       updates.name = name;
     }
 
-    if (email) {
+    // Handle email update
+    if (email !== undefined && email !== user.user_email) {
+      // Check if email is already taken
+      const [existingUsers] = await db.execute(
+        'SELECT user_id FROM users WHERE user_email = ? AND user_id != ?',
+        [email, userId]
+      );
+      
+      if (existingUsers.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already taken'
+        });
+      }
+
       setStatements.push('user_email = ?');
       params.push(email);
       updates.email = email;
     }
 
+    // Handle password update
     if (newPassword) {
       if (!currentPassword) {
         return res.status(400).json({
@@ -64,7 +82,7 @@ exports.updateProfile = async (req, res) => {
         });
       }
 
-      const validPassword = await bcrypt.compare(currentPassword, users[0].user_password);
+      const validPassword = await bcrypt.compare(currentPassword, user.user_password);
       if (!validPassword) {
         return res.status(401).json({
           success: false,
@@ -81,7 +99,7 @@ exports.updateProfile = async (req, res) => {
     if (setStatements.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'No updates provided'
+        message: 'No changes detected in the profile data'
       });
     }
 
@@ -92,13 +110,35 @@ exports.updateProfile = async (req, res) => {
       WHERE user_id = ?
     `;
 
-    await db.execute(updateQuery, params);
+    try {
+      await db.execute(updateQuery, params);
+      
+      // Get updated user data
+      const [updatedUser] = await db.execute(
+        'SELECT user_id, user_name, user_email FROM users WHERE user_id = ?',
+        [userId]
+      );
 
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: updates
-    });
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          name: updatedUser[0].user_name,
+          email: updatedUser[0].user_email,
+          ...updates.password && { password: updates.password }
+        }
+      });
+    } catch (error) {
+      logger.error('Error updating profile:', { 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        userId: req.user?.user_id 
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Error updating profile'
+      });
+    }
   } catch (error) {
     logger.error('Error updating profile:', { 
       error: error.message,
