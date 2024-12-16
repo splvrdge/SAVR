@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   selectedMonth: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#7C3AED',
   },
   monthText: {
     fontSize: 14,

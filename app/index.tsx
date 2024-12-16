@@ -53,12 +53,43 @@ const getItem = async (key: string): Promise<string | null> => {
 };
 
 export default function App() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        const userId = await AsyncStorage.getItem('userId');
+
+        if (token && userId) {
+          router.replace('/(tabs)/home');
+        } else {
+          router.replace('/(auth)/sign-in');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        router.replace('/(auth)/sign-in');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isConnected, setIsConnected] = useState(true);
   const flatListRef = useRef<FlatList>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const router = useRouter();
 
   const slides: Slide[] = [
     {
@@ -150,14 +181,6 @@ export default function App() {
       </LinearGradient>
     </Animated.View>
   );
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2E8B57" />
-      </View>
-    );
-  }
 
   if (!isConnected) {
     return (
