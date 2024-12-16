@@ -21,8 +21,8 @@ const TabsLayout = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      if (!accessToken) {
         router.replace("/(auth)/sign-in");
       }
     };

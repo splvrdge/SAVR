@@ -60,6 +60,7 @@ export default function IncomeScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(categories[0].id);
@@ -97,32 +98,51 @@ export default function IncomeScreen() {
 
   const fetchIncomes = async () => {
     try {
+      const token = await AsyncStorage.getItem('accessToken');
       const userId = await AsyncStorage.getItem('userId');
-      if (!userId) {
+      if (!userId || !token) {
         router.replace('/(auth)/sign-in');
         return;
       }
 
       console.log('Fetching incomes for user:', userId);
-      const response = await axiosInstance.get(API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId));
+      const response = await axiosInstance.get(
+        API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId)
+      );
       console.log('Income response:', response.data);
 
       if (response.data.success) {
-        setIncomes(response.data.data);
+        // Format the incoming data to match our interface
+        const formattedIncomes = response.data.data.map((income: any) => ({
+          id: income.id,
+          user_id: income.user_id,
+          amount: parseFloat(income.amount),
+          description: income.description || '',
+          category: income.category || 'other',
+          timestamp: income.timestamp
+        }));
+        setIncomes(formattedIncomes);
       } else {
         setIncomes([]);
       }
     } catch (error: any) {
       console.error('Error fetching incomes:', error);
-      console.error('Error details:', error.response?.data);
+      if (error.response?.data) {
+        console.error('Error details:', error.response.data);
+      }
       
       if (error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-        router.replace('/(auth)/sign-in');
+        // Let the axios interceptor handle token refresh
+        throw error;
+      } else if (error.message === 'Network Error') {
+        Alert.alert(
+          'Connection Error',
+          'Unable to connect to the server. Please check your internet connection and try again.'
+        );
       } else {
         Alert.alert(
           'Error',
-          error.response?.data?.message || 'Failed to fetch incomes'
+          'Failed to fetch incomes. Please try again later.'
         );
       }
       setIncomes([]);
@@ -140,66 +160,61 @@ export default function IncomeScreen() {
 
     setIsSubmitting(true);
     try {
+      const token = await AsyncStorage.getItem('accessToken');
       const userId = await AsyncStorage.getItem('userId');
-      if (!userId) {
+      if (!userId || !token) {
         Alert.alert('Error', 'Authentication required');
         return;
       }
 
-      console.log('Submitting income:', {
+      const data = {
         user_id: parseInt(userId),
         amount: parseFloat(amount),
         description,
-        category: selectedCategory,
-        ...(isEditing && { income_id: selectedIncome?.id })
-      });
+        category: selectedCategory
+      };
+
+      console.log('Submitting income:', data);
 
       const endpoint = isEditing 
-        ? API_ENDPOINTS.INCOME.UPDATE
+        ? `${API_ENDPOINTS.INCOME.UPDATE.replace(':income_id', selectedIncome?.id.toString() || '')}`
         : API_ENDPOINTS.INCOME.ADD;
       
       const response = await axiosInstance({
         method: isEditing ? 'PUT' : 'POST',
         url: endpoint,
-        data: {
-          user_id: parseInt(userId),
-          amount: parseFloat(amount),
-          description,
-          category: selectedCategory,
-          ...(isEditing && { income_id: selectedIncome?.id })
+        data,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
 
       console.log('Submit response:', response.data);
 
       if (response.data.success) {
-        // Reset form before closing modal and fetching
         setAmount('');
         setDescription('');
         setSelectedCategory(categories[0].id);
         setSelectedIncome(null);
         setIsEditing(false);
         setShowModal(false);
-        
-        // Slight delay before fetching to ensure modal is closed
-        setTimeout(() => {
-          fetchIncomes();
-          Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
-        }, 100);
+        await fetchIncomes(); // Immediately fetch updated incomes
+        Alert.alert('Success', isEditing ? 'Income updated successfully' : 'Income added successfully');
       } else {
-        Alert.alert('Error', response.data.message || 'Something went wrong');
+        Alert.alert('Error', response.data.message || 'Failed to save income');
       }
     } catch (error: any) {
       console.error('Error submitting income:', error);
       console.error('Error details:', error.response?.data);
       
       if (error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
       } else {
         Alert.alert(
           'Error',
-          error.response?.data?.message || 'Failed to process income'
+          error.response?.data?.message || 'Failed to save income'
         );
       }
     } finally {
@@ -209,15 +224,23 @@ export default function IncomeScreen() {
 
   const handleDelete = async (incomeId: number) => {
     try {
+      setIsDeleting(true);
+      const token = await AsyncStorage.getItem('accessToken');
       const userId = await AsyncStorage.getItem('userId');
-      if (!userId) {
+      if (!userId || !token) {
         Alert.alert('Error', 'Authentication required');
         return;
       }
 
       console.log('Deleting income:', incomeId);
       const response = await axiosInstance.delete(
-        API_ENDPOINTS.INCOME.DELETE.replace(':income_id', incomeId.toString())
+        API_ENDPOINTS.INCOME.DELETE.replace(':income_id', incomeId.toString()),
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       console.log('Delete response:', response.data);
 
@@ -233,7 +256,7 @@ export default function IncomeScreen() {
       console.error('Error details:', error.response?.data);
       
       if (error.response?.status === 401) {
-        await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
         router.replace('/(auth)/sign-in');
       } else {
         Alert.alert(
@@ -241,6 +264,8 @@ export default function IncomeScreen() {
           error.response?.data?.message || 'Failed to delete income'
         );
       }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -309,37 +334,36 @@ export default function IncomeScreen() {
     setShowModal(true);
   };
 
-  useEffect(() => {
-    const checkAuthentication = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        const userId = await AsyncStorage.getItem('userId');
-        
-        if (!token || !userId) {
-          router.replace('/(auth)/sign-in');
-          return;
-        }
-        
-        setIsAuthenticated(true);
-        fetchIncomes();
-      } catch (error) {
-        console.error('Authentication error:', error);
-        if (axiosInstance.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
+  const checkAuthentication = async () => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      const userId = await AsyncStorage.getItem('userId');
+      
+      if (!token || !userId) {
+        router.replace('/(auth)/sign-in');
+        return;
       }
-    };
-
-    checkAuthentication();
-  }, []);
+      
+      setIsAuthenticated(true);
+      await fetchIncomes();
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      }
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchIncomes();
     setRefreshing(false);
   };
+
+  useEffect(() => {
+    checkAuthentication();
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -526,11 +550,21 @@ export default function IncomeScreen() {
                 {/* Submit Button */}
                 <TouchableOpacity
                   onPress={handleSubmit}
-                  className="bg-green-600 p-4 rounded-xl mt-6"
+                  disabled={isSubmitting}
+                  className={`p-4 rounded-xl mt-6 ${isSubmitting ? 'bg-green-500' : 'bg-green-600'}`}
                 >
-                  <Text className="text-white text-center font-semibold text-lg">
-                    {isEditing ? 'Update Income' : 'Add Income'}
-                  </Text>
+                  {isSubmitting ? (
+                    <View className="flex-row justify-center items-center space-x-2">
+                      <ActivityIndicator color="#dcfce7" size="small" />
+                      <Text className="text-white text-center font-semibold text-lg">
+                        {isEditing ? 'Updating...' : 'Adding...'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-white text-center font-semibold text-lg">
+                      {isEditing ? 'Update Income' : 'Add Income'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -599,10 +633,7 @@ export default function IncomeScreen() {
 
                 <View className="flex-row space-x-4 mt-6">
                   <TouchableOpacity
-                    onPress={() => {
-                      setShowViewModal(false);
-                      handleEditPress();
-                    }}
+                    onPress={handleEditPress}
                     className="flex-1 bg-gray-100 p-4 rounded-xl"
                   >
                     <Text className="text-center text-gray-800 font-semibold">
@@ -611,14 +642,34 @@ export default function IncomeScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => {
-                      setShowViewModal(false);
-                      handleDelete(selectedIncome.id);
+                      Alert.alert(
+                        'Delete Income',
+                        'Are you sure you want to delete this income?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => selectedIncome && handleDelete(selectedIncome.id),
+                          },
+                        ]
+                      );
                     }}
-                    className="flex-1 bg-green-100 p-4 rounded-xl"
+                    disabled={isDeleting}
+                    className={`flex-1 p-4 rounded-xl ${isDeleting ? 'bg-green-500' : 'bg-green-600'}`}
                   >
-                    <Text className="text-center text-green-600 font-semibold">
-                      Delete
-                    </Text>
+                    {isDeleting ? (
+                      <View className="flex-row justify-center items-center space-x-2">
+                        <ActivityIndicator color="#dcfce7" size="small" />
+                        <Text className="text-white text-center font-semibold">
+                          Deleting...
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text className="text-white text-center font-semibold">
+                        Delete
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>

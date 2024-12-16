@@ -1,5 +1,5 @@
 import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { API_URL, API_ENDPOINTS } from '@/constants/API';
+import axiosInstance from "@/utils/axiosConfig";
 import axios from 'axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -68,91 +69,91 @@ export default function Home() {
 
   const fetchFinancialData = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
       const userId = await AsyncStorage.getItem('userId');
       const name = await AsyncStorage.getItem('userName');
       setUserName(name || '');
       
-      if (!token || !userId) {
+      if (!userId) {
         router.replace('/(auth)/sign-in');
         return;
       }
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // Fetch financial summary
       try {
-        const summaryResponse = await axios.get(
-          `${API_URL}${API_ENDPOINTS.FINANCIAL.GET_SUMMARY.replace(':user_id', userId)}`,
-          { headers }
-        );
+        // Fetch financial summary and transactions in parallel
+        const [summaryResponse, incomeResponse, expenseResponse] = await Promise.all([
+          axiosInstance.get(API_ENDPOINTS.FINANCIAL.GET_SUMMARY.replace(':user_id', userId)),
+          axiosInstance.get(API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId)),
+          axiosInstance.get(API_ENDPOINTS.EXPENSE.GET_ALL.replace(':user_id', userId))
+        ]);
 
-        if (summaryResponse.data.success) {
-          setFinancialSummary(summaryResponse.data.data);
-        } else {
-          setFinancialSummary({
-            current_balance: 0,
-            net_savings: 0,
-            total_expenses: 0
-          });
+        console.log('Income response:', incomeResponse.data);
+        console.log('Expense response:', expenseResponse.data);
+
+        let latestTransactions: Transaction[] = [];
+
+        if (incomeResponse.data.success && incomeResponse.data.data) {
+          latestTransactions = [
+            ...latestTransactions,
+            ...incomeResponse.data.data.map((income: any) => ({
+              id: income.income_id,
+              amount: parseFloat(income.amount),
+              description: income.description,
+              category: income.category,
+              timestamp: income.timestamp,
+              type: 'income'
+            }))
+          ];
         }
-      } catch (error) {
+
+        if (expenseResponse.data.success && expenseResponse.data.data) {
+          latestTransactions = [
+            ...latestTransactions,
+            ...expenseResponse.data.data.map((expense: any) => ({
+              id: expense.expense_id,
+              amount: parseFloat(expense.amount),
+              description: expense.description,
+              category: expense.category,
+              timestamp: expense.timestamp,
+              type: 'expense'
+            }))
+          ];
+        }
+
+        // Sort transactions by date and get latest 5
+        latestTransactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setLatestTransactions(latestTransactions.slice(0, 5));
+
+        // Set financial summary from backend
+        if (summaryResponse.data.success && summaryResponse.data.data) {
+          setFinancialSummary({
+            current_balance: parseFloat(summaryResponse.data.data.current_balance),
+            net_savings: parseFloat(summaryResponse.data.data.net_savings),
+            total_expenses: parseFloat(summaryResponse.data.data.total_expenses)
+          });
+        } else {
+          throw new Error('Failed to fetch financial summary');
+        }
+
+      } catch (error: any) {
+        console.error('Error fetching data:', error.response?.data || error.message);
+        // Set default values on error
         setFinancialSummary({
           current_balance: 0,
           net_savings: 0,
           total_expenses: 0
         });
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
-      }
-
-      // Fetch all transactions
-      try {
-        const [incomeResponse, expenseResponse] = await Promise.all([
-          axios.get(`${API_URL}${API_ENDPOINTS.INCOME.GET_ALL.replace(':user_id', userId)}`, { headers }),
-          axios.get(`${API_URL}${API_ENDPOINTS.EXPENSE.GET_ALL.replace(':user_id', userId)}`, { headers })
-        ]);
-
-        let allTransactions: Transaction[] = [];
-
-        if (incomeResponse.data.success && incomeResponse.data.data) {
-          allTransactions = [...allTransactions, ...incomeResponse.data.data];
-        }
-
-        if (expenseResponse.data.success && expenseResponse.data.data) {
-          allTransactions = [...allTransactions, ...expenseResponse.data.data];
-        }
-
-        // Sort by timestamp and get latest 3
-        const sortedTransactions = allTransactions
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-          .slice(0, 3);
-
-        setLatestTransactions(sortedTransactions);
-      } catch (error) {
         setLatestTransactions([]);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          await AsyncStorage.multiRemove(['token', 'userId', 'userName']);
-          router.replace('/(auth)/sign-in');
-          return;
-        }
       }
 
-    } catch (error) {
-      setFinancialSummary({
-        current_balance: 0,
-        net_savings: 0,
-        total_expenses: 0
-      });
-      setLatestTransactions([]);
+    } catch (error: any) {
+      console.error('Error in fetchFinancialData:', error);
+      if (error.response?.status === 401) {
+        await AsyncStorage.multiRemove(['accessToken', 'userId', 'userName']);
+        router.replace('/(auth)/sign-in');
+      }
     } finally {
       setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -182,6 +183,66 @@ export default function Home() {
   const handleProfilePress = () => {
     router.push('/(profile)/profile');
   };
+
+  const testFinancialEndpoints = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      const token = await AsyncStorage.getItem('accessToken');
+      
+      console.log('Testing with:', {
+        userId,
+        tokenExists: !!token,
+        summaryUrl: `${API_URL}${API_ENDPOINTS.FINANCIAL.GET_SUMMARY.replace(':user_id', userId || '')}`,
+        historyUrl: `${API_URL}${API_ENDPOINTS.FINANCIAL.GET_HISTORY.replace(':user_id', userId || '')}`
+      });
+
+      // Test direct axios call to summary endpoint
+      try {
+        const summaryResponse = await axios.get(
+          `${API_URL}${API_ENDPOINTS.FINANCIAL.GET_SUMMARY.replace(':user_id', userId || '')}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        console.log('Direct summary response:', summaryResponse.data);
+      } catch (error: any) {
+        console.error('Summary error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+
+      // Test direct axios call to history endpoint
+      try {
+        const historyResponse = await axios.get(
+          `${API_URL}${API_ENDPOINTS.FINANCIAL.GET_HISTORY.replace(':user_id', userId || '')}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        console.log('Direct history response:', historyResponse.data);
+      } catch (error: any) {
+        console.error('History error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+    } catch (error) {
+      console.error('Test function error:', error);
+    }
+  };
+
+  useEffect(() => {
+    testFinancialEndpoints();
+  }, []);
 
   if (isLoading) {
     return (
@@ -326,14 +387,14 @@ export default function Home() {
           </View>
 
           {/* Recent Transactions */}
-          <View className="px-6 mt-8">
+          <View className="px-6 mt-8 mb-6">
             <Text className="text-lg font-semibold mb-4">Latest Transactions</Text>
             
             {latestTransactions.length > 0 ? (
               latestTransactions.map((transaction, index) => (
                 <View 
                   key={`transaction-${transaction.id}-${index}`} 
-                  className="flex-row justify-between items-center mb-4 bg-white p-4 rounded-xl"
+                  className="flex-row justify-between items-center mb-4 bg-gray-50 p-4 rounded-xl"
                 >
                   <View className="flex-row items-center flex-1">
                     <View
@@ -347,50 +408,34 @@ export default function Home() {
                         color={transaction.type === 'income' ? '#16a34a' : '#dc2626'}
                       />
                     </View>
-                    <View>
-                      <Text className="text-sm text-gray-500">{capitalizeFirstLetter(transaction.category)}</Text>
-                      <Text className="text-xs text-gray-400">
-                        {new Date(transaction.timestamp).toLocaleDateString('en-US', {
+                    <View className="flex-1">
+                      <Text className="font-semibold text-gray-800">
+                        {transaction.description || capitalizeFirstLetter(transaction.category)}
+                      </Text>
+                      <Text className="text-sm text-gray-500">
+                        {new Date(transaction.timestamp).toLocaleDateString('en-PH', {
+                          year: 'numeric',
                           month: 'short',
                           day: 'numeric',
-                          year: 'numeric'
                         })}
                       </Text>
                     </View>
                   </View>
-                  <Text className={transaction.type === 'income' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  <Text
+                    className={`font-semibold ${
+                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {formatCurrency(transaction.amount)}
                   </Text>
                 </View>
               ))
             ) : (
-              <View className="bg-gray-50 p-4 rounded-lg">
-                <Text className="text-gray-500 text-center">No transactions yet</Text>
+              <View className="items-center py-4">
+                <Text className="text-gray-500">No recent transactions</Text>
               </View>
             )}
-          </View>
-
-          {/* Additional Features */}
-          <View className="px-6 mt-8 mb-6">
-            <Text className="text-lg font-semibold text-gray-800 mb-4">
-              More Features
-            </Text>
-            <View className="flex-row flex-wrap justify-between">
-              <TouchableOpacity 
-                className="bg-purple-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                onPress={() => router.push('/(tabs)/analytics')}
-              >
-                <MaterialCommunityIcons name="chart-line" size={30} color="#7C3AED" />
-                <Text className="text-purple-600 mt-2 font-medium">Analytics</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                className="bg-cyan-50 p-4 rounded-xl w-[48%] items-center mb-4"
-                onPress={() => router.push('/(tabs)/goals')}
-              >
-                <MaterialCommunityIcons name="flag" size={30} color="#0891B2" />
-                <Text className="text-cyan-600 mt-2 font-medium">Goals</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </ScrollView>

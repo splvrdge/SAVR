@@ -5,67 +5,69 @@ export const API_URL = 'https://savr-backend.onrender.com';
 export const API_ENDPOINTS = {
   // Auth endpoints
   AUTH: {
-    LOGIN: `${API_URL}/api/auth/login`,
-    SIGNUP: `${API_URL}/api/auth/signup`,
-    CHECK_EMAIL: `${API_URL}/api/auth/check-email`,
-    REFRESH_TOKEN: `${API_URL}/api/auth/refresh-token`,
+    LOGIN: '/api/auth/login',
+    SIGNUP: '/api/auth/signup',
+    CHECK_EMAIL: '/api/auth/check-email',
+    REFRESH_TOKEN: '/api/auth/refresh-token',
   },
 
   // Income endpoints
   INCOME: {
-    ADD: `${API_URL}/api/income/add`,
-    GET_ALL: `${API_URL}/api/income/:user_id`,
-    UPDATE: `${API_URL}/api/income/update/:income_id`,
-    DELETE: `${API_URL}/api/income/delete/:income_id`,
-    CATEGORIES: `${API_URL}/api/income/categories`,
+    ADD: '/api/income/add',
+    GET_ALL: '/api/income/:user_id',
+    UPDATE: '/api/income/update/:income_id',
+    DELETE: '/api/income/delete/:income_id',
+    CATEGORIES: '/api/income/categories',
   },
 
   // Expense endpoints
   EXPENSE: {
-    ADD: `${API_URL}/api/expense/add`,
-    GET_ALL: `${API_URL}/api/expense/:user_id`,
-    UPDATE: `${API_URL}/api/expense/update/:expense_id`,
-    DELETE: `${API_URL}/api/expense/delete/:expense_id`,
-    CATEGORIES: `${API_URL}/api/expense/categories`,
+    ADD: '/api/expenses/add',
+    GET_ALL: '/api/expenses/:user_id',
+    UPDATE: '/api/expenses/update/:expense_id',
+    DELETE: '/api/expenses/delete/:expense_id',
+    CATEGORIES: '/api/expenses/categories',
   },
 
   // Financial endpoints
   FINANCIAL: {
-    GET_SUMMARY: `${API_URL}/api/financial/summary/:user_id`,
-    GET_HISTORY: `${API_URL}/api/financial/history/:user_id`,
+    GET_SUMMARY: '/api/financial/summary/:user_id',
+    GET_HISTORY: '/api/financial/history/:user_id',
   },
 
   // Goals endpoints
   GOALS: {
-    ADD: `${API_URL}/api/goals/add`,
-    GET_ALL: `${API_URL}/api/goals/:user_id`,
-    UPDATE: `${API_URL}/api/goals/update/:goal_id`,
-    DELETE: `${API_URL}/api/goals/delete/:goal_id`,
-    ADD_CONTRIBUTION: `${API_URL}/api/goals/contribution/add`,
-    GET_CONTRIBUTIONS: `${API_URL}/api/goals/contributions/:goal_id`,
-    DELETE_CONTRIBUTION: `${API_URL}/api/goals/contribution/:contribution_id`
+    ADD: '/api/goals/create',
+    GET_ALL: '/api/goals',
+    UPDATE: '/api/goals/update/:goal_id',
+    DELETE: '/api/goals/delete/:goal_id',
+    ADD_CONTRIBUTION: '/api/goals/contribute',
+    GET_CONTRIBUTIONS: '/api/goals/contributions/:goal_id',
+    DELETE_CONTRIBUTION: '/api/goals/contribution/:contribution_id'
   },
 
   // Analytics endpoints
   ANALYTICS: {
-    EXPENSES: `${API_URL}/api/analytics/expenses/:user_id`,
-    INCOME: `${API_URL}/api/analytics/income/:user_id`,
-    TRENDS: `${API_URL}/api/analytics/trends/:user_id`,
+    EXPENSES: '/api/analytics/expenses/:user_id',
+    INCOME: '/api/analytics/income/:user_id',
+    TRENDS: '/api/analytics/trends/:user_id',
+    BUDGET: '/api/analytics/budget/:user_id',
+    SAVINGS: '/api/analytics/savings/:user_id',
   },
 
   // User endpoints
   USER: {
-    UPDATE_PROFILE: `${API_URL}/api/user/profile`,
-    GET_PROFILE: `${API_URL}/api/user/profile/:user_id`,
+    UPDATE_PROFILE: '/api/user/profile',
+    GET_PROFILE: '/api/user/profile/:user_id',
   },
 
   // Category endpoints
   CATEGORY: {
-    GET_ALL: `${API_URL}/api/category/all`,
-    GET_BY_TYPE: `${API_URL}/api/category/:type`,
-    ADD: `${API_URL}/api/category/add`,
-    UPDATE: `${API_URL}/api/category/update/:category_id`,
-    DELETE: `${API_URL}/api/category/delete/:category_id`,
+    GET_ALL: '/api/category/all',
+    GET_BY_TYPE: '/api/category/:type',
+    ADD: '/api/category/add',
+    UPDATE: '/api/category/update/:category_id',
+    DELETE: '/api/category/delete/:category_id',
   },
 };
 
