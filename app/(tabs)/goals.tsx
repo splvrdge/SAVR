@@ -50,6 +50,23 @@ export default function Goals() {
     notes: ''
   });
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      target_amount: '',
+      target_date: '',
+      contribution_amount: '',
+      notes: '',
+    });
+    setEditingGoal(null);
+  };
+  
+  const handleCancel = () => {
+    resetForm();
+    setShowModal(false);
+  };  
+
   const sortedGoals = useMemo(() => {
     if (!goals) return [];
     
@@ -782,10 +799,10 @@ export default function Goals() {
 
       {!isLoading && goals.length > 0 && (
         <TouchableOpacity
-          style={{ position: 'absolute', bottom: 24, right: 24, backgroundColor: '#3B82F6', width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}
           onPress={() => setShowModal(true)}
+          className="absolute bottom-8 right-6 bg-[#3B82F6] w-14 h-14 rounded-full items-center justify-center shadow-lg"
         >
-          <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
+          <MaterialCommunityIcons name="plus" size={28} color="#fff" />
         </TouchableOpacity>
       )}
 
@@ -794,7 +811,7 @@ export default function Goals() {
         visible={showModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={handleCancel}
       >
         <View className="flex-1 justify-end bg-black/30">
           <KeyboardAvoidingView
@@ -806,7 +823,7 @@ export default function Goals() {
                 <Text className="text-2xl font-bold text-gray-800">
                   {editingGoal ? 'Edit Goal' : 'New Goal'}
                 </Text>
-                <TouchableOpacity onPress={() => setShowModal(false)}>
+                <TouchableOpacity onPress={handleCancel}>
                   <MaterialCommunityIcons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
@@ -866,33 +883,35 @@ export default function Goals() {
                     />
                   </View>
 
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    style={{ paddingVertical: 16, borderRadius: 12, backgroundColor: '#3B82F6', marginTop: 8 }}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <View className="flex-row justify-center items-center space-x-2">
-                        <ActivityIndicator color="#fff" size="small" />
-                        <Text className="text-white font-semibold text-lg">
-                          {editingGoal ? 'Updating...' : 'Adding...'}
+                  <View className="flex-row space-x-3 mt-4">
+                    {/* Cancel Button */}
+                    <TouchableOpacity
+                      style={{ paddingVertical: 16, alignItems: 'center', flex: 1, backgroundColor: '#F3F4F6', borderRadius: 12, marginRight: 8, }}
+                      onPress={handleCancel}
+                    >
+                      <Text className="text-gray-600 font-semibold text-lg">Cancel</Text>
+                    </TouchableOpacity>
+    
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      style={{ paddingVertical: 16, borderRadius: 12, backgroundColor: '#3B82F6', flex: 1 }}
+                      onPress={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <View className="flex-row justify-center items-center space-x-2">
+                          <ActivityIndicator color="#fff" size="small" />
+                          <Text className="text-white font-semibold text-lg">
+                            {editingGoal ? 'Updating...' : 'Adding...'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text className="text-white text-center font-semibold text-lg">
+                          {editingGoal ? 'Update Goal' : 'Create Goal'}
                         </Text>
-                      </View>
-                    ) : (
-                      <Text className="text-white text-center font-semibold text-lg">
-                        {editingGoal ? 'Update Goal' : 'Create Goal'}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Cancel Button */}
-                  <TouchableOpacity
-                    style={{ paddingVertical: 16, alignItems: 'center' }}
-                    onPress={() => setShowModal(false)}
-                  >
-                    <Text className="text-gray-600 font-semibold text-lg">Cancel</Text>
-                  </TouchableOpacity>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </ScrollView>
             </View>
