@@ -52,10 +52,10 @@ git clone https://github.com/splvrdge/savr-finance-tracker.git
 cd savr-finance-tracker
 ```
 
-3. Build and run with Docker
+3. Build with Docker and run with Expo CLI
 ```bash
 docker build -t savr-fintracker .
-docker run -it -p 19000:19000 -p 19001:19001 -p 19002:19002 savr-fintracker
+npx expo start
 ```
 
 ### Option 2: Manual Installation
