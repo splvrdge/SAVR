@@ -1,7 +1,7 @@
 <div align="center">
 
 <h1>
-  <img src="../FRONTEND/assets/images/SAVR-Banner.png" alt="SAVR Banner" width="800"/>
+  <img src="./assets/images/SAVR-Banner.png" alt="SAVR Banner" width="800"/>
 </h1>
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -19,9 +19,6 @@
 - 📱 Cross-platform (iOS & Android)
 - 💳 Track expenses and income
 - 📊 Comprehensive Analytics Dashboard
-  - Weekly spending analysis
-  - Monthly financial trends
-  - Customizable reports
 - 🎯 Set and track financial goals
 - 🔐 Secure authentication
 - 📱 User-friendly interface
