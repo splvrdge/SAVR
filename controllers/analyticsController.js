@@ -12,8 +12,9 @@ exports.getExpensesByCategory = async (req, res) => {
       let params = [user_id];
 
       if (timeframe === 'week' && date) {
-        dateFilter = `AND DATE(e.timestamp) = DATE(?)`;
-        params.push(date);
+        dateFilter = `AND e.timestamp >= DATE_SUB(DATE(?), INTERVAL WEEKDAY(DATE(?)) DAY) 
+                     AND e.timestamp < DATE_ADD(DATE_SUB(DATE(?), INTERVAL WEEKDAY(DATE(?)) DAY), INTERVAL 7 DAY)`;
+        params.push(date, date, date, date);
       } else if (timeframe === 'month' && date) {
         dateFilter = `AND DATE_FORMAT(e.timestamp, '%Y-%m') = ?`;
         params.push(date);
@@ -98,8 +99,9 @@ exports.getIncomeByCategory = async (req, res) => {
       let params = [user_id];
 
       if (timeframe === 'week' && date) {
-        dateFilter = `AND DATE(i.timestamp) = DATE(?)`;
-        params.push(date);
+        dateFilter = `AND i.timestamp >= DATE_SUB(DATE(?), INTERVAL WEEKDAY(DATE(?)) DAY) 
+                     AND i.timestamp < DATE_ADD(DATE_SUB(DATE(?), INTERVAL WEEKDAY(DATE(?)) DAY), INTERVAL 7 DAY)`;
+        params.push(date, date, date, date);
       } else if (timeframe === 'month' && date) {
         dateFilter = `AND DATE_FORMAT(i.timestamp, '%Y-%m') = ?`;
         params.push(date);
