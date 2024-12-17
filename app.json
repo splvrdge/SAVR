@@ -4,23 +4,28 @@
     "slug": "savr",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icons/savr-logo.png",
+    "icon": "./assets/icons/savr-white.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/icons/savr-white.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/savr-blue.png",
+        "foregroundImage": "./assets/icons/savr-white.png",
         "backgroundColor": "#2563eb"
       }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/icons/savr-blue.png"
+      "favicon": "./assets/icons/savr-white.png"
     },
     "plugins": [
       "expo-router",
@@ -28,14 +33,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/icons/savr-white.png",
-          "imageWidth": 200,
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#2563eb"
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }

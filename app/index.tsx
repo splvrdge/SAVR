@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from 'expo-linear-gradient';
+import * as SplashScreen from 'expo-splash-screen';
 import "../global.css";
 
 interface Slide {
@@ -57,6 +58,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    async function prepare() {
+      try {
+        await SplashScreen.preventAutoHideAsync();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    prepare();
+  }, []);
+
+  useEffect(() => {
     const checkAuth = async () => {
       try {
         const token = await AsyncStorage.getItem('accessToken');
@@ -67,11 +79,13 @@ export default function App() {
         } else {
           router.replace('/(auth)/sign-in');
         }
+        setIsLoading(false);
+        await SplashScreen.hideAsync();
       } catch (error) {
         console.error('Auth check error:', error);
         router.replace('/(auth)/sign-in');
-      } finally {
         setIsLoading(false);
+        await SplashScreen.hideAsync();
       }
     };
 

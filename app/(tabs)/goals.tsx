@@ -97,12 +97,22 @@ export default function Goals() {
       return cleaned;
     } else if (cleaned.length <= 4) {
       return cleaned.slice(0, 2) + '-' + cleaned.slice(2);
-    } else {
+    } else if (cleaned.length <= 8) {
       const month = cleaned.slice(0, 2);
       const day = cleaned.slice(2, 4);
       const year = cleaned.slice(4, 8);
+      
+      // Validate month
+      const monthNum = parseInt(month);
+      if (monthNum < 1 || monthNum > 12) return text.slice(0, -1);
+      
+      // Validate day
+      const dayNum = parseInt(day);
+      if (dayNum < 1 || dayNum > 31) return text.slice(0, -1);
+      
       return `${month}-${day}-${year}`;
     }
+    return text.slice(0, -1);
   };
 
   // Helper function to convert YYYY-MM-DD to MM-DD-YYYY for display
@@ -113,6 +123,8 @@ export default function Goals() {
       const datePart = dateString.split('T')[0];
       // Then split the date and rearrange to MM-DD-YYYY
       const [year, month, day] = datePart.split('-');
+      // Ensure we have all parts
+      if (!year || !month || !day) return '';
       // Return in MM-DD-YYYY format
       return `${month}-${day}-${year}`;
     } catch (error) {
@@ -124,8 +136,17 @@ export default function Goals() {
   // Helper function to convert MM-DD-YYYY to YYYY-MM-DD for API
   const convertDateForAPI = (dateString: string) => {
     if (!dateString || dateString.length !== 10) return '';
-    const [month, day, year] = dateString.split('-');
-    return `${year}-${month}-${day}`;
+    try {
+      const [month, day, year] = dateString.split('-');
+      // Validate parts
+      if (!month || !day || !year) return '';
+      // Ensure year is 4 digits
+      if (year.length !== 4) return '';
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error('Error converting date for API:', error);
+      return '';
+    }
   };
 
   const fetchGoals = async () => {
@@ -160,7 +181,8 @@ export default function Goals() {
           const currentAmount = goal.current_amount ? parseFloat(goal.current_amount.toString()) : 0;
           const progressPercentage = goal.progress_percentage ? parseFloat(goal.progress_percentage.toString()) : 0;
           
-          console.log('Processing goal:', goal);
+          // Format the date immediately when receiving from API
+          const formattedDate = goal.target_date ? convertDateForDisplay(goal.target_date) : '';
           
           return {
             goal_id: goal.goal_id || 0,
@@ -169,7 +191,7 @@ export default function Goals() {
             description: goal.description || '',
             target_amount: targetAmount,
             current_amount: currentAmount,
-            target_date: goal.target_date ? convertDateForDisplay(goal.target_date) : '',
+            target_date: formattedDate, // Store the date in MM-DD-YYYY format
             days_remaining: goal.days_remaining || 0,
             progress_percentage: progressPercentage
           };
@@ -288,62 +310,61 @@ export default function Goals() {
   };
 
   const handleUpdateGoal = async () => {
-    if (!editingGoal) return;
-
-    if (!formData.title || !formData.target_amount || !formData.target_date) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
     try {
-      // Validate title length
-      if (formData.title.length < 2 || formData.title.length > 100) {
-        Alert.alert('Error', 'Title must be between 2 and 100 characters');
+      if (!formData.title || !formData.target_amount || !formData.target_date) {
+        Alert.alert('Error', 'Please fill in all required fields');
         return;
       }
 
-      // Validate description length if provided
-      if (formData.description && formData.description.length > 500) {
-        Alert.alert('Error', 'Description must not exceed 500 characters');
+      const token = await AsyncStorage.getItem('accessToken');
+      if (!token || !editingGoal) {
+        Alert.alert('Error', 'Authentication required');
         return;
       }
 
-      // Validate target amount
-      const targetAmount = parseFloat(cleanAmount(formData.target_amount));
-      if (isNaN(targetAmount) || targetAmount <= 0) {
-        Alert.alert('Error', 'Target amount must be greater than 0');
+      // Convert amount to number
+      const targetAmount = parseFloat(formData.target_amount.replace(/[^0-9.]/g, ''));
+      if (isNaN(targetAmount)) {
+        Alert.alert('Error', 'Invalid target amount');
         return;
       }
 
-      // Convert and validate date
+      // Convert date to YYYY-MM-DD format for API
       const targetDate = convertDateForAPI(formData.target_date);
-      if (new Date(targetDate) <= new Date()) {
-        Alert.alert('Error', 'Target date must be in the future');
+      if (!targetDate) {
+        Alert.alert('Error', 'Invalid date format. Please use MM-DD-YYYY');
         return;
       }
 
       const payload = {
-        title: formData.title.trim(),
-        description: formData.description?.trim(),
+        title: formData.title,
+        description: formData.description,
         target_amount: targetAmount,
-        target_date: targetDate
+        target_date: targetDate // Send in YYYY-MM-DD format
       };
 
       console.log('Updating goal with payload:', payload);
       const response = await axiosInstance.put(
-        API_ENDPOINTS.GOALS.UPDATE.replace(':goal_id', editingGoal.goal_id.toString()),
-        payload
+        `${API_ENDPOINTS.GOALS.UPDATE}/${editingGoal.goal_id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       if (response.data.success) {
+        Alert.alert('Success', 'Goal updated successfully');
         setShowModal(false);
         setFormData({ title: '', description: '', target_amount: '', target_date: '', contribution_amount: '', notes: '' });
-        setEditingGoal(null);
-        await fetchGoals();
-        Alert.alert('Success', 'Goal updated successfully');
+        fetchGoals();
+      } else {
+        Alert.alert('Error', response.data.message || 'Failed to update goal');
       }
     } catch (error: any) {
-      console.error('Error updating goal:', error.response?.data || error.message);
+      console.error('Error updating goal:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to update goal');
     }
   };
@@ -481,7 +502,7 @@ export default function Goals() {
       title: goal.title,
       description: goal.description || '',
       target_amount: formatAmount(goal.target_amount.toString()),
-      target_date: convertDateForDisplay(goal.target_date),
+      target_date: goal.target_date,
       contribution_amount: '',
       notes: ''
     });
