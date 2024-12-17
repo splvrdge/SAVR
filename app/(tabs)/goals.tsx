@@ -687,7 +687,23 @@ export default function Goals() {
           </View>
         ) : (
           sortedGoals.map((goal, index) => (
-            <View key={goal.goal_id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, marginTop: index === 0 ? 16 : 0, }}>
+            <View key={goal.goal_id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, marginTop: index === 0 ? 16 : 0, position: 'relative' }}>  
+            
+              {/* Floating Delete Button */}
+              <TouchableOpacity
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  borderRadius: 16,
+                  padding: 8,
+                  zIndex: 1,
+                }}
+                onPress={() => handleDeleteGoal(goal.goal_id)}
+              >
+                <MaterialCommunityIcons name="trash-can" size={24} color="#3B82F6" />
+              </TouchableOpacity>
+
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#1A1A1A' }}>
                 {goal.title}
               </Text>
