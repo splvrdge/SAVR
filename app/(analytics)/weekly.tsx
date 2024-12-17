@@ -16,7 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PieChart } from 'react-native-chart-kit';
 import { API_ENDPOINTS, API_ERRORS } from '@/constants/API';
 import axiosInstance from '@/utils/axiosConfig';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface CategoryData {
@@ -38,7 +38,6 @@ export default function WeeklyAnalytics() {
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-  const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
   const handlePreviousWeek = () => {
     setSelectedDate(prevDate => subWeeks(prevDate, 1));
@@ -61,41 +60,55 @@ export default function WeeklyAnalytics() {
         return;
       }
 
-      const formattedDate = format(weekStart, 'yyyy-MM-dd');
+      // Format date in ISO format for consistency
+      const startDate = format(weekStart, 'yyyy-MM-dd');
+      const endDate = format(weekEnd, 'yyyy-MM-dd');
       
       const [expenseResponse, incomeResponse] = await Promise.all([
         axiosInstance.get(API_ENDPOINTS.ANALYTICS.EXPENSES.replace(':user_id', userId), {
           params: {
             timeframe: 'week',
-            date: formattedDate
+            startDate,
+            endDate
           }
         }),
         axiosInstance.get(API_ENDPOINTS.ANALYTICS.INCOME.replace(':user_id', userId), {
           params: {
             timeframe: 'week',
-            date: formattedDate
+            startDate,
+            endDate
           }
         })
       ]);
 
-      if (expenseResponse.data.success && incomeResponse.data.success) {
-        const expenseData = expenseResponse.data.data || [];
-        const incomeData = incomeResponse.data.data || [];
-        
-        setExpenseData(expenseData);
-        setIncomeData(incomeData);
+      // Check for valid response data structure
+      if (expenseResponse?.data?.success && Array.isArray(expenseResponse.data.data)) {
+        setExpenseData(expenseResponse.data.data);
       } else {
-        throw new Error('Failed to fetch analytics data');
+        console.warn('Invalid expense data format:', expenseResponse.data);
+        setExpenseData([]);
+      }
+
+      if (incomeResponse?.data?.success && Array.isArray(incomeResponse.data.data)) {
+        setIncomeData(incomeResponse.data.data);
+      } else {
+        console.warn('Invalid income data format:', incomeResponse.data);
+        setIncomeData([]);
       }
     } catch (err: any) {
       console.error('Error fetching analytics:', err);
-      setError(err.response?.data?.error || API_ERRORS.NETWORK_ERROR);
-      Alert.alert('Error', 'Failed to fetch analytics data. Please try again.');
+      const errorMessage = err.response?.data?.message || err.message || API_ERRORS.NETWORK_ERROR;
+      setError(errorMessage);
+      Alert.alert(
+        'Error',
+        `Failed to fetch analytics data: ${errorMessage}. Please try again.`,
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [router, weekStart]);
+  }, [router, weekStart, weekEnd]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -134,7 +147,9 @@ export default function WeeklyAnalytics() {
   };
 
   const generateChartData = (data: CategoryData[], type: 'income' | 'expense') => {
-    const colors = type === 'income' 
+    if (!data || data.length === 0) return [];
+
+    const colors = type === 'income'
       ? ['#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#EFF6FF']  // Blue shades
       : ['#EF4444', '#F87171', '#FCA5A5', '#FECACA', '#FEE2E2', '#FEF2F2']; // Red shades
 
