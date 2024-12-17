@@ -115,10 +115,10 @@ export default function SignUp() {
           {/* Form */}
           <View className="space-y-4 bg-white p-6 rounded-3xl shadow-sm border border-primary/10">
             <View>
-              <Text className="text-gray-700 mb-2 text-base font-medium">
+              <Text className="text-gray-700 mb-1 text-base font-medium">
                 Full Name
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-3">
                 <MaterialCommunityIcons name="account-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"
@@ -131,10 +131,10 @@ export default function SignUp() {
             </View>
 
             <View>
-              <Text className="text-gray-700 mb-2 text-base font-medium">
+              <Text className="text-gray-700 mb-1 text-base font-medium">
                 Email
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-3">
                 <MaterialCommunityIcons name="email-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"
@@ -149,10 +149,10 @@ export default function SignUp() {
             </View>
 
             <View>
-              <Text className="text-gray-700 mb-2 text-base font-medium">
+              <Text className="text-gray-700 mb-1 text-base font-medium">
                 Password
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-3">
                 <MaterialCommunityIcons name="lock-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"
@@ -176,10 +176,10 @@ export default function SignUp() {
             </View>
 
             <View>
-              <Text className="text-gray-700 mb-2 text-base font-medium">
+              <Text className="text-gray-700 mb-1 text-base font-medium">
                 Confirm Password
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-3">
                 <MaterialCommunityIcons name="lock-check-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"

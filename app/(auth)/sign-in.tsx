@@ -113,7 +113,7 @@ export default function SignIn() {
               <Text className="text-gray-700 mb-2 text-base font-medium">
                 Email
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-4">
                 <MaterialCommunityIcons name="email-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"
@@ -131,7 +131,7 @@ export default function SignIn() {
               <Text className="text-gray-700 mb-2 text-base font-medium">
                 Password
               </Text>
-              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200">
+              <View className="flex-row items-center bg-gray-50 rounded-xl px-4 border border-gray-200 mb-4">
                 <MaterialCommunityIcons name="lock-outline" size={20} color="#2563eb" />
                 <TextInput
                   className="flex-1 px-3 py-3.5 text-base text-gray-800"
