@@ -13,14 +13,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icons/savr-logo.png",
-        "backgroundColor": "#2E8B57"
+        "foregroundImage": "./assets/icons/savr-blue.png",
+        "backgroundColor": "#2563eb"
       }
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/icons/savr-logo.png"
+      "favicon": "./assets/icons/savr-blue.png"
     },
     "plugins": [
       "expo-router",
@@ -30,7 +30,7 @@
           "image": "./assets/icons/savr-white.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#2E8B57"
+          "backgroundColor": "#2563eb"
         }
       ]
     ],

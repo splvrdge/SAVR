@@ -50,6 +50,23 @@ export default function Goals() {
     notes: ''
   });
 
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      target_amount: '',
+      target_date: '',
+      contribution_amount: '',
+      notes: '',
+    });
+    setEditingGoal(null);
+  };
+  
+  const handleCancel = () => {
+    resetForm();
+    setShowModal(false);
+  };  
+
   const sortedGoals = useMemo(() => {
     if (!goals) return [];
     
@@ -686,8 +703,24 @@ export default function Goals() {
             </TouchableOpacity>
           </View>
         ) : (
-          sortedGoals.map((goal) => (
-            <View key={goal.goal_id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+          sortedGoals.map((goal, index) => (
+            <View key={goal.goal_id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16, marginTop: index === 0 ? 16 : 0, position: 'relative' }}>  
+            
+              {/* Floating Delete Button */}
+              <TouchableOpacity
+                style={{
+                  position: 'absolute',
+                  top: 16,
+                  right: 16,
+                  borderRadius: 16,
+                  padding: 8,
+                  zIndex: 1,
+                }}
+                onPress={() => handleDeleteGoal(goal.goal_id)}
+              >
+                <MaterialCommunityIcons name="trash-can" size={24} color="#3B82F6" />
+              </TouchableOpacity>
+
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#1A1A1A' }}>
                 {goal.title}
               </Text>
@@ -730,21 +763,21 @@ export default function Goals() {
 
               <View style={{ flexDirection: 'row', marginTop: 12 }}>
                 <TouchableOpacity
-                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}
+                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8, marginRight: 8, }}
                   onPress={() => handleContributionPress(goal)}
                 >
                   <MaterialCommunityIcons name="plus-circle" size={16} color="#3B82F6" />
-                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                  <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500', marginLeft: 4 }}>
                     Add Contribution
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8 }}
+                  style={{ backgroundColor: '#EBF5FF', borderRadius: 8, padding: 8, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginTop: 8, marginRight: 8, }}
                   onPress={() => handleViewContributions(goal)}
                 >
                   <MaterialCommunityIcons name="history" size={16} color="#3B82F6" />
-                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                  <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500', marginLeft: 4 }}>
                     View History
                   </Text>
                 </TouchableOpacity>
@@ -754,7 +787,7 @@ export default function Goals() {
                   onPress={() => handleEditGoal(goal)}
                 >
                   <MaterialCommunityIcons name="pencil" size={16} color="#3B82F6" />
-                  <Text style={{ color: '#3B82F6', fontSize: 14, fontWeight: '500', marginLeft: 4 }}>
+                  <Text style={{ color: '#3B82F6', fontSize: 13, fontWeight: '500', marginLeft: 4 }}>
                     Edit
                   </Text>
                 </TouchableOpacity>
@@ -766,10 +799,10 @@ export default function Goals() {
 
       {!isLoading && goals.length > 0 && (
         <TouchableOpacity
-          style={{ position: 'absolute', bottom: 24, right: 24, backgroundColor: '#3B82F6', width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5 }}
           onPress={() => setShowModal(true)}
+          className="absolute bottom-8 right-6 bg-[#3B82F6] w-14 h-14 rounded-full items-center justify-center shadow-lg"
         >
-          <MaterialCommunityIcons name="plus" size={24} color="#FFFFFF" />
+          <MaterialCommunityIcons name="plus" size={28} color="#fff" />
         </TouchableOpacity>
       )}
 
@@ -778,100 +811,112 @@ export default function Goals() {
         visible={showModal}
         transparent
         animationType="slide"
-        onRequestClose={() => setShowModal(false)}
+        onRequestClose={handleCancel}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' }}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              style={{ flex: 1, justifyContent: 'flex-end' }}
-            >
-              <View style={{ backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                  <Text style={{ fontSize: 20, fontWeight: '600', color: '#1A1A1A' }}>
-                    {editingGoal ? 'Edit Goal' : 'New Goal'}
-                  </Text>
-                  <TouchableOpacity onPress={() => setShowModal(false)}>
-                    <MaterialCommunityIcons name="close" size={24} color="#666666" />
-                  </TouchableOpacity>
-                </View>
+        <View className="flex-1 justify-end bg-black/30">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            className="bg-white rounded-t-[32px]"
+          >
+            <View className="p-6">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-2xl font-bold text-gray-800">
+                  {editingGoal ? 'Edit Goal' : 'New Goal'}
+                </Text>
+                <TouchableOpacity onPress={handleCancel}>
+                  <MaterialCommunityIcons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
 
-                <ScrollView>
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
-                      Title *
-                    </Text>
+              <ScrollView className="max-h-[600px]" showsVerticalScrollIndicator={false}>
+                <View className="space-y-6">
+                  {/* Title Input */}
+                  <View className="mb-6">
+                    <Text className="text-gray-600 font-medium mb-2">Title *</Text>
                     <TextInput
-                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
                       placeholder="Goal Title"
                       value={formData.title}
                       onChangeText={(text) => setFormData({ ...formData, title: text })}
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
 
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
-                      Description (Optional)
-                    </Text>
+                  {/* Description Input */}
+                  <View className="mb-6">
+                    <Text className="text-gray-600 font-medium mb-2">Description (Optional)</Text>
                     <TextInput
-                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16, height: 100, textAlignVertical: 'top' }}
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800"
                       placeholder="Description (Optional)"
                       value={formData.description}
                       onChangeText={(text) => setFormData({ ...formData, description: text })}
+                      placeholderTextColor="#9ca3af"
                       multiline
+                      style={{ height: 100, textAlignVertical: 'top' }}
                     />
                   </View>
 
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
-                      Target Amount (₱) *
-                    </Text>
+                  {/* Target Amount Input */}
+                  <View className="mb-6">
+                    <Text className="text-gray-600 font-medium mb-2">Target Amount (₱) *</Text>
                     <TextInput
-                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
                       placeholder="Target Amount (₱)"
                       value={formData.target_amount}
                       onChangeText={(text) => setFormData({ ...formData, target_amount: formatAmount(text) })}
                       keyboardType="decimal-pad"
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
 
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#333333', marginBottom: 8 }}>
-                      Target Date (MM-DD-YYYY) *
-                    </Text>
+                  {/* Target Date Input */}
+                  <View className="mb-6">
+                    <Text className="text-gray-600 font-medium mb-2">Target Date (MM-DD-YYYY) *</Text>
                     <TextInput
-                      style={{ backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, fontSize: 16 }}
+                      className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
                       placeholder="MM-DD-YYYY"
                       value={formData.target_date}
                       onChangeText={(text) => setFormData({ ...formData, target_date: formatDateInput(text) })}
                       keyboardType="numeric"
                       maxLength={10}
+                      placeholderTextColor="#9ca3af"
                     />
                   </View>
 
-                  <TouchableOpacity
-                    style={{ backgroundColor: '#3B82F6', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 8 }}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting}
-                  >
-                    <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-                      {isSubmitting ? 'Saving...' : editingGoal ? 'Update Goal' : 'Create Goal'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={{ padding: 16, alignItems: 'center' }}
-                    onPress={() => setShowModal(false)}
-                  >
-                    <Text style={{ color: '#666666', fontSize: 16 }}>
-                      Cancel
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            </KeyboardAvoidingView>
-          </View>
-        </TouchableWithoutFeedback>
+                  <View className="flex-row space-x-3 mt-4">
+                    {/* Cancel Button */}
+                    <TouchableOpacity
+                      style={{ paddingVertical: 16, alignItems: 'center', flex: 1, backgroundColor: '#F3F4F6', borderRadius: 12, marginRight: 8, }}
+                      onPress={handleCancel}
+                    >
+                      <Text className="text-gray-600 font-semibold text-lg">Cancel</Text>
+                    </TouchableOpacity>
+    
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      style={{ paddingVertical: 16, borderRadius: 12, backgroundColor: '#3B82F6', flex: 1 }}
+                      onPress={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <View className="flex-row justify-center items-center space-x-2">
+                          <ActivityIndicator color="#fff" size="small" />
+                          <Text className="text-white font-semibold text-lg">
+                            {editingGoal ? 'Updating...' : 'Adding...'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text className="text-white text-center font-semibold text-lg">
+                          {editingGoal ? 'Update Goal' : 'Create Goal'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
       </Modal>
 
       {renderContributionModal()}
