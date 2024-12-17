@@ -399,7 +399,7 @@ export default function Expenses() {
       {/* Expense List */}
       <View className="flex-1">
         <ScrollView
-          contentContainerStyle={{ flexGrow: 0 }}
+          contentContainerStyle={{ flexGrow: 0, paddingTop: 10 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
@@ -416,7 +416,7 @@ export default function Expenses() {
                   <TouchableOpacity
                     key={expense.id}
                     onPress={() => handleExpensePress(expense)}
-                    className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
+                    className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-3"
                   >
                     <View className="flex-row justify-between items-center">
                       <View className="flex-row items-center flex-1">
@@ -513,7 +513,7 @@ export default function Expenses() {
               >
                 <View className="space-y-6">
                   {/* Amount Input */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-2">Amount</Text>
                     <TextInput
                       className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
@@ -526,7 +526,7 @@ export default function Expenses() {
                   </View>
 
                   {/* Description Input */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-2">Description</Text>
                     <TextInput
                       className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800"
@@ -538,7 +538,7 @@ export default function Expenses() {
                   </View>
 
                   {/* Category Selection */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-3">Category</Text>
                     <View className="flex-1">
                       <ScrollView 
@@ -640,14 +640,14 @@ export default function Expenses() {
                 </View>
 
                 <View className="space-y-4">
-                  <View className="bg-gray-50 p-4 rounded-xl">
+                  <View className="bg-gray-50 p-4 rounded-xl mt-4">
                     <Text className="text-gray-500 text-sm mb-1">Description</Text>
                     <Text className="text-gray-800 font-medium">
                       {selectedExpense.description || 'No description'}
                     </Text>
                   </View>
 
-                  <View className="bg-gray-50 p-4 rounded-xl">
+                  <View className="bg-gray-50 p-4 rounded-xl mt-4">
                     <Text className="text-gray-500 text-sm mb-1">Date & Time</Text>
                     <Text className="text-gray-800 font-medium">
                       {formatDate(selectedExpense.timestamp)}
@@ -666,7 +666,7 @@ export default function Expenses() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(selectedExpense.id)}
-                    className="flex-1 bg-gray-100 py-4 rounded-xl"
+                    className="flex-1 bg-gray-100 py-4 rounded-xl ml-3"
                   >
                     {isDeleting ? (
                       <ActivityIndicator size="small" color="#666" />
