@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const db = require("../config/db");
+const { pool } = require("../config/db");
 const logger = require("../utils/logger");
 const {
   secretKey,
@@ -32,7 +32,7 @@ exports.login = async (req, res) => {
   let connection;
 
   try {
-    connection = await db.getConnection();
+    connection = await pool.getConnection();
     await connection.beginTransaction();
 
     // Find user by email
@@ -112,7 +112,7 @@ exports.signup = async (req, res) => {
   try {
     // Check if user already exists
     const checkUserQuery = `SELECT * FROM users WHERE user_email = ?`;
-    const [existingUsers] = await db.execute(checkUserQuery, [user_email]);
+    const [existingUsers] = await pool.execute(checkUserQuery, [user_email]);
 
     if (existingUsers.length > 0) {
       logger.warn('Registration attempt with existing email:', { email: user_email });
@@ -123,7 +123,7 @@ exports.signup = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(user_password, 10);
-    const connection = await db.getConnection();
+    const connection = await pool.getConnection();
 
     try {
       await connection.beginTransaction();
@@ -176,8 +176,7 @@ exports.signup = async (req, res) => {
         message: "Signup successful",
         accessToken,
         refreshToken,
-        user_name,
-        user_id: user.user_id
+        user
       });
     } catch (error) {
       await connection.rollback();
@@ -212,7 +211,7 @@ exports.refreshToken = async (req, res) => {
     const decoded = jwt.verify(refresh_token, refreshTokenSecret);
     const user_id = decoded.user_id;
 
-    const [users] = await db.execute(
+    const [users] = await pool.execute(
       `SELECT * FROM users WHERE user_id = ?`,
       [user_id]
     );
@@ -226,7 +225,7 @@ exports.refreshToken = async (req, res) => {
     const accessToken = generateAccessToken(user);
     const newRefreshToken = generateRefreshToken(user);
 
-    const connection = await db.getConnection();
+    const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
@@ -275,7 +274,7 @@ exports.logout = async (req, res) => {
   }
 
   try {
-    await db.execute(
+    await pool.execute(
       `UPDATE tokens SET expires_at = NOW() WHERE refresh_token = ?`,
       [refresh_token]
     );
@@ -303,7 +302,7 @@ exports.checkEmail = async (req, res) => {
   }
 
   try {
-    connection = await db.getConnection();
+    connection = await pool.getConnection();
     const query = `SELECT * FROM users WHERE user_email = ?`;
     const [results] = await connection.execute(query, [user_email]);
 
@@ -341,7 +340,7 @@ exports.refreshTokenController = async (req, res) => {
 
     logger.info('Attempting to refresh token:', { oldRefreshToken });
 
-    connection = await db.getConnection();
+    connection = await pool.getConnection();
     await connection.beginTransaction();
     
     // Check if token exists and hasn't expired (with 5 minute buffer)

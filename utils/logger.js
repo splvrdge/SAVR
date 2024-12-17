@@ -1,58 +1,41 @@
 const winston = require('winston');
+const { format } = winston;
 const path = require('path');
 
-// Define log levels
-const levels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  http: 3,
-  debug: 4,
-};
-
-// Define colors for each level
-const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'white',
-};
-
-// Tell winston that we want to link the colors
-winston.addColors(colors);
-
-// Custom format for logging
-const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`
-  )
-);
-
-// Define which transports the logger must use
-const transports = [
-  // Console transport
-  new winston.transports.Console(),
-  
-  // Error log file transport
-  new winston.transports.File({
-    filename: path.join('logs', 'error.log'),
-    level: 'error',
-  }),
-  
-  // All logs file transport
-  new winston.transports.File({ filename: path.join('logs', 'all.log') }),
-];
-
-// Create the logger instance
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
-  levels,
-  format,
-  transports,
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: format.combine(
+    format.timestamp({
+      format: 'HH:mm:ss'
+    }),
+    format.errors({ stack: true }),
+    format.splat(),
+    format.json()
+  ),
+  defaultMeta: { service: 'savr-api' },
+  transports: [
+    new winston.transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.printf(({ timestamp, level, message, service, ...meta }) => {
+          const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+          return `${timestamp} ${level}: ${message} ${metaStr}`.trim();
+        })
+      )
+    })
+  ]
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.File({ 
+    filename: path.join('logs', 'error.log'), 
+    level: 'error',
+    format: format.combine(
+      format.timestamp(),
+      format.json()
+    )
+  }));
+}
 
 // Export a function that safely logs objects
 const safeLog = (level, message, object = null) => {

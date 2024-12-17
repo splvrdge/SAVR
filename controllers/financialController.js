@@ -1,46 +1,78 @@
-const db = require("../config/db");
-const logger = require("../utils/logger");
+const { pool } = require('../config/db');
+const logger = require('../utils/logger');
 
 exports.getFinancialSummary = async (req, res) => {
   const { user_id } = req.params;
 
   try {
-    const query = `
-      SELECT 
-        current_balance,
-        total_income,
-        total_expenses,
-        last_income_date,
-        last_expense_date,
-        created_at,
-        updated_at
-      FROM user_financial_summary
-      WHERE user_id = ?
-    `;
+    logger.debug("Fetching financial summary for user:", { userId: user_id });
 
-    const [results] = await db.execute(query, [user_id]);
-
-    if (results.length === 0) {
-      logger.warn("Financial summary not found:", { userId: user_id });
-      return res.status(404).json({
-        success: false,
-        message: "Financial summary not found"
-      });
-    }
-
-    const summary = {
-      current_balance: parseFloat(results[0].current_balance),
-      total_income: parseFloat(results[0].total_income),
-      total_expenses: parseFloat(results[0].total_expenses),
-      last_income_date: results[0].last_income_date,
-      last_expense_date: results[0].last_expense_date,
-      created_at: results[0].created_at,
-      updated_at: results[0].updated_at
+    // Get detailed financial data
+    const queries = {
+      income: `
+        SELECT amount, category, timestamp 
+        FROM incomes 
+        WHERE user_id = ?
+        ORDER BY timestamp DESC
+      `,
+      expenses: `
+        SELECT amount, category, timestamp 
+        FROM expenses 
+        WHERE user_id = ?
+        ORDER BY timestamp DESC
+      `
     };
 
-    logger.debug("Retrieved financial summary:", { 
+    // Execute queries in parallel
+    const [incomeResults, expenseResults] = await Promise.all([
+      pool.query(queries.income, [user_id]),
+      pool.query(queries.expenses, [user_id])
+    ]);
+
+    // Get the raw data
+    const incomes = incomeResults[0];
+    const expenses = expenseResults[0];
+
+    // Calculate totals
+    const totalIncome = incomes.reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0);
+    const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
+    
+    // Calculate current balance and net savings
+    const currentBalance = totalIncome - totalExpenses;
+    const netSavings = totalIncome; // All income counts as savings
+
+    // Get latest dates
+    const lastIncomeDate = incomes.length > 0 ? incomes[0].timestamp : null;
+    const lastExpenseDate = expenses.length > 0 ? expenses[0].timestamp : null;
+
+    // Prepare summary
+    const summary = {
+      total_income: totalIncome,
+      total_expenses: totalExpenses,
+      current_balance: currentBalance,
+      net_savings: netSavings,
+      last_income_date: lastIncomeDate,
+      last_expense_date: lastExpenseDate,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    // Log detailed breakdown
+    logger.debug("Financial Summary Details:", {
       userId: user_id,
-      hasTransactions: !!(summary.total_income || summary.total_expenses)
+      incomeCount: incomes.length,
+      expenseCount: expenses.length,
+      calculations: {
+        totalIncome,
+        totalExpenses,
+        currentBalance,
+        netSavings
+      },
+      incomeBreakdown: incomes.map(inc => ({
+        amount: inc.amount,
+        category: inc.category
+      })),
+      summary
     });
 
     res.json({
@@ -51,11 +83,15 @@ exports.getFinancialSummary = async (req, res) => {
     logger.error("Failed to get financial summary:", {
       userId: user_id,
       error: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sql: error.sql,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
     res.status(500).json({
       success: false,
-      message: "Error retrieving financial summary"
+      message: "Error retrieving financial summary",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
     });
   }
 };
@@ -65,6 +101,12 @@ exports.getTransactionHistory = async (req, res) => {
   const { start_date, end_date, type, category, limit = 50, offset = 0 } = req.query;
 
   try {
+    logger.debug("Fetching transaction history:", {
+      userId: user_id,
+      filters: { start_date, end_date, type, category },
+      pagination: { limit, offset }
+    });
+
     // Get incomes
     const incomeQuery = `
       SELECT 
@@ -78,6 +120,9 @@ exports.getTransactionHistory = async (req, res) => {
         updated_at
       FROM incomes
       WHERE user_id = ?
+      ${start_date ? 'AND timestamp >= ?' : ''}
+      ${end_date ? 'AND timestamp <= ?' : ''}
+      ${category ? 'AND category = ?' : ''}
     `;
 
     // Get expenses
@@ -93,43 +138,54 @@ exports.getTransactionHistory = async (req, res) => {
         updated_at
       FROM expenses
       WHERE user_id = ?
+      ${start_date ? 'AND timestamp >= ?' : ''}
+      ${end_date ? 'AND timestamp <= ?' : ''}
+      ${category ? 'AND category = ?' : ''}
     `;
 
-    // Execute both queries
-    const [incomes] = await db.execute(incomeQuery, [user_id]);
-    const [expenses] = await db.execute(expenseQuery, [user_id]);
-
-    // Combine and sort results
-    let transactions = [...incomes, ...expenses];
-    transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-    // Apply filters
+    // Build params for each query
+    const incomeParams = [user_id];
+    const expenseParams = [user_id];
     if (start_date) {
-      transactions = transactions.filter(tx => new Date(tx.timestamp) >= new Date(start_date));
+      incomeParams.push(start_date);
+      expenseParams.push(start_date);
     }
     if (end_date) {
-      transactions = transactions.filter(tx => new Date(tx.timestamp) <= new Date(end_date));
-    }
-    if (type) {
-      transactions = transactions.filter(tx => tx.type === type);
+      incomeParams.push(end_date);
+      expenseParams.push(end_date);
     }
     if (category) {
-      transactions = transactions.filter(tx => tx.category === category);
+      incomeParams.push(category);
+      expenseParams.push(category);
     }
+
+    // Execute queries
+    let [incomes, expenses] = await Promise.all([
+      pool.query(incomeQuery, incomeParams),
+      pool.query(expenseQuery, expenseParams)
+    ]);
+
+    // Get just the rows from the results
+    incomes = incomes[0];
+    expenses = expenses[0];
+
+    // Filter by type if specified
+    let transactions = [];
+    if (!type || type === 'income') {
+      transactions.push(...incomes);
+    }
+    if (!type || type === 'expense') {
+      transactions.push(...expenses);
+    }
+
+    // Sort by timestamp
+    transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
     // Get total count
     const totalCount = transactions.length;
 
     // Apply pagination
-    const paginatedTransactions = transactions.slice(offset, offset + limit);
-
-    if (paginatedTransactions.length === 0) {
-      logger.debug("No transaction history found:", { userId: user_id });
-      return res.status(404).json({
-        success: false,
-        message: "No financial data found"
-      });
-    }
+    const paginatedTransactions = transactions.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
 
     // Format transactions
     const formattedTransactions = paginatedTransactions.map(tx => ({
@@ -145,18 +201,9 @@ exports.getTransactionHistory = async (req, res) => {
 
     logger.debug("Retrieved transaction history:", {
       userId: user_id,
-      filters: {
-        startDate: start_date,
-        endDate: end_date,
-        type,
-        category
-      },
-      pagination: {
-        limit,
-        offset,
-        total: totalCount,
-        returned: formattedTransactions.length
-      }
+      totalTransactions: totalCount,
+      returnedTransactions: formattedTransactions.length,
+      filters: { start_date, end_date, type, category }
     });
 
     res.json({
@@ -174,11 +221,15 @@ exports.getTransactionHistory = async (req, res) => {
     logger.error("Failed to get transaction history:", {
       userId: user_id,
       error: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sql: error.sql,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
     res.status(500).json({
       success: false,
-      message: "Error retrieving transaction history"
+      message: "Error retrieving transaction history",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
     });
   }
 };
@@ -201,7 +252,7 @@ exports.getTransactionDetails = async (req, res) => {
       WHERE user_id = ? AND id = ?
     `;
 
-    const [results] = await db.execute(query, [user_id, transaction_id]);
+    const [results] = await pool.query(query, [user_id, transaction_id]);
 
     if (results.length === 0) {
       logger.warn("Transaction not found:", { 

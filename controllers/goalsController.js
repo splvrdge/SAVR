@@ -98,7 +98,18 @@ exports.getGoals = async (req, res) => {
         SELECT 
           g.*,
           COALESCE(SUM(gc.amount), 0) as current_amount,
-          COALESCE(COUNT(gc.contribution_id), 0) as contribution_count
+          COALESCE(COUNT(gc.contribution_id), 0) as contribution_count,
+          CASE 
+            WHEN g.target_amount > 0 
+            THEN ROUND((COALESCE(SUM(gc.amount), 0) / g.target_amount) * 100, 1)
+            ELSE 0 
+          END as progress_percentage,
+          CASE 
+            WHEN COALESCE(SUM(gc.amount), 0) >= g.target_amount 
+            THEN 1 
+            ELSE 0 
+          END as is_completed,
+          DATEDIFF(g.target_date, CURDATE()) as days_remaining
         FROM goals g
         LEFT JOIN goal_contributions gc ON g.goal_id = gc.goal_id
         WHERE g.user_id = ?
@@ -106,9 +117,18 @@ exports.getGoals = async (req, res) => {
         ORDER BY g.created_at DESC
       `, [userId]);
 
+      const formattedGoals = goals.map(goal => ({
+        ...goal,
+        progress_percentage: parseFloat(goal.progress_percentage) || 0,
+        is_completed: goal.is_completed === 1,
+        days_remaining: parseInt(goal.days_remaining) || 0,
+        current_amount: parseFloat(goal.current_amount) || 0,
+        target_amount: parseFloat(goal.target_amount) || 0
+      }));
+
       res.json({
         success: true,
-        data: goals || []
+        data: formattedGoals || []
       });
     } catch (error) {
       logger.error('Database error during goal retrieval:', {
@@ -152,7 +172,7 @@ exports.addContribution = async (req, res) => {
       });
     }
 
-    if (!goal_id || !amount) {
+    if (!goal_id || amount === undefined) {
       logger.warn('Missing required fields:', { goal_id, amount });
       return res.status(400).json({
         success: false,
@@ -160,10 +180,20 @@ exports.addContribution = async (req, res) => {
       });
     }
 
+    // Validate amount
+    const contributionAmount = parseFloat(amount);
+    if (isNaN(contributionAmount) || contributionAmount <= 0) {
+      logger.warn('Invalid contribution amount:', { amount });
+      return res.status(400).json({
+        success: false,
+        message: 'Contribution amount must be greater than 0'
+      });
+    }
+
     logger.info('Adding contribution:', {
       userId,
       goal_id,
-      amount,
+      amount: contributionAmount,
       notes
     });
 
@@ -202,28 +232,44 @@ exports.addContribution = async (req, res) => {
       });
     }
 
-    const newAmount = parseFloat(goal.current_amount || 0) + parseFloat(amount);
+    // Calculate new amount and validate against target
+    const currentAmount = parseFloat(goal.current_amount || 0);
+    const newAmount = currentAmount + contributionAmount;
+    const targetAmount = parseFloat(goal.target_amount);
+
+    if (newAmount > targetAmount) {
+      logger.warn('Contribution would exceed target amount:', {
+        currentAmount,
+        contributionAmount,
+        targetAmount,
+        newAmount
+      });
+      return res.status(400).json({
+        success: false,
+        message: `Contribution of ${contributionAmount} would exceed the remaining amount needed (${targetAmount - currentAmount})`
+      });
+    }
 
     // Add contribution
     const [result] = await connection.execute(
-      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
-      [goal_id, userId, amount, notes || null]
+      'INSERT INTO goal_contributions (goal_id, user_id, amount, notes) VALUES (?, ?, ?, ?)',
+      [goal_id, userId, contributionAmount, notes || null]
     );
 
     // Update goal progress
     await connection.execute(
-      'UPDATE goals SET current_amount = ?, updated_at = NOW(), is_completed = ? WHERE goal_id = ?',
-      [newAmount, newAmount >= goal.target_amount, goal_id]
+      'UPDATE goals SET current_amount = ?, is_completed = ? WHERE goal_id = ?',
+      [newAmount, newAmount >= targetAmount, goal_id]
     );
 
     await connection.commit();
 
-    logger.info('Contribution added:', {
+    logger.info('Contribution added successfully:', {
       contributionId: result.insertId,
       goalId: goal_id,
-      amount: amount,
+      amount: contributionAmount,
       newTotal: newAmount,
-      isCompleted: newAmount >= goal.target_amount
+      isCompleted: newAmount >= targetAmount
     });
 
     res.status(201).json({
@@ -231,10 +277,10 @@ exports.addContribution = async (req, res) => {
       message: 'Contribution added successfully',
       data: {
         contribution_id: result.insertId,
-        amount: amount,
+        amount: contributionAmount,
         notes: notes || null,
         current_amount: newAmount,
-        is_completed: newAmount >= goal.target_amount,
+        is_completed: newAmount >= targetAmount,
         created_at: new Date()
       }
     });
@@ -245,12 +291,12 @@ exports.addContribution = async (req, res) => {
     logger.error('Failed to add contribution:', {
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      body: req.body,
-      userId: req.user?.user_id
+      body: req.body
     });
     res.status(500).json({
       success: false,
-      message: 'Error adding contribution'
+      message: 'Failed to add contribution',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   } finally {
     if (connection) {
@@ -426,6 +472,73 @@ exports.deleteGoal = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting goal'
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+};
+
+exports.getGoalContributions = async (req, res) => {
+  let connection;
+  try {
+    const { goal_id } = req.params;
+    const userId = req.user.user_id;
+
+    if (!userId) {
+      logger.error('User ID missing from token payload');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication failed: User ID missing'
+      });
+    }
+
+    connection = await db.getConnection();
+
+    // First verify the goal belongs to the user
+    const [goals] = await connection.execute(
+      'SELECT goal_id FROM goals WHERE goal_id = ? AND user_id = ?',
+      [goal_id, userId]
+    );
+
+    if (goals.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Goal not found or unauthorized'
+      });
+    }
+
+    // Get all contributions for the goal
+    const [contributions] = await connection.execute(`
+      SELECT 
+        gc.*,
+        DATE_FORMAT(gc.created_at, '%Y-%m-%d %H:%i:%s') as formatted_date
+      FROM goal_contributions gc
+      WHERE gc.goal_id = ?
+      ORDER BY gc.created_at DESC
+    `, [goal_id]);
+
+    const formattedContributions = contributions.map(contribution => ({
+      ...contribution,
+      amount: parseFloat(contribution.amount) || 0,
+      created_at: contribution.formatted_date
+    }));
+
+    res.json({
+      success: true,
+      data: formattedContributions
+    });
+  } catch (error) {
+    logger.error('Failed to get goal contributions:', {
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      userId: req.user?.user_id,
+      goalId: req.params?.goal_id
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Error retrieving goal contributions'
     });
   } finally {
     if (connection) {

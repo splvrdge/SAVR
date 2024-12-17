@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const goalController = require("../controllers/goalsController");
-const { validateToken, validateUser } = require("../middlewares/authMiddleware");
+const { validateToken } = require("../middlewares/authMiddleware");
 const { body, param } = require("express-validator");
 const { handleValidationErrors } = require("../middlewares/validationMiddleware");
 
@@ -29,8 +29,7 @@ const validateGoal = [
     .optional()
     .trim()
     .isLength({ max: 500 })
-    .withMessage("Description must not exceed 500 characters"),
-  handleValidationErrors
+    .withMessage("Description must not exceed 500 characters")
 ];
 
 const validateContribution = [
@@ -44,15 +43,7 @@ const validateContribution = [
     .optional()
     .trim()
     .isLength({ max: 255 })
-    .withMessage("Notes must not exceed 255 characters"),
-  handleValidationErrors
-];
-
-const validateGoalId = [
-  param("goal_id")
-    .isInt({ min: 1 })
-    .withMessage("Invalid goal ID"),
-  handleValidationErrors
+    .withMessage("Notes must not exceed 255 characters")
 ];
 
 // Create goal
@@ -60,6 +51,7 @@ router.post(
   "/create",
   validateToken,
   validateGoal,
+  handleValidationErrors,
   goalController.createGoal
 );
 
@@ -70,11 +62,21 @@ router.get(
   goalController.getGoals
 );
 
+// Get goal contributions
+router.get(
+  "/contributions/:goal_id",
+  validateToken,
+  param("goal_id").isInt().withMessage("Invalid goal ID"),
+  handleValidationErrors,
+  goalController.getGoalContributions
+);
+
 // Add contribution
 router.post(
   "/contribute",
   validateToken,
   validateContribution,
+  handleValidationErrors,
   goalController.addContribution
 );
 
@@ -82,7 +84,9 @@ router.post(
 router.put(
   "/update/:goal_id",
   validateToken,
+  param("goal_id").isInt().withMessage("Invalid goal ID"),
   validateGoal,
+  handleValidationErrors,
   goalController.updateGoal
 );
 
@@ -90,7 +94,8 @@ router.put(
 router.delete(
   "/delete/:goal_id",
   validateToken,
-  validateGoalId,
+  param("goal_id").isInt().withMessage("Invalid goal ID"),
+  handleValidationErrors,
   goalController.deleteGoal
 );
 
