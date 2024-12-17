@@ -1,9 +1,7 @@
-# SAVR - Financial Tracker App 💰
-
 <div align="center">
 
 <h1>
-  <img src="assets/icons/savr-green.png" alt="SAVR Logo" width="300"/>
+  <img src="../FRONTEND/assets/images/SAVR-Banner.png" alt="SAVR Banner" width="800"/>
 </h1>
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -14,18 +12,30 @@
 ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-SAVR is a modern financial tracking application built with React Native and Expo, designed to help users manage their expenses and income efficiently.
-
 </div>
 
 ## ✨ Features
 
 - 📱 Cross-platform (iOS & Android)
 - 💳 Track expenses and income
-- 📊 Visual analytics and reports
+- 📊 Comprehensive Analytics Dashboard
+  - Weekly spending analysis
+  - Monthly financial trends
+  - Customizable reports
 - 🎯 Set and track financial goals
 - 🔐 Secure authentication
 - 📱 User-friendly interface
+- 👤 Personalized user profiles
+- 📈 Real-time transaction tracking
+
+## 📊 Analytics Features
+
+Our powerful analytics suite helps you understand your spending habits:
+
+- **Weekly Analytics**: Track your week-by-week spending patterns and identify trends
+- **Monthly Overview**: Get a bird's eye view of your monthly financial health
+- **Custom Reports**: Generate detailed reports based on categories and time periods
+- **Visual Insights**: Beautiful charts and graphs to visualize your financial data
 
 ## ⚠️ Important Notice
 
@@ -42,7 +52,7 @@ This application is hosted on Render's free tier, which means:
 2. Clone the repository
 ```bash
 git clone https://github.com/splvrdge/savr-finance-tracker.git
-cd FRONTEND
+cd savr-finance-tracker
 ```
 
 3. Build and run with Docker
@@ -65,7 +75,7 @@ docker run -it -p 19000:19000 -p 19001:19001 -p 19002:19002 savr-fintracker
 1. Clone the repository
 ```bash
 git clone https://github.com/splvrdge/savr-finance-tracker.git
-cd FRONTEND
+cd savr-finance-tracker
 ```
 
 2. Install dependencies
@@ -119,6 +129,6 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 <div align="center">
 
-Made with ❤️ by Francis James Lagang and Margaret Grace Docdoc
+Made with ❤️ by SAVR Developers
 
 </div>
