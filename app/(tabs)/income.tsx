@@ -401,7 +401,7 @@ export default function IncomeScreen() {
       {/* Income List */}
       <View className="flex-1">
         <ScrollView
-          contentContainerStyle={{ flexGrow: 0 }}
+          contentContainerStyle={{ flexGrow: 0, paddingTop: 10 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -424,7 +424,7 @@ export default function IncomeScreen() {
                     <TouchableOpacity
                       key={income.id}
                       onPress={() => handleIncomePress(income)}
-                      className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm"
+                      className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm mb-3"
                     >
                       <View className="flex-row justify-between items-center">
                         <View className="flex-row items-center flex-1">
@@ -515,7 +515,7 @@ export default function IncomeScreen() {
               <ScrollView className="max-h-[600px]" showsVerticalScrollIndicator={false}>
                 <View className="space-y-6">
                   {/* Amount Input */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-2">Amount</Text>
                     <TextInput
                       className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800 text-lg"
@@ -528,7 +528,7 @@ export default function IncomeScreen() {
                   </View>
 
                   {/* Description Input */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-2">Description</Text>
                     <TextInput
                       className="bg-gray-50 px-4 py-3.5 rounded-xl text-gray-800"
@@ -540,7 +540,7 @@ export default function IncomeScreen() {
                   </View>
 
                   {/* Category Selection */}
-                  <View>
+                  <View className="mb-6">
                     <Text className="text-gray-600 font-medium mb-3">Category</Text>
                     <ScrollView 
                       horizontal 
@@ -631,7 +631,7 @@ export default function IncomeScreen() {
                       color="#2563eb"
                     />
                   </View>
-                  <Text className="text-3xl font-bold text-gray-800 mb-1">
+                  <Text className="text-3xl font-bold text-gray-800">
                     {formatCurrency(selectedIncome.amount)}
                   </Text>
                   <Text className="text-gray-500 text-lg capitalize">
@@ -640,14 +640,14 @@ export default function IncomeScreen() {
                 </View>
 
                 <View className="space-y-4">
-                  <View className="bg-gray-50 p-4 rounded-xl">
+                  <View className="bg-gray-50 p-4 rounded-xl mt-4">
                     <Text className="text-gray-500 text-sm mb-1">Description</Text>
                     <Text className="text-gray-800 font-medium">
                       {selectedIncome.description || 'No description'}
                     </Text>
                   </View>
 
-                  <View className="bg-gray-50 p-4 rounded-xl">
+                  <View className="bg-gray-50 p-4 rounded-xl mt-4">
                     <Text className="text-gray-500 text-sm mb-1">Date & Time</Text>
                     <Text className="text-gray-800 font-medium">
                       {formatDate(selectedIncome.timestamp)}
@@ -666,7 +666,7 @@ export default function IncomeScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(selectedIncome.id)}
-                    className="flex-1 bg-gray-100 py-4 rounded-xl"
+                    className="flex-1 bg-gray-100 py-4 rounded-xl ml-3"
                   >
                     {isDeleting ? (
                       <ActivityIndicator size="small" color="#666" />
