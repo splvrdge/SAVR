@@ -1,9 +1,12 @@
+# SAVR: Personal Finance Tracker
+
 <div align="center">
-
-<h1>
   <img src="./assets/images/SAVR-Banner.png" alt="SAVR Banner" width="800"/>
-</h1>
+</div>
 
+> A comprehensive mobile application for tracking personal finances and achieving financial goals.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
@@ -12,120 +15,147 @@
 ![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-</div>
+## Overview
 
-## ✨ Features
+Submitted by:
+| Name | Role |
+|------|------|
+| Francis James Lagang | Student |
+| Margaret Grace Docdoc | Student |
 
-- 📱 Cross-platform (iOS & Android)
-- 💳 Track expenses and income
-- 📊 Comprehensive Analytics Dashboard
-- 🎯 Set and track financial goals
-- 🔐 Secure authentication
-- 📱 User-friendly interface
-- 👤 Personalized user profiles
-- 📈 Real-time transaction tracking
+*Final Project for CS 3105, DCISM, University of San Carlos. December 2024.*
 
-## 📊 Analytics Features
+> [!NOTE]  
+> SAVR is designed to help users track their finances, set goals, and make informed financial decisions through comprehensive analytics and an intuitive interface.
 
-Our powerful analytics suite helps you understand your spending habits:
+## Table of Contents
+- [Features](#features)
+- [Analytics](#analytics)
+- [Getting Started](#getting-started)
+- [Tech Stack](#tech-stack)
+- [Development](#development)
+- [Contributing](#contributing)
 
-- **Weekly Analytics**: Track your week-by-week spending patterns and identify trends
-- **Monthly Overview**: Get a bird's eye view of your monthly financial health
-- **Custom Reports**: Generate detailed reports based on categories and time periods
-- **Visual Insights**: Beautiful charts and graphs to visualize your financial data
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Sparkles.png" alt="Features" width="25" /> Features
 
-## ⚠️ Important Notice
+> [!TIP]
+> SAVR offers a comprehensive suite of features designed to make personal finance management effortless:
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Mobile%20Phone.png" alt="Mobile" width="20" /> Cross-platform support (iOS & Android)
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Credit%20Card.png" alt="Card" width="20" /> Expense and income tracking
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Bar%20Chart.png" alt="Analytics" width="20" /> Advanced analytics dashboard
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Bullseye.png" alt="Goal" width="20" /> Goal setting and tracking
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Locked.png" alt="Security" width="20" /> Secure authentication
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/People/Bust%20in%20Silhouette.png" alt="Profile" width="20" /> Personalized profiles
+> - <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Chart%20Increasing.png" alt="Updates" width="20" /> Real-time updates
 
-This application is hosted on Render's free tier, which means:
-- The server automatically spins down after 15 minutes of inactivity
-- Initial requests after inactivity may take 50 seconds or more to respond
-- Please be patient during the initial load as the server spins up
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Bar%20Chart.png" alt="Analytics" width="25" /> Analytics
 
-## 🚀 Quick Start
+Our analytics suite provides deep insights into your financial habits:
 
-### Option 1: Using Docker (Recommended)
+| Feature | Description |
+|---------|-------------|
+| Weekly Analysis | Track spending patterns week by week |
+| Monthly Overview | Comprehensive monthly financial summary |
+| Custom Reports | Detailed reports by category and time period |
+| Visual Insights | Interactive charts and graphs |
+
+> [!IMPORTANT]  
+> The analytics dashboard updates in real-time as you add transactions, providing immediate insights into your spending patterns.
+
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Rocket.png" alt="Getting Started" width="25" /> Getting Started
+
+> [!NOTE]  
+> Choose your preferred installation method below. Docker is recommended for the most consistent development experience.
+
+### Docker Installation (Recommended)
 
 1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-2. Clone the repository
+2. Clone and setup:
 ```bash
 git clone https://github.com/splvrdge/savr-finance-tracker.git
 cd savr-finance-tracker
-```
-
-3. Build with Docker and run with Expo CLI
-```bash
 docker build -t savr-fintracker .
 npx expo start
 ```
 
-### Option 2: Manual Installation
+### Manual Installation
 
-#### Prerequisites
+> [!CAUTION]
+> Ensure you have all prerequisites installed to avoid setup issues:
+> - Node.js (v14 or higher)
+> - npm or yarn
+> - Expo CLI
+> - iOS Simulator or Android Emulator (optional)
 
-- Node.js (v14 or higher)
-- npm or yarn
-- Expo CLI
-- iOS Simulator or Android Emulator (optional)
-
-#### Steps
-
-1. Clone the repository
 ```bash
+# Clone repository
 git clone https://github.com/splvrdge/savr-finance-tracker.git
 cd savr-finance-tracker
-```
 
-2. Install dependencies
-```bash
+# Install dependencies
 npm install
 # or
 yarn install
-```
 
-3. Start the development server
-```bash
+# Start development server
 npx expo start
 ```
 
 ### Running the App
 
-After starting the development server, you can:
-- Press `i` to open in iOS simulator
-- Press `a` to open in Android emulator
-- Scan the QR code with Expo Go app on your physical device
+After starting the development server:
+- Press `i` for iOS simulator
+- Press `a` for Android emulator
+- Scan QR code with Expo Go app on your device
 
-## 🛠️ Tech Stack
+> [!WARNING]  
+> The application is hosted on Render's free tier:
+> - Server spins down after 15 minutes of inactivity
+> - Initial requests may take up to 50 seconds
+> - Please be patient during initial load times
+
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Hammer%20and%20Wrench.png" alt="Tech Stack" width="25" /> Tech Stack
 
 ### Frontend
-- [React Native](https://reactnative.dev/) - Mobile framework
-- [Expo](https://expo.dev/) - Development platform
-- [TypeScript](https://www.typescriptlang.org/) - Programming language
-- [TailwindCSS](https://tailwindcss.com/) - Styling
-- [React Navigation](https://reactnavigation.org/) - Navigation
-- [Docker](https://www.docker.com/) - Containerization
+- **React Native**: Mobile application framework
+- **Expo**: Development platform
+- **TypeScript**: Programming language
+- **TailwindCSS**: Styling framework
 
 ### Backend
-- [Express.js](https://expressjs.com/) - Backend framework
-- [MySQL](https://www.mysql.com/) - Database
-- [Render](https://render.com/) - Cloud hosting platform
+- **Express.js**: Web application framework
+- **MySQL**: Database management
+- **Docker**: Containerization
 
-## 👥 Authors
+### Development Tools
+- **Git**: Version control
+- **GitHub Actions**: CI/CD
+- **ESLint**: Code linting
+- **Prettier**: Code formatting
 
-- **Francis James A. Lagang** - _Lead Developer_ - [GitHub](https://github.com/splvrdge)
-- **Margaret Grace Docdoc** - _Developer_ - [GitHub](https://github.com/dushaaaa)
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Laptop.png" alt="Development" width="25" /> Development
 
-## 📄 License
+> [!TIP]
+> For the best development experience:
+> - Use VSCode with recommended extensions
+> - Follow the TypeScript style guide
+> - Test on both iOS and Android platforms
+> - Use the Docker development environment
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Handshake.png" alt="Contributing" width="25" /> Contributing
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/splvrdge/savr-finance-tracker/issues).
+> [!NOTE]  
+> We welcome contributions! Please:
+> 1. Fork the repository
+> 2. Create a feature branch
+> 3. Submit a pull request
+> 4. Follow our coding standards
 
 ---
-
 <div align="center">
+<img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Graduation%20Cap.png" alt="University" width="30" />
 
-Made with ❤️ by SAVR Developers
+University of San Carlos - Department of Computer and Information Sciences and Mathematics
 
+*Making personal finance management accessible to everyone*
 </div>
